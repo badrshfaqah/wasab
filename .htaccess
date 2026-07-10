@@ -1,0 +1,17 @@
+RewriteEngine On
+
+# منع الوصول المباشر لملف الإعدادات
+<Files "config.php">
+    Require all denied
+</Files>
+
+# السماح بالملفات الثابتة داخل storage/uploads فقط
+<IfModule mod_rewrite.c>
+    RewriteCond %{REQUEST_URI} ^/storage/(?!uploads/) [NC]
+    RewriteRule ^ - [F,L]
+</IfModule>
+
+# توجيه كل الطلبات إلى index.php ما عدا الملفات والمجلدات الموجودة فعلياً
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ index.php [QSA,L]

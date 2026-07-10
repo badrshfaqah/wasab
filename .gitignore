@@ -1,0 +1,8 @@
+/config.php
+/storage/uploads/*
+!/storage/uploads/.gitkeep
+/storage/logs/*
+!/storage/logs/.gitkeep
+/storage/install.lock
+.DS_Store
+*.swp
