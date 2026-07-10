@@ -14,6 +14,7 @@ return function (Router $router): void {
 
     $router->get('/phone/settings', [PhoneController::class, 'settings'], [$auth]);
     $router->post('/phone/settings', [PhoneController::class, 'updateSettings'], [$auth]);
+    $router->post('/phone/toggle', [PhoneController::class, 'toggle'], [$auth]);
 
     // إدارة مفتاح API لكل شركة - مدير النظام فقط
     $router->get('/phone/admin', [PhoneAdminController::class, 'index'], [$auth, $systemAdmin]);

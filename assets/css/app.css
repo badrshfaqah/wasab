@@ -168,12 +168,16 @@ tr:hover td{background:#fafbfc;}
 
 /* ودجت الهاتف العائم (إضافة التلفون) */
 .phone-widget{position:fixed;bottom:20px;left:20px;z-index:70;font-family:inherit;}
+.phone-native-mount{position:fixed;left:-9999px;top:0;width:360px;height:0;overflow:hidden;pointer-events:none;}
+.innocalls-webrtc{display:none!important;}
 .phone-widget-toggle{
   display:flex;align-items:center;gap:8px;
   height:46px;padding:0 18px;border-radius:26px;background:var(--primary);color:#fff;border:0;
   font-size:14px;font-weight:700;font-family:inherit;box-shadow:0 4px 14px rgba(0,0,0,.18);cursor:pointer;position:relative;
 }
-.phone-status-dot{position:relative;top:-8px;width:10px;height:10px;border-radius:50%;border:2px solid #fff;background:#9ca3af;flex-shrink:0;}
+.phone-widget-toggle.phone-ringing{background:var(--success);animation:phone-pulse 1s infinite;}
+.phone-status-dot{width:10px;height:10px;border-radius:50%;border:2px solid #fff;background:#9ca3af;flex-shrink:0;display:inline-block;}
+.phone-widget-toggle .phone-status-dot{position:relative;top:-8px;}
 .phone-status-dot.online{background:var(--success);}
 .phone-status-dot.offline{background:#9ca3af;}
 .phone-status-dot.warning{background:var(--warning);}
@@ -182,9 +186,21 @@ tr:hover td{background:#fafbfc;}
   border:1px solid var(--border);border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,.15);
   padding:14px;
 }
-.phone-widget-header{display:flex;justify-content:space-between;align-items:center;font-size:13.5px;margin-bottom:10px;}
+.phone-widget-header{display:flex;justify-content:space-between;align-items:center;font-size:13px;margin-bottom:10px;gap:8px;}
 .phone-widget-dial{display:flex;gap:6px;margin-bottom:8px;}
-.phone-widget-dial input{flex:1;padding:8px 10px;}
+.phone-widget-dial input{flex:1;padding:8px 10px;text-align:center;font-size:16px;letter-spacing:1px;}
+.phone-dialpad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:4px 0 10px;}
+.phone-dialpad-key{
+  height:42px;border-radius:10px;border:1px solid var(--border);background:var(--bg);
+  font-size:16px;font-weight:700;cursor:pointer;color:var(--text);
+}
+.phone-dialpad-key:hover{background:var(--primary-light);}
+.phone-incoming-toast{
+  position:absolute;bottom:64px;left:0;width:230px;background:var(--card);border:2px solid var(--success);
+  border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.18);padding:10px 14px;display:flex;align-items:center;gap:10px;
+  cursor:pointer;animation:phone-pulse 1.4s infinite;
+}
+@keyframes phone-pulse{0%,100%{transform:scale(1);}50%{transform:scale(1.03);}}
 
 @media (max-width: 900px){
   .sidebar{transform:translateX(100%);}

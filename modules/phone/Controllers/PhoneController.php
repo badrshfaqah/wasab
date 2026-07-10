@@ -59,6 +59,36 @@ class PhoneController
         redirect('/phone/settings');
     }
 
+    /** تفعيل/إيقاف سريع للهاتف من الودجت العائم دون مغادرة الصفحة الحالية */
+    public function toggle(): void
+    {
+        header('Content-Type: application/json; charset=utf-8');
+
+        if (!Permission::check('phone.view')) {
+            http_response_code(403);
+            echo json_encode(['error' => 'forbidden']);
+            return;
+        }
+
+        if (!Csrf::verify(Request::input('_csrf'))) {
+            http_response_code(419);
+            echo json_encode(['error' => 'csrf']);
+            return;
+        }
+
+        $phoneUser = PhoneUser::forUser(Auth::id());
+        if (!$phoneUser) {
+            http_response_code(404);
+            echo json_encode(['error' => 'not_configured']);
+            return;
+        }
+
+        $newEnabled = !$phoneUser['enabled'];
+        PhoneUser::save(Auth::id(), $phoneUser['extension'], null, $newEnabled);
+
+        echo json_encode(['enabled' => $newEnabled]);
+    }
+
     private function guardAccess(): void
     {
         if (!Permission::check('phone.view')) {

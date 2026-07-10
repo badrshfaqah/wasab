@@ -21,8 +21,12 @@ return function (array $user): array {
     }
 
     $phoneUser = PhoneUser::forUser((int) $user['id']);
-    if (!$phoneUser || !$phoneUser['enabled'] || $phoneUser['extension'] === '' || $phoneUser['secret'] === '') {
+    if (!$phoneUser || $phoneUser['extension'] === '' || $phoneUser['secret'] === '') {
         return [View::renderPartial('phone::widget', ['state' => 'missing_user_config'])];
+    }
+
+    if (!$phoneUser['enabled']) {
+        return [View::renderPartial('phone::widget', ['state' => 'disabled'])];
     }
 
     return [View::renderPartial('phone::widget', [
