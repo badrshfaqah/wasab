@@ -1,4 +1,5 @@
 <?php
+use App\Core\Auth;
 $typeLabels = ['system_admin' => 'مدير نظام', 'company_admin' => 'مدير شركة', 'user' => 'مستخدم'];
 ?>
 <div class="page-head">
@@ -23,6 +24,12 @@ $typeLabels = ['system_admin' => 'مدير نظام', 'company_admin' => 'مدي
                 <td><?= status_badge($u['status']) ?></td>
                 <td style="white-space:nowrap;">
                     <a class="btn btn-outline btn-sm" href="<?= route('/users/' . $u['id'] . '/edit') ?>">تعديل</a>
+                    <?php if (Auth::isSystemAdmin() && $u['membership_type'] !== 'system_admin' && $u['status'] === 'active'): ?>
+                        <form method="post" action="<?= route('/users/' . $u['id'] . '/impersonate') ?>" style="display:inline;" data-confirm="سيتم تسجيل دخولك بصفة هذا المستخدم مؤقتاً. متابعة؟">
+                            <?= csrf_field() ?>
+                            <button class="btn btn-outline btn-sm" type="submit">دخول بالنيابة</button>
+                        </form>
+                    <?php endif; ?>
                     <form method="post" action="<?= route('/users/' . $u['id'] . '/delete') ?>" style="display:inline;" data-confirm="هل تريد حذف هذا المستخدم؟">
                         <?= csrf_field() ?>
                         <button class="btn btn-danger btn-sm" type="submit">حذف</button>

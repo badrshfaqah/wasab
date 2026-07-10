@@ -82,6 +82,14 @@ a{color:inherit;text-decoration:none;}
 .notif-item.unread{background:var(--primary-light);}
 .notif-empty{padding:24px;text-align:center;color:var(--muted);font-size:13px;}
 
+.impersonation-bar{
+  background:#fef3c7;color:#92400e;border-bottom:1px solid #fde68a;
+  padding:9px 20px;display:flex;justify-content:space-between;align-items:center;
+  flex-wrap:wrap;gap:8px;font-size:13.5px;
+}
+.impersonation-bar .btn{background:#92400e;}
+.impersonation-bar .btn:hover{opacity:.85;}
+
 .content{padding:22px;flex:1;}
 .page-head{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:18px;}
 .page-head h1{font-size:20px;margin:0;}

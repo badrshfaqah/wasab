@@ -41,6 +41,8 @@ $router->post('/users', [UserController::class, 'store'], [[Middleware::class, '
 $router->get('/users/{id}/edit', [UserController::class, 'edit'], [[Middleware::class, 'auth']]);
 $router->post('/users/{id}', [UserController::class, 'update'], [[Middleware::class, 'auth']]);
 $router->post('/users/{id}/delete', [UserController::class, 'destroy'], [[Middleware::class, 'auth']]);
+$router->post('/users/{id}/impersonate', [UserController::class, 'impersonate'], [[Middleware::class, 'auth'], [Middleware::class, 'systemAdmin']]);
+$router->post('/impersonate/stop', [UserController::class, 'stopImpersonate'], [[Middleware::class, 'auth']]);
 
 // ---------- الأدوار والصلاحيات ----------
 $router->get('/roles', [RoleController::class, 'index'], [[Middleware::class, 'auth']]);

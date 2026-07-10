@@ -170,6 +170,56 @@ class UserController
         redirect('/users');
     }
 
+    /**
+     * دخول مدير النظام بالنيابة عن مستخدم آخر (لأي عضوية عدا مدير نظام آخر).
+     * محمي بميدلوير systemAdmin على مستوى المسار، ومُتحقَّق منه مجدداً هنا كطبقة دفاع إضافية.
+     */
+    public function impersonate(array $params): void
+    {
+        $this->verifyCsrf('/users');
+
+        $targetId = (int) $params['id'];
+        $target = Database::first('SELECT * FROM users WHERE id = :id', ['id' => $targetId]);
+
+        if (!$target) {
+            flash_set('error', 'المستخدم غير موجود.');
+            redirect('/users');
+        }
+        if ($target['membership_type'] === 'system_admin') {
+            flash_set('error', 'لا يمكن الدخول بالنيابة عن مدير نظام آخر.');
+            redirect('/users');
+        }
+        if ($target['status'] !== 'active') {
+            flash_set('error', 'لا يمكن الدخول بالنيابة عن مستخدم غير نشط.');
+            redirect('/users');
+        }
+
+        $adminId = Auth::id();
+        if (!Auth::startImpersonation($targetId)) {
+            flash_set('error', 'تعذر بدء الدخول بالنيابة.');
+            redirect('/users');
+        }
+
+        ActivityLog::log('user.impersonate_start', 'user', $targetId, "دخول مدير النظام #{$adminId} بالنيابة عن: {$target['email']}");
+        flash_set('success', 'أنت الآن تتصفح النظام بصفة ' . $target['name'] . '.');
+        redirect('/');
+    }
+
+    public function stopImpersonate(): void
+    {
+        $this->verifyCsrf('/');
+
+        $impersonated = Auth::user();
+        $adminId = Auth::impersonatorId();
+
+        if (Auth::stopImpersonation()) {
+            ActivityLog::log('user.impersonate_stop', 'user', $impersonated['id'] ?? null, "إنهاء الدخول بالنيابة عن: " . ($impersonated['email'] ?? '') . " (مدير النظام #{$adminId})");
+            flash_set('success', 'تم الرجوع إلى حسابك الأصلي.');
+        }
+
+        redirect('/');
+    }
+
     // ---------------------------------------------------------------
 
     /** فقط مدير النظام ومدير الشركة يديران المستخدمين، ويُفرض هذا من الخادم لا الواجهة فقط */

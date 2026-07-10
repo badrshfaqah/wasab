@@ -13,6 +13,13 @@ $primaryColor = $company['primary_color'] ?? '#2563eb';
 $unread = $user ? Notification::unreadCount((int) $user['id']) : 0;
 $notifications = $user ? Notification::recent((int) $user['id'], 6) : [];
 $currentPath = \App\Core\Request::path();
+
+$impersonating = Auth::isImpersonating();
+$impersonatorName = null;
+if ($impersonating) {
+    $admin = \App\Core\Database::first('SELECT name FROM users WHERE id = :id', ['id' => Auth::impersonatorId()]);
+    $impersonatorName = $admin['name'] ?? 'مدير النظام';
+}
 ?>
 <!doctype html>
 <html lang="ar" dir="rtl">
@@ -27,6 +34,15 @@ $currentPath = \App\Core\Request::path();
 <div class="app-shell">
     <?php include __DIR__ . '/../partials/sidebar.php'; ?>
     <div class="main">
+        <?php if ($impersonating): ?>
+            <div class="impersonation-bar">
+                <span>⚠️ أنت الآن تتصفح النظام بصفة <strong><?= e($user['name']) ?></strong> بدلاً من <?= e($impersonatorName) ?></span>
+                <form method="post" action="<?= route('/impersonate/stop') ?>">
+                    <?= csrf_field() ?>
+                    <button type="submit" class="btn btn-sm">العودة لحسابي</button>
+                </form>
+            </div>
+        <?php endif; ?>
         <?php include __DIR__ . '/../partials/topbar.php'; ?>
         <div class="content">
             <?php if ($msg = flash_get('success')): ?>

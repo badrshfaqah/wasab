@@ -64,6 +64,58 @@ class Auth
         Session::destroy();
     }
 
+    /**
+     * يسمح لمدير النظام الحالي بالدخول بالنيابة عن مستخدم آخر (غير مدير نظام).
+     * يُسجَّل هوية مدير النظام الأصلي في الجلسة للعودة إليه لاحقاً.
+     */
+    public static function startImpersonation(int $targetUserId): bool
+    {
+        if (!self::isSystemAdmin() || self::isImpersonating()) {
+            return false;
+        }
+
+        $target = Database::first('SELECT * FROM users WHERE id = :id AND status = "active" LIMIT 1', ['id' => $targetUserId]);
+        if (!$target || $target['membership_type'] === 'system_admin') {
+            return false;
+        }
+
+        $adminId = self::id();
+        Session::regenerate();
+        Session::set('impersonator_id', $adminId);
+        Session::set('user_id', $target['id']);
+        self::$userCache = $target;
+        self::$loaded = true;
+
+        return true;
+    }
+
+    public static function stopImpersonation(): bool
+    {
+        $adminId = Session::get('impersonator_id');
+        if (!$adminId) {
+            return false;
+        }
+
+        Session::remove('impersonator_id');
+        Session::regenerate();
+        Session::set('user_id', $adminId);
+        self::$userCache = null;
+        self::$loaded = false;
+
+        return true;
+    }
+
+    public static function isImpersonating(): bool
+    {
+        return Session::has('impersonator_id');
+    }
+
+    public static function impersonatorId(): ?int
+    {
+        $id = Session::get('impersonator_id');
+        return $id ? (int) $id : null;
+    }
+
     public static function check(): bool
     {
         return self::user() !== null;
