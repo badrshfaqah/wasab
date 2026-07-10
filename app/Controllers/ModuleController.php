@@ -2,6 +2,7 @@
 
 namespace App\Controllers;
 
+use App\Core\CoreMigrator;
 use App\Core\Csrf;
 use App\Core\ModuleManager;
 use App\Core\Request;
@@ -14,7 +15,28 @@ class ModuleController
         View::render('modules.index', [
             'pageTitle' => 'إدارة الإضافات',
             'modules' => ModuleManager::list(),
+            'coreSchemaUpToDate' => CoreMigrator::isUpToDate(),
         ]);
+    }
+
+    /** زر يدوي لمدير النظام: يعيد فحص وتطبيق أي ترقيات ناقصة على جداول النواة، كأنها ترقية إضافة. */
+    public function updateDatabase(): void
+    {
+        $this->verifyCsrf();
+
+        $results = CoreMigrator::applyAll();
+        $failed = array_filter($results, fn ($r) => $r['status'] === 'failed');
+
+        if ($failed) {
+            $messages = array_map(fn ($r) => $r['label'] . ': ' . $r['error'], $failed);
+            flash_set('error', 'فشل تحديث بعض عناصر قاعدة البيانات: ' . implode(' | ', $messages) . '. راجع storage/logs/app.log.');
+        } elseif (array_filter($results, fn ($r) => $r['status'] === 'applied')) {
+            flash_set('success', 'تم تحديث قاعدة بيانات النواة بنجاح.');
+        } else {
+            flash_set('success', 'قاعدة بيانات النواة محدّثة بالفعل، لا يوجد شيء لتطبيقه.');
+        }
+
+        redirect('/extensions');
     }
 
     public function install(array $params): void

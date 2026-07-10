@@ -2,6 +2,26 @@
     <div><h1>إدارة الإضافات</h1><p>ثبّت وفعّل الإضافات لتوسيع قدرات النظام دون المساس بالنواة.</p></div>
 </div>
 
+<div class="card">
+    <div class="card-title">
+        <span>🗄️ قاعدة بيانات النواة</span>
+        <?= $coreSchemaUpToDate ? status_badge('active') : status_badge('pending') ?>
+    </div>
+    <p class="hint" style="margin:0 0 12px;">
+        <?php if ($coreSchemaUpToDate): ?>
+            جداول النواة محدّثة بالكامل. عادة يتم هذا تلقائياً بمجرد رفع ملفات جديدة، لكن يمكنك الضغط على الزر يدوياً
+            في أي وقت (مثلاً بعد رفع تحديث، أو لإعادة المحاولة إن واجهت رسالة خطأ سابقاً).
+        <?php else: ?>
+            يتوفر تحديث لبنية جداول النواة لم يُطبَّق تلقائياً بعد (على الأغلب بسبب صلاحيات قاعدة البيانات على
+            الاستضافة). اضغط الزر لإعادة المحاولة الآن.
+        <?php endif; ?>
+    </p>
+    <form method="post" action="<?= route('/extensions/update-core-database') ?>">
+        <?= csrf_field() ?>
+        <button class="btn <?= $coreSchemaUpToDate ? 'btn-outline' : '' ?> btn-sm" type="submit">تحديث قاعدة بيانات النواة</button>
+    </form>
+</div>
+
 <div class="cards-row" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr));">
 <?php if (!$modules): ?>
     <div class="empty-state"><div class="ic">🧩</div>لا توجد إضافات داخل مجلد modules/ حالياً.</div>

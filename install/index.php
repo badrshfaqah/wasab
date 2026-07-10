@@ -149,6 +149,18 @@ if ($step === 3) {
             try {
                 $db = $_SESSION['install_db'];
                 require_once BASE_PATH . '/app/Core/Database.php';
+                require_once BASE_PATH . '/app/Core/Setting.php';
+                require_once BASE_PATH . '/app/Core/CoreMigrator.php';
+                if (!function_exists('log_exception')) {
+                    function log_exception(\Throwable $e): void
+                    {
+                        @file_put_contents(
+                            BASE_PATH . '/storage/logs/app.log',
+                            sprintf('[%s] %s in %s:%d%s', date('Y-m-d H:i:s'), $e->getMessage(), $e->getFile(), $e->getLine(), PHP_EOL),
+                            FILE_APPEND
+                        );
+                    }
+                }
                 $pdo = \App\Core\Database::connectRaw($db['host'], $db['port'], $db['user'], $db['pass'], $db['name']);
 
                 $schema = require BASE_PATH . '/install/schema.php';
@@ -164,6 +176,13 @@ if ($step === 3) {
                 $hash = password_hash($adminPass, PASSWORD_DEFAULT);
                 $stmt = $pdo->prepare('INSERT INTO users (company_id, name, email, password, membership_type, status, created_at) VALUES (NULL, :name, :email, :password, "system_admin", "active", :now)');
                 $stmt->execute(['name' => $adminName, 'email' => $adminEmail, 'password' => $hash, 'now' => $now]);
+
+                // schema.php أنشأ الجداول بأحدث تركيبة أصلاً، فنُعلّم كل ترقيات النواة كمُطبَّقة مسبقاً
+                \App\Core\Database::connect([
+                    'host' => $db['host'], 'port' => $db['port'], 'database' => $db['name'],
+                    'username' => $db['user'], 'password' => $db['pass'], 'charset' => 'utf8mb4',
+                ]);
+                \App\Core\CoreMigrator::markAllApplied();
 
                 $appKey = bin2hex(random_bytes(32));
                 $configArray = [
