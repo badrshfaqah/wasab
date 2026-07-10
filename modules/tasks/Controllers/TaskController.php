@@ -36,8 +36,9 @@ class TaskController
             $scope = 'mine';
         }
 
+        $filters = $this->currentFilters();
         $page = max(1, (int) Request::query('page', 1));
-        $result = Task::paginate($companyId, $scope, Auth::id(), $page);
+        $result = Task::paginate($companyId, $scope, Auth::id(), $page, 15, $filters);
 
         View::render('tasks::index', [
             'pageTitle' => 'المهام',
@@ -46,6 +47,42 @@ class TaskController
             'page' => $page,
             'perPage' => 15,
             'scope' => $scope,
+            'filters' => $filters,
+            'companyUsers' => $this->companyUsers($companyId),
+            'statuses' => self::STATUSES,
+            'priorities' => self::PRIORITIES,
+            'canManage' => $this->canManage(),
+        ]);
+    }
+
+    public function board(): void
+    {
+        $companyId = $this->requireCompanyContext();
+        if (!$this->can('tasks.view')) {
+            $this->forbidden();
+            return;
+        }
+
+        $scope = Request::query('scope', 'mine');
+        $allowedScopes = ['mine', 'created', 'overdue', 'approval'];
+        if ($this->canManage()) {
+            $allowedScopes[] = 'all';
+        }
+        if (!in_array($scope, $allowedScopes, true)) {
+            $scope = 'mine';
+        }
+
+        $filters = $this->currentFilters();
+        $columns = Task::forBoard($companyId, $scope, Auth::id(), $filters);
+
+        View::render('tasks::board', [
+            'pageTitle' => 'لوحة المهام',
+            'columns' => $columns,
+            'scope' => $scope,
+            'filters' => $filters,
+            'companyUsers' => $this->companyUsers($companyId),
+            'statuses' => self::STATUSES,
+            'priorities' => self::PRIORITIES,
             'canManage' => $this->canManage(),
         ]);
     }
@@ -189,18 +226,32 @@ class TaskController
     {
         $companyId = $this->requireCompanyContext();
         $task = $this->findVisible((int) $params['id'], $companyId);
+        $wantsJson = Request::wantsJson();
 
         $canChange = $this->canEditTask($task)
             || (int) $task['assignee_id'] === Auth::id()
             || (int) $task['creator_id'] === Auth::id();
         if (!$canChange) {
+            if ($wantsJson) {
+                $this->jsonResponse(403, ['error' => 'لا تملك صلاحية تعديل هذه المهمة.']);
+                return;
+            }
             $this->forbidden();
             return;
         }
-        $this->verifyCsrf('/tasks/' . $task['id']);
+        if (!$wantsJson) {
+            $this->verifyCsrf('/tasks/' . $task['id']);
+        } elseif (!Csrf::verify(Request::input('_csrf'))) {
+            $this->jsonResponse(419, ['error' => 'انتهت صلاحية الجلسة، أعد تحميل الصفحة.']);
+            return;
+        }
 
         $status = Request::input('status');
         if (!in_array($status, self::STATUSES, true)) {
+            if ($wantsJson) {
+                $this->jsonResponse(422, ['error' => 'حالة غير صحيحة.']);
+                return;
+            }
             flash_set('error', 'حالة غير صحيحة.');
             redirect('/tasks/' . $task['id']);
         }
@@ -211,6 +262,12 @@ class TaskController
         $this->notifyOthers($task, 'تم تغيير حالة مهمة', $task['title']);
 
         ActivityLog::log('tasks.status', 'task', $task['id'], "تغيير حالة مهمة: {$task['title']}");
+
+        if ($wantsJson) {
+            $this->jsonResponse(200, ['success' => true, 'status' => $status]);
+            return;
+        }
+
         flash_set('success', 'تم تحديث حالة المهمة.');
         redirect('/tasks/' . $task['id']);
     }
@@ -372,6 +429,34 @@ class TaskController
     private function companyUsers(int $companyId): array
     {
         return Database::select('SELECT id, name FROM users WHERE company_id = :c AND status = "active" ORDER BY name', ['c' => $companyId]);
+    }
+
+    /** فلاتر القائمة/اللوحة المشتركة: بحث بالعنوان، مسؤول، أولوية، حالة. */
+    private function currentFilters(): array
+    {
+        $filters = [];
+        if ($q = trim((string) Request::query('q', ''))) {
+            $filters['q'] = $q;
+        }
+        if ($assigneeId = (int) Request::query('assignee_id', 0)) {
+            $filters['assignee_id'] = $assigneeId;
+        }
+        $priority = Request::query('priority', '');
+        if (in_array($priority, self::PRIORITIES, true)) {
+            $filters['priority'] = $priority;
+        }
+        $status = Request::query('status', '');
+        if (in_array($status, self::STATUSES, true)) {
+            $filters['status'] = $status;
+        }
+        return $filters;
+    }
+
+    private function jsonResponse(int $code, array $data): void
+    {
+        http_response_code($code);
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode($data);
     }
 
     private function notifyOthers(array $task, string $title, string $message): void

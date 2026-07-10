@@ -35,9 +35,10 @@ class Task
     }
 
     /**
-     * قوائم المهام حسب النطاق: mine, created, overdue, approval, all.
+     * يبني شروط WHERE + المعاملات المشتركة بين القائمة ولوحة كانبان:
+     * النطاق (scope) + فلاتر اختيارية (بحث بالعنوان، مسؤول، أولوية، حالة).
      */
-    public static function paginate(int $companyId, string $scope, int $userId, int $page, int $perPage = 15): array
+    private static function buildFilters(int $companyId, string $scope, int $userId, array $filters): array
     {
         $where = ['t.company_id = :company_id'];
         $params = ['company_id' => $companyId];
@@ -63,11 +64,36 @@ class Task
                 break;
             case 'all':
             default:
-                $scope = 'all';
                 break;
         }
 
-        $whereSql = implode(' AND ', $where);
+        if (!empty($filters['q'])) {
+            $where[] = 't.title LIKE :q';
+            $params['q'] = '%' . $filters['q'] . '%';
+        }
+        if (!empty($filters['assignee_id'])) {
+            $where[] = 't.assignee_id = :f_assignee';
+            $params['f_assignee'] = (int) $filters['assignee_id'];
+        }
+        if (!empty($filters['priority'])) {
+            $where[] = 't.priority = :f_priority';
+            $params['f_priority'] = $filters['priority'];
+        }
+        if (!empty($filters['status'])) {
+            $where[] = 't.status = :f_status';
+            $params['f_status'] = $filters['status'];
+        }
+
+        return [implode(' AND ', $where), $params];
+    }
+
+    /**
+     * قوائم المهام حسب النطاق: mine, created, overdue, approval, all، مع فلاتر اختيارية.
+     */
+    public static function paginate(int $companyId, string $scope, int $userId, int $page, int $perPage = 15, array $filters = []): array
+    {
+        [$whereSql, $params] = self::buildFilters($companyId, $scope, $userId, $filters);
+
         $total = (int) (Database::first("SELECT COUNT(*) AS c FROM tasks_tasks t WHERE {$whereSql}", $params)['c'] ?? 0);
 
         $offset = ($page - 1) * $perPage;
@@ -83,6 +109,33 @@ class Task
         );
 
         return ['rows' => $rows, 'total' => $total];
+    }
+
+    /**
+     * كل المهام المطابقة (بحد أقصى للأداء) مجمّعة حسب الحالة، لعرض لوحة كانبان.
+     */
+    public static function forBoard(int $companyId, string $scope, int $userId, array $filters = [], int $limit = 300): array
+    {
+        [$whereSql, $params] = self::buildFilters($companyId, $scope, $userId, $filters);
+        $limit = max(1, min(500, $limit));
+
+        $rows = Database::select(
+            "SELECT t.*, a.name AS assignee_name, c.name AS creator_name
+               FROM tasks_tasks t
+               LEFT JOIN users a ON a.id = t.assignee_id
+               LEFT JOIN users c ON c.id = t.creator_id
+              WHERE {$whereSql}
+              ORDER BY t.due_date IS NULL, t.due_date ASC, t.id DESC
+              LIMIT {$limit}",
+            $params
+        );
+
+        $columns = ['todo' => [], 'in_progress' => [], 'in_review' => [], 'done' => [], 'cancelled' => []];
+        foreach ($rows as $row) {
+            $columns[$row['status']][] = $row;
+        }
+
+        return $columns;
     }
 
     public static function countOverdue(int $companyId, int $userId): int

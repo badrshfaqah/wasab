@@ -11,6 +11,7 @@ return function (Router $router): void {
     $auth = [Middleware::class, 'auth'];
 
     $router->get('/tasks', [TaskController::class, 'index'], [$auth]);
+    $router->get('/tasks/board', [TaskController::class, 'board'], [$auth]);
     $router->get('/tasks/create', [TaskController::class, 'create'], [$auth]);
     $router->post('/tasks', [TaskController::class, 'store'], [$auth]);
     $router->get('/tasks/{id}', [TaskController::class, 'show'], [$auth]);
