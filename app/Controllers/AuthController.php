@@ -32,12 +32,18 @@ class AuthController
             redirect('/login');
         }
 
-        if (Auth::attempt($email, $password)) {
+        $result = Auth::attempt($email, $password);
+
+        if ($result === 'success') {
             ActivityLog::log('auth.login', 'user', Auth::id(), 'تسجيل دخول');
             redirect('/');
         }
 
-        flash_set('error', 'البريد الإلكتروني أو كلمة المرور غير صحيحة.');
+        if ($result === 'locked') {
+            flash_set('error', 'تم قفل الحساب مؤقتاً بسبب محاولات دخول فاشلة متكررة. حاول مرة أخرى بعد 15 دقيقة.');
+        } else {
+            flash_set('error', 'البريد الإلكتروني أو كلمة المرور غير صحيحة.');
+        }
         Session::setOld(['email' => $email]);
         redirect('/login');
     }

@@ -9,6 +9,22 @@ use App\Core\Database;
 use App\Core\Session;
 use App\Core\View;
 
+// لا نعرض أخطاء PHP الخام (مسارات الملفات، الاستعلامات...) للمستخدم النهائي؛ تُسجَّل بدلاً من ذلك.
+error_reporting(E_ALL);
+ini_set('display_errors', '0');
+ini_set('log_errors', '1');
+ini_set('error_log', BASE_PATH . '/storage/logs/php-error.log');
+
+set_exception_handler(function (\Throwable $e): void {
+    log_exception($e);
+    if (!headers_sent()) {
+        http_response_code(500);
+    }
+    echo '<!doctype html><html lang="ar" dir="rtl"><meta charset="utf-8">'
+        . '<body style="font-family:sans-serif;text-align:center;padding:60px">'
+        . '<h2>حدث خطأ غير متوقع</h2><p>تم تسجيل المشكلة، يرجى المحاولة لاحقاً.</p></body></html>';
+});
+
 if (!is_file(BASE_PATH . '/config.php')) {
     $installUrl = rtrim(dirname($_SERVER['SCRIPT_NAME'] ?? ''), '/') . '/install/';
     header('Location: ' . $installUrl);

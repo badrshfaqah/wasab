@@ -56,10 +56,11 @@ class SettingController
             }
 
             $file = Request::file('logo');
-            if ($file && $file['error'] === UPLOAD_ERR_OK) {
-                $allowed = ['image/png' => 'png', 'image/jpeg' => 'jpg', 'image/webp' => 'webp', 'image/svg+xml' => 'svg'];
+            if ($file && $file['error'] === UPLOAD_ERR_OK && $file['size'] <= 2 * 1024 * 1024) {
+                $allowed = ['image/png' => 'png', 'image/jpeg' => 'jpg', 'image/webp' => 'webp'];
                 $type = mime_content_type($file['tmp_name']);
-                if (isset($allowed[$type])) {
+                // getimagesize() يتحقق فعلياً من محتوى الصورة، لا فقط من امتداد الملف أو ترويسة MIME
+                if (isset($allowed[$type]) && @getimagesize($file['tmp_name']) !== false) {
                     $filename = 'company_' . bin2hex(random_bytes(8)) . '.' . $allowed[$type];
                     move_uploaded_file($file['tmp_name'], BASE_PATH . '/storage/uploads/' . $filename);
                     $update['logo'] = $filename;

@@ -70,7 +70,8 @@ class RoleController
             Database::commit();
         } catch (\Throwable $e) {
             Database::rollBack();
-            flash_set('error', 'تعذر إنشاء الدور: ' . $e->getMessage());
+            log_exception($e);
+            flash_set('error', 'تعذر إنشاء الدور. حاول مرة أخرى أو راجع مسؤول النظام.');
             redirect('/roles/create');
         }
 
@@ -119,7 +120,8 @@ class RoleController
             Database::commit();
         } catch (\Throwable $e) {
             Database::rollBack();
-            flash_set('error', 'تعذر حفظ التعديلات: ' . $e->getMessage());
+            log_exception($e);
+            flash_set('error', 'تعذر حفظ التعديلات. حاول مرة أخرى أو راجع مسؤول النظام.');
             redirect('/roles/' . $params['id'] . '/edit');
         }
 

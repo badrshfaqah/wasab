@@ -28,6 +28,8 @@ CREATE TABLE IF NOT EXISTS `users` (
     `avatar` VARCHAR(255) NULL,
     `status` ENUM('active','inactive') NOT NULL DEFAULT 'active',
     `last_login_at` DATETIME NULL,
+    `failed_login_attempts` TINYINT UNSIGNED NOT NULL DEFAULT 0,
+    `locked_until` DATETIME NULL,
     `created_at` DATETIME NOT NULL,
     `updated_at` DATETIME NULL,
     UNIQUE KEY `users_email_unique` (`email`),

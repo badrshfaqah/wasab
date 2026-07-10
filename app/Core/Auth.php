@@ -7,15 +7,30 @@ class Auth
     private static ?array $userCache = null;
     private static bool $loaded = false;
 
-    public static function attempt(string $email, string $password): bool
+    private const MAX_FAILED_ATTEMPTS = 5;
+    private const LOCKOUT_SECONDS = 900; // 15 دقيقة
+
+    /**
+     * يعيد: "success" | "invalid" | "locked"
+     */
+    public static function attempt(string $email, string $password): string
     {
         $user = Database::first(
             'SELECT * FROM users WHERE email = :email AND status = "active" LIMIT 1',
             ['email' => $email]
         );
 
-        if (!$user || !password_verify($password, $user['password'])) {
-            return false;
+        if (!$user) {
+            return 'invalid';
+        }
+
+        if (!empty($user['locked_until']) && strtotime($user['locked_until']) > time()) {
+            return 'locked';
+        }
+
+        if (!password_verify($password, $user['password'])) {
+            self::registerFailedAttempt($user);
+            return 'invalid';
         }
 
         Session::regenerate();
@@ -23,9 +38,23 @@ class Auth
         self::$userCache = $user;
         self::$loaded = true;
 
-        Database::update('users', ['last_login_at' => date('Y-m-d H:i:s')], 'id = :id', ['id' => $user['id']]);
+        Database::update('users', [
+            'last_login_at' => date('Y-m-d H:i:s'),
+            'failed_login_attempts' => 0,
+            'locked_until' => null,
+        ], 'id = :id', ['id' => $user['id']]);
 
-        return true;
+        return 'success';
+    }
+
+    private static function registerFailedAttempt(array $user): void
+    {
+        $attempts = (int) $user['failed_login_attempts'] + 1;
+        $update = ['failed_login_attempts' => $attempts];
+        if ($attempts >= self::MAX_FAILED_ATTEMPTS) {
+            $update['locked_until'] = date('Y-m-d H:i:s', time() + self::LOCKOUT_SECONDS);
+        }
+        Database::update('users', $update, 'id = :id', ['id' => $user['id']]);
     }
 
     public static function logout(): void

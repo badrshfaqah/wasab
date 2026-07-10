@@ -50,6 +50,15 @@ function route(string $path = ''): string
     return base_url(ltrim($path, '/'));
 }
 
+/**
+ * يسجّل تفاصيل الاستثناء في ملف السجلات بدلاً من عرضها للمستخدم مباشرة (منع كشف المعلومات).
+ */
+function log_exception(\Throwable $e): void
+{
+    $line = sprintf('[%s] %s in %s:%d', date('Y-m-d H:i:s'), $e->getMessage(), $e->getFile(), $e->getLine());
+    @file_put_contents(BASE_PATH . '/storage/logs/app.log', $line . PHP_EOL, FILE_APPEND);
+}
+
 function redirect(string $path): void
 {
     header('Location: ' . route($path));

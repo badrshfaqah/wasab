@@ -24,7 +24,8 @@ class ModuleController
             ModuleManager::install($params['key']);
             flash_set('success', 'تم تثبيت الإضافة بنجاح. يمكنك الآن تفعيلها.');
         } catch (\Throwable $e) {
-            flash_set('error', 'تعذر تثبيت الإضافة: ' . $e->getMessage());
+            log_exception($e);
+            flash_set('error', 'تعذر تثبيت الإضافة. راجع سجل الأخطاء.');
         }
         redirect('/extensions');
     }
@@ -36,7 +37,8 @@ class ModuleController
             ModuleManager::activate($params['key']);
             flash_set('success', 'تم تفعيل الإضافة.');
         } catch (\Throwable $e) {
-            flash_set('error', 'تعذر تفعيل الإضافة: ' . $e->getMessage());
+            log_exception($e);
+            flash_set('error', 'تعذر تفعيل الإضافة. راجع سجل الأخطاء.');
         }
         redirect('/extensions');
     }
@@ -48,7 +50,8 @@ class ModuleController
             ModuleManager::deactivate($params['key']);
             flash_set('success', 'تم تعطيل الإضافة. بياناتها محفوظة ولن تظهر حتى تُفعّل مجدداً.');
         } catch (\Throwable $e) {
-            flash_set('error', 'تعذر تعطيل الإضافة: ' . $e->getMessage());
+            log_exception($e);
+            flash_set('error', 'تعذر تعطيل الإضافة. راجع سجل الأخطاء.');
         }
         redirect('/extensions');
     }
@@ -60,7 +63,8 @@ class ModuleController
             ModuleManager::update($params['key']);
             flash_set('success', 'تم تحديث الإضافة.');
         } catch (\Throwable $e) {
-            flash_set('error', 'تعذر تحديث الإضافة: ' . $e->getMessage());
+            log_exception($e);
+            flash_set('error', 'تعذر تحديث الإضافة. راجع سجل الأخطاء.');
         }
         redirect('/extensions');
     }
@@ -72,7 +76,8 @@ class ModuleController
             ModuleManager::remove($params['key']);
             flash_set('success', 'تمت إزالة الإضافة وبياناتها الخاصة بها.');
         } catch (\Throwable $e) {
-            flash_set('error', 'تعذر إزالة الإضافة: ' . $e->getMessage());
+            log_exception($e);
+            flash_set('error', 'تعذر إزالة الإضافة. راجع سجل الأخطاء.');
         }
         redirect('/extensions');
     }

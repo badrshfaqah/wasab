@@ -83,7 +83,8 @@ class UserController
             Database::commit();
         } catch (\Throwable $e) {
             Database::rollBack();
-            flash_set('error', 'تعذر إنشاء المستخدم: ' . $e->getMessage());
+            log_exception($e);
+            flash_set('error', 'تعذر إنشاء المستخدم. حاول مرة أخرى أو راجع مسؤول النظام.');
             redirect('/users/create');
         }
 
@@ -138,7 +139,8 @@ class UserController
             Database::commit();
         } catch (\Throwable $e) {
             Database::rollBack();
-            flash_set('error', 'تعذر حفظ التعديلات: ' . $e->getMessage());
+            log_exception($e);
+            flash_set('error', 'تعذر حفظ التعديلات. حاول مرة أخرى أو راجع مسؤول النظام.');
             redirect('/users/' . $params['id'] . '/edit');
         }
 

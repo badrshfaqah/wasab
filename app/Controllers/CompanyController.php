@@ -157,9 +157,14 @@ class CompanyController
             return null;
         }
 
-        $allowed = ['image/png' => 'png', 'image/jpeg' => 'jpg', 'image/webp' => 'webp', 'image/svg+xml' => 'svg'];
+        if ($file['size'] > 2 * 1024 * 1024) {
+            return null;
+        }
+
+        $allowed = ['image/png' => 'png', 'image/jpeg' => 'jpg', 'image/webp' => 'webp'];
         $type = mime_content_type($file['tmp_name']);
-        if (!isset($allowed[$type])) {
+        // getimagesize() يتحقق فعلياً من محتوى الصورة، لا فقط من امتداد الملف أو ترويسة MIME
+        if (!isset($allowed[$type]) || @getimagesize($file['tmp_name']) === false) {
             return null;
         }
 

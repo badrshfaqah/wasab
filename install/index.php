@@ -71,6 +71,8 @@ if ($step === 2) {
 
         if ($host === '' || $name === '' || $user === '') {
             $errors[] = 'يرجى تعبئة جميع الحقول المطلوبة.';
+        } elseif (!preg_match('/^[A-Za-z0-9_]+$/', $name)) {
+            $errors[] = 'اسم قاعدة البيانات يجب أن يحتوي على حروف إنجليزية وأرقام وشرطة سفلية (_) فقط.';
         } else {
             require_once BASE_PATH . '/app/Core/Database.php';
             try {
@@ -189,7 +191,12 @@ if ($step === 3) {
                 header('Location: ?step=4');
                 exit;
             } catch (\Throwable $e) {
-                $errors[] = 'حدث خطأ أثناء إنشاء الجداول أو الحساب: ' . $e->getMessage();
+                @file_put_contents(
+                    BASE_PATH . '/storage/logs/app.log',
+                    sprintf('[%s] install error: %s in %s:%d%s', date('Y-m-d H:i:s'), $e->getMessage(), $e->getFile(), $e->getLine(), PHP_EOL),
+                    FILE_APPEND
+                );
+                $errors[] = 'حدث خطأ أثناء إنشاء الجداول أو الحساب. راجع ملف storage/logs/app.log لمزيد من التفاصيل.';
             }
         }
     }
