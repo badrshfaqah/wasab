@@ -49,14 +49,20 @@ class CompanyController
 
         $upload = Uploads::handleImage('logo', BASE_PATH . '/storage/uploads');
 
-        Database::insert('companies', [
-            'name' => $data['name'],
-            'primary_color' => $data['primary_color'],
-            'sidebar_color' => $data['sidebar_color'],
-            'logo' => $upload['filename'],
-            'status' => $data['status'],
-            'created_at' => date('Y-m-d H:i:s'),
-        ]);
+        try {
+            Database::insert('companies', [
+                'name' => $data['name'],
+                'primary_color' => $data['primary_color'],
+                'sidebar_color' => $data['sidebar_color'],
+                'logo' => $upload['filename'],
+                'status' => $data['status'],
+                'created_at' => date('Y-m-d H:i:s'),
+            ]);
+        } catch (\Throwable $e) {
+            log_exception($e);
+            flash_set('error', 'تعذر إنشاء الشركة في قاعدة البيانات. راجع storage/logs/app.log أو تواصل مع مسؤول الاستضافة.');
+            redirect('/companies/create');
+        }
 
         ActivityLog::log('company.create', 'company', $data['name'], "إنشاء شركة: {$data['name']}");
         if ($upload['error']) {
@@ -94,14 +100,20 @@ class CompanyController
         $upload = Uploads::handleImage('logo', BASE_PATH . '/storage/uploads');
         $logo = $upload['filename'] ?: $company['logo'];
 
-        Database::update('companies', [
-            'name' => $data['name'],
-            'primary_color' => $data['primary_color'],
-            'sidebar_color' => $data['sidebar_color'],
-            'logo' => $logo,
-            'status' => $data['status'],
-            'updated_at' => date('Y-m-d H:i:s'),
-        ], 'id = :id', ['id' => $company['id']]);
+        try {
+            Database::update('companies', [
+                'name' => $data['name'],
+                'primary_color' => $data['primary_color'],
+                'sidebar_color' => $data['sidebar_color'],
+                'logo' => $logo,
+                'status' => $data['status'],
+                'updated_at' => date('Y-m-d H:i:s'),
+            ], 'id = :id', ['id' => $company['id']]);
+        } catch (\Throwable $e) {
+            log_exception($e);
+            flash_set('error', 'تعذر حفظ التعديلات في قاعدة البيانات. راجع storage/logs/app.log أو تواصل مع مسؤول الاستضافة.');
+            redirect('/companies/' . $company['id'] . '/edit');
+        }
 
         ActivityLog::log('company.update', 'company', $company['id'], "تعديل شركة: {$data['name']}");
         if ($upload['error']) {

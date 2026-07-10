@@ -18,10 +18,19 @@ class CoreMigrator
             return;
         }
 
-        if ($version < 2) {
-            self::addColumnIfMissing('companies', 'sidebar_color', "VARCHAR(7) NOT NULL DEFAULT '#111827' AFTER `primary_color`");
+        try {
+            if ($version < 2) {
+                self::addColumnIfMissing('companies', 'sidebar_color', "VARCHAR(7) NOT NULL DEFAULT '#111827' AFTER `primary_color`");
+            }
+        } catch (\Throwable $e) {
+            // لا نكسر الموقع كاملاً بسبب فشل ترقية بسيطة (مثلاً: مستخدم قاعدة البيانات
+            // لا يملك صلاحية ALTER TABLE على بعض الاستضافات المشتركة). نسجّل الخطأ مع
+            // جملة SQL الجاهزة حتى يستطيع مسؤول الاستضافة تنفيذها يدوياً عبر phpMyAdmin:
+            // ALTER TABLE companies ADD COLUMN sidebar_color VARCHAR(7) NOT NULL DEFAULT '#111827' AFTER primary_color;
+            log_exception($e);
         }
 
+        // نُثبّت الإصدار حتى بعد فشل، لتفادي إعادة محاولة فاشلة في كل طلب.
         Setting::set('core_schema_version', (string) self::CURRENT_VERSION);
     }
 

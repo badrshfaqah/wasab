@@ -65,7 +65,14 @@ class SettingController
                 $update['logo'] = $upload['filename'];
             }
 
-            Database::update('companies', $update, 'id = :id', ['id' => $companyId]);
+            try {
+                Database::update('companies', $update, 'id = :id', ['id' => $companyId]);
+            } catch (\Throwable $e) {
+                log_exception($e);
+                flash_set('error', 'تعذر حفظ الإعدادات في قاعدة البيانات. راجع storage/logs/app.log أو تواصل مع مسؤول الاستضافة.');
+                redirect('/settings');
+            }
+
             ActivityLog::log('settings.update', 'company', $companyId, 'تحديث إعدادات الشركة');
 
             if ($upload['error']) {
