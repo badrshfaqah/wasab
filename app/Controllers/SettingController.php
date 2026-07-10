@@ -8,6 +8,7 @@ use App\Core\Csrf;
 use App\Core\Database;
 use App\Core\Request;
 use App\Core\Setting;
+use App\Core\Uploads;
 use App\Core\View;
 
 class SettingController
@@ -49,26 +50,28 @@ class SettingController
             if (!preg_match('/^#[0-9a-fA-F]{6}$/', $color)) {
                 $color = '#2563eb';
             }
+            $sidebarColor = trim((string) Request::input('sidebar_color', '#111827'));
+            if (!preg_match('/^#[0-9a-fA-F]{6}$/', $sidebarColor)) {
+                $sidebarColor = '#111827';
+            }
 
-            $update = ['primary_color' => $color, 'updated_at' => date('Y-m-d H:i:s')];
+            $update = ['primary_color' => $color, 'sidebar_color' => $sidebarColor, 'updated_at' => date('Y-m-d H:i:s')];
             if ($name !== '') {
                 $update['name'] = $name;
             }
 
-            $file = Request::file('logo');
-            if ($file && $file['error'] === UPLOAD_ERR_OK && $file['size'] <= 2 * 1024 * 1024) {
-                $allowed = ['image/png' => 'png', 'image/jpeg' => 'jpg', 'image/webp' => 'webp'];
-                $type = mime_content_type($file['tmp_name']);
-                // getimagesize() يتحقق فعلياً من محتوى الصورة، لا فقط من امتداد الملف أو ترويسة MIME
-                if (isset($allowed[$type]) && @getimagesize($file['tmp_name']) !== false) {
-                    $filename = 'company_' . bin2hex(random_bytes(8)) . '.' . $allowed[$type];
-                    move_uploaded_file($file['tmp_name'], BASE_PATH . '/storage/uploads/' . $filename);
-                    $update['logo'] = $filename;
-                }
+            $upload = Uploads::handleImage('logo', BASE_PATH . '/storage/uploads');
+            if ($upload['filename']) {
+                $update['logo'] = $upload['filename'];
             }
 
             Database::update('companies', $update, 'id = :id', ['id' => $companyId]);
             ActivityLog::log('settings.update', 'company', $companyId, 'تحديث إعدادات الشركة');
+
+            if ($upload['error']) {
+                flash_set('error', 'تم حفظ باقي الإعدادات، لكن فشل رفع الشعار: ' . $upload['error']);
+                redirect('/settings');
+            }
         }
 
         flash_set('success', 'تم حفظ الإعدادات.');

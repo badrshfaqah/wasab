@@ -7,6 +7,7 @@ use App\Core\Csrf;
 use App\Core\Database;
 use App\Core\Request;
 use App\Core\Session;
+use App\Core\Uploads;
 use App\Core\Validator;
 use App\Core\View;
 
@@ -46,18 +47,23 @@ class CompanyController
             redirect('/companies/create');
         }
 
-        $logo = $this->handleLogoUpload();
+        $upload = Uploads::handleImage('logo', BASE_PATH . '/storage/uploads');
 
         Database::insert('companies', [
             'name' => $data['name'],
             'primary_color' => $data['primary_color'],
-            'logo' => $logo,
+            'sidebar_color' => $data['sidebar_color'],
+            'logo' => $upload['filename'],
             'status' => $data['status'],
             'created_at' => date('Y-m-d H:i:s'),
         ]);
 
         ActivityLog::log('company.create', 'company', $data['name'], "إنشاء شركة: {$data['name']}");
-        flash_set('success', 'تم إنشاء الشركة بنجاح.');
+        if ($upload['error']) {
+            flash_set('error', 'تم إنشاء الشركة، لكن فشل رفع الشعار: ' . $upload['error']);
+        } else {
+            flash_set('success', 'تم إنشاء الشركة بنجاح.');
+        }
         redirect('/companies');
     }
 
@@ -85,18 +91,24 @@ class CompanyController
             redirect('/companies/' . $params['id'] . '/edit');
         }
 
-        $logo = $this->handleLogoUpload() ?: $company['logo'];
+        $upload = Uploads::handleImage('logo', BASE_PATH . '/storage/uploads');
+        $logo = $upload['filename'] ?: $company['logo'];
 
         Database::update('companies', [
             'name' => $data['name'],
             'primary_color' => $data['primary_color'],
+            'sidebar_color' => $data['sidebar_color'],
             'logo' => $logo,
             'status' => $data['status'],
             'updated_at' => date('Y-m-d H:i:s'),
         ], 'id = :id', ['id' => $company['id']]);
 
         ActivityLog::log('company.update', 'company', $company['id'], "تعديل شركة: {$data['name']}");
-        flash_set('success', 'تم تحديث بيانات الشركة.');
+        if ($upload['error']) {
+            flash_set('error', 'تم حفظ باقي البيانات، لكن فشل رفع الشعار: ' . $upload['error']);
+        } else {
+            flash_set('success', 'تم تحديث بيانات الشركة.');
+        }
         redirect('/companies');
     }
 
@@ -133,6 +145,7 @@ class CompanyController
         $data = [
             'name' => trim((string) Request::input('name', '')),
             'primary_color' => trim((string) Request::input('primary_color', '#2563eb')),
+            'sidebar_color' => trim((string) Request::input('sidebar_color', '#111827')),
             'status' => Request::input('status', 'active') === 'inactive' ? 'inactive' : 'active',
         ];
 
@@ -146,32 +159,10 @@ class CompanyController
         if (!preg_match('/^#[0-9a-fA-F]{6}$/', $data['primary_color'])) {
             $data['primary_color'] = '#2563eb';
         }
+        if (!preg_match('/^#[0-9a-fA-F]{6}$/', $data['sidebar_color'])) {
+            $data['sidebar_color'] = '#111827';
+        }
 
         return $data;
-    }
-
-    private function handleLogoUpload(): ?string
-    {
-        $file = Request::file('logo');
-        if (!$file || $file['error'] !== UPLOAD_ERR_OK) {
-            return null;
-        }
-
-        if ($file['size'] > 2 * 1024 * 1024) {
-            return null;
-        }
-
-        $allowed = ['image/png' => 'png', 'image/jpeg' => 'jpg', 'image/webp' => 'webp'];
-        $type = mime_content_type($file['tmp_name']);
-        // getimagesize() يتحقق فعلياً من محتوى الصورة، لا فقط من امتداد الملف أو ترويسة MIME
-        if (!isset($allowed[$type]) || @getimagesize($file['tmp_name']) === false) {
-            return null;
-        }
-
-        $filename = 'company_' . bin2hex(random_bytes(8)) . '.' . $allowed[$type];
-        $dest = BASE_PATH . '/storage/uploads/' . $filename;
-        move_uploaded_file($file['tmp_name'], $dest);
-
-        return $filename;
     }
 }

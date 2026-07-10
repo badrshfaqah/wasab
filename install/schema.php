@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS `companies` (
     `name` VARCHAR(150) NOT NULL,
     `logo` VARCHAR(255) NULL,
     `primary_color` VARCHAR(7) NOT NULL DEFAULT '#2563eb',
+    `sidebar_color` VARCHAR(7) NOT NULL DEFAULT '#111827',
     `status` ENUM('active','inactive') NOT NULL DEFAULT 'active',
     `created_at` DATETIME NOT NULL,
     `updated_at` DATETIME NULL

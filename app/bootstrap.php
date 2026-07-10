@@ -5,6 +5,7 @@ declare(strict_types=1);
 require BASE_PATH . '/app/Core/Autoload.php';
 require BASE_PATH . '/app/Core/helpers.php';
 
+use App\Core\CoreMigrator;
 use App\Core\Database;
 use App\Core\Session;
 use App\Core\View;
@@ -39,3 +40,4 @@ date_default_timezone_set(config_get('timezone', 'Asia/Riyadh'));
 Session::start();
 Database::connect(APP_CONFIG['db']);
 View::addPath(BASE_PATH . '/app/Views');
+CoreMigrator::run();

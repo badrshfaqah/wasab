@@ -10,6 +10,7 @@ if ($user && !empty($user['company_id'])) {
     $company = \App\Core\Database::first('SELECT * FROM companies WHERE id = :id', ['id' => $user['company_id']]);
 }
 $primaryColor = $company['primary_color'] ?? '#2563eb';
+$sidebarColor = $company['sidebar_color'] ?? '#111827';
 $unread = $user ? Notification::unreadCount((int) $user['id']) : 0;
 $notifications = $user ? Notification::recent((int) $user['id'], 6) : [];
 $currentPath = \App\Core\Request::path();
@@ -28,7 +29,7 @@ if ($impersonating) {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?= isset($pageTitle) ? e($pageTitle) . ' - ' : '' ?><?= e(app_name()) ?></title>
 <link rel="stylesheet" href="<?= asset('css/app.css') ?>">
-<style>:root{--primary:<?= e($primaryColor) ?>;--primary-light:<?= e($primaryColor) ?>14;}</style>
+<style>:root{--primary:<?= e($primaryColor) ?>;--primary-light:<?= e($primaryColor) ?>14;--sidebar-bg:<?= e($sidebarColor) ?>;}</style>
 </head>
 <body>
 <div class="app-shell">
