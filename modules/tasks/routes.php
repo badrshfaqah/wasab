@@ -21,6 +21,9 @@ return function (Router $router): void {
     $router->post('/tasks/{id}/status', [TaskController::class, 'changeStatus'], [$auth]);
     $router->post('/tasks/{id}/approve', [TaskController::class, 'approve'], [$auth]);
     $router->post('/tasks/{id}/comments', [TaskController::class, 'comment'], [$auth]);
+    $router->post('/tasks/{id}/subtasks', [TaskController::class, 'addSubtask'], [$auth]);
+    $router->post('/tasks/{id}/subtasks/{subtaskId}/toggle', [TaskController::class, 'toggleSubtask'], [$auth]);
+    $router->post('/tasks/{id}/subtasks/{subtaskId}/delete', [TaskController::class, 'deleteSubtask'], [$auth]);
     $router->post('/tasks/{id}/attachments', [TaskController::class, 'uploadAttachment'], [$auth]);
     $router->get('/tasks/{id}/attachments/{attachmentId}', [TaskController::class, 'downloadAttachment'], [$auth]);
 };

@@ -13,6 +13,7 @@ use Modules\Tasks\Models\Task;
 use Modules\Tasks\Models\TaskAttachment;
 use Modules\Tasks\Models\TaskComment;
 use Modules\Tasks\Models\TaskLog;
+use Modules\Tasks\Models\TaskSubtask;
 
 class TaskController
 {
@@ -145,7 +146,9 @@ class TaskController
             'comments' => TaskComment::forTask($task['id']),
             'attachments' => TaskAttachment::forTask($task['id']),
             'logs' => TaskLog::forTask($task['id']),
+            'subtasks' => TaskSubtask::forTask($task['id']),
             'canEdit' => $this->canEditTask($task),
+            'canManageSubtasks' => $this->canManageSubtasks($task),
             'canApprove' => $this->canApproveTask($task),
             'statuses' => self::STATUSES,
         ]);
@@ -311,6 +314,95 @@ class TaskController
         redirect('/tasks/' . $task['id']);
     }
 
+    public function addSubtask(array $params): void
+    {
+        $companyId = $this->requireCompanyContext();
+        $task = $this->findVisible((int) $params['id'], $companyId);
+        if (!$this->canManageSubtasks($task)) {
+            $this->forbidden();
+            return;
+        }
+        $this->verifyCsrf('/tasks/' . $task['id']);
+
+        $title = trim((string) Request::input('title', ''));
+        if ($title === '') {
+            flash_set('error', 'يرجى إدخال نص العنصر.');
+            redirect('/tasks/' . $task['id']);
+        }
+
+        TaskSubtask::add($task['id'], $title);
+        TaskLog::add($task['id'], Auth::id(), 'subtask_added', 'تمت إضافة عنصر للقائمة الفرعية: ' . $title);
+
+        flash_set('success', 'تمت إضافة العنصر.');
+        redirect('/tasks/' . $task['id']);
+    }
+
+    public function toggleSubtask(array $params): void
+    {
+        $companyId = $this->requireCompanyContext();
+        $task = $this->findVisible((int) $params['id'], $companyId);
+        $wantsJson = Request::wantsJson();
+
+        if (!$this->canManageSubtasks($task)) {
+            if ($wantsJson) {
+                $this->jsonResponse(403, ['error' => 'لا تملك صلاحية تعديل هذه المهمة.']);
+                return;
+            }
+            $this->forbidden();
+            return;
+        }
+
+        if ($wantsJson) {
+            if (!Csrf::verify(Request::input('_csrf'))) {
+                $this->jsonResponse(419, ['error' => 'انتهت صلاحية الجلسة، أعد تحميل الصفحة.']);
+                return;
+            }
+        } else {
+            $this->verifyCsrf('/tasks/' . $task['id']);
+        }
+
+        $subtask = TaskSubtask::find((int) $params['subtaskId']);
+        if (!$subtask || (int) $subtask['task_id'] !== $task['id']) {
+            if ($wantsJson) {
+                $this->jsonResponse(404, ['error' => 'العنصر غير موجود.']);
+                return;
+            }
+            flash_set('error', 'العنصر غير موجود.');
+            redirect('/tasks/' . $task['id']);
+        }
+
+        $done = !$subtask['is_done'];
+        TaskSubtask::toggle($subtask['id'], $done);
+
+        if ($wantsJson) {
+            $progress = TaskSubtask::progress($task['id']);
+            $this->jsonResponse(200, ['success' => true, 'done' => $done, 'progress' => $progress]);
+            return;
+        }
+
+        redirect('/tasks/' . $task['id']);
+    }
+
+    public function deleteSubtask(array $params): void
+    {
+        $companyId = $this->requireCompanyContext();
+        $task = $this->findVisible((int) $params['id'], $companyId);
+        if (!$this->canManageSubtasks($task)) {
+            $this->forbidden();
+            return;
+        }
+        $this->verifyCsrf('/tasks/' . $task['id']);
+
+        $subtask = TaskSubtask::find((int) $params['subtaskId']);
+        if ($subtask && (int) $subtask['task_id'] === $task['id']) {
+            TaskSubtask::delete($subtask['id']);
+            TaskLog::add($task['id'], Auth::id(), 'subtask_removed', 'تم حذف عنصر من القائمة الفرعية: ' . $subtask['title']);
+        }
+
+        flash_set('success', 'تم حذف العنصر.');
+        redirect('/tasks/' . $task['id']);
+    }
+
     public function uploadAttachment(array $params): void
     {
         $companyId = $this->requireCompanyContext();
@@ -395,6 +487,14 @@ class TaskController
             return true;
         }
         return $this->can('tasks.edit') && ((int) $task['creator_id'] === Auth::id() || (int) $task['assignee_id'] === Auth::id());
+    }
+
+    /** إدارة القائمة الفرعية (إضافة/تأشير/حذف) بنفس صلاحية تغيير الحالة: تعديل كامل أو المسؤول/المنشئ. */
+    private function canManageSubtasks(array $task): bool
+    {
+        return $this->canEditTask($task)
+            || (int) $task['assignee_id'] === Auth::id()
+            || (int) $task['creator_id'] === Auth::id();
     }
 
     private function canApproveTask(array $task): bool

@@ -53,6 +53,43 @@ $overdue = $task['due_date'] && $task['due_date'] < date('Y-m-d') && !in_array($
         </div>
 
         <div class="card">
+            <?php $subtaskTotal = count($subtasks); $subtaskDone = count(array_filter($subtasks, fn ($s) => $s['is_done'])); ?>
+            <div class="card-title">
+                <span>القائمة الفرعية</span>
+                <?php if ($subtaskTotal > 0): ?><span class="badge badge-muted" id="subtask-progress-badge"><?= $subtaskDone ?>/<?= $subtaskTotal ?></span><?php endif; ?>
+            </div>
+            <?php if ($subtaskTotal > 0): ?>
+                <div class="subtask-progress-bar"><div id="subtask-progress-fill" style="width:<?= round($subtaskDone / $subtaskTotal * 100) ?>%"></div></div>
+            <?php endif; ?>
+            <div id="subtask-list">
+                <?php if (!$subtasks): ?>
+                    <p class="hint" id="subtask-empty-hint">لا توجد عناصر بعد.</p>
+                <?php endif; ?>
+                <?php foreach ($subtasks as $s): ?>
+                    <div class="subtask-item" data-subtask-id="<?= $s['id'] ?>">
+                        <label style="display:flex;align-items:center;gap:8px;flex:1;font-weight:400;cursor:pointer;">
+                            <input type="checkbox" class="subtask-toggle" data-subtask-id="<?= $s['id'] ?>" <?= $s['is_done'] ? 'checked' : '' ?> <?= $canManageSubtasks ? '' : 'disabled' ?> style="width:auto;">
+                            <span class="subtask-title<?= $s['is_done'] ? ' done' : '' ?>"><?= e($s['title']) ?></span>
+                        </label>
+                        <?php if ($canManageSubtasks): ?>
+                            <form method="post" action="<?= route('/tasks/' . $task['id'] . '/subtasks/' . $s['id'] . '/delete') ?>" data-confirm="حذف هذا العنصر؟">
+                                <?= csrf_field() ?>
+                                <button type="submit" class="subtask-delete" title="حذف">×</button>
+                            </form>
+                        <?php endif; ?>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+            <?php if ($canManageSubtasks): ?>
+                <form method="post" action="<?= route('/tasks/' . $task['id'] . '/subtasks') ?>" style="margin-top:10px;display:flex;gap:8px;">
+                    <?= csrf_field() ?>
+                    <input type="text" name="title" placeholder="أضف عنصراً جديداً..." required>
+                    <button class="btn btn-sm" type="submit">إضافة</button>
+                </form>
+            <?php endif; ?>
+        </div>
+
+        <div class="card">
             <div class="card-title">المرفقات</div>
             <?php if (!$attachments): ?>
                 <p class="hint">لا توجد مرفقات بعد.</p>
@@ -108,3 +145,41 @@ $overdue = $task['due_date'] && $task['due_date'] < date('Y-m-d') && !in_array($
         </div>
     </div>
 </div>
+
+<?php if ($canManageSubtasks): ?>
+<script>
+(function () {
+    var taskId = <?= (int) $task['id'] ?>;
+    var csrfToken = '<?= \App\Core\Csrf::token() ?>';
+
+    document.querySelectorAll('.subtask-toggle').forEach(function (checkbox) {
+        checkbox.addEventListener('change', function () {
+            var subtaskId = checkbox.dataset.subtaskId;
+            checkbox.disabled = true;
+
+            fetch('<?= route('/tasks') ?>/' + taskId + '/subtasks/' + subtaskId + '/toggle', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' },
+                body: '_csrf=' + encodeURIComponent(csrfToken)
+            }).then(function (res) {
+                if (!res.ok) throw new Error('failed');
+                return res.json();
+            }).then(function (data) {
+                var titleSpan = checkbox.closest('.subtask-item').querySelector('.subtask-title');
+                titleSpan.classList.toggle('done', data.done);
+
+                var badge = document.getElementById('subtask-progress-badge');
+                var fill = document.getElementById('subtask-progress-fill');
+                if (badge) badge.textContent = data.progress.done + '/' + data.progress.total;
+                if (fill) fill.style.width = Math.round((data.progress.done / data.progress.total) * 100) + '%';
+            }).catch(function () {
+                checkbox.checked = !checkbox.checked;
+                alert('تعذر تحديث العنصر، حاول مرة أخرى.');
+            }).finally(function () {
+                checkbox.disabled = false;
+            });
+        });
+    });
+})();
+</script>
+<?php endif; ?>
