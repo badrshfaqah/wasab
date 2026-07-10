@@ -47,4 +47,32 @@ document.addEventListener('DOMContentLoaded', function () {
       setTimeout(function () { el.remove(); }, 400);
     });
   }, 4000);
+
+  // محرر نصوص غني بسيط بدون مكتبات خارجية: مربع contenteditable + شريط أدوات
+  // execCommand، تتم مزامنته مع textarea مخفي عند كل تغيير وقبل الإرسال، حتى
+  // يصل المحتوى كنص عادي داخل POST بدون جافاسكربت إضافي في القالب نفسه.
+  document.querySelectorAll('.rte').forEach(function (rte) {
+    var field = document.getElementById(rte.getAttribute('data-target'));
+    var editable = rte.querySelector('.rte-content');
+    if (!field || !editable) return;
+
+    editable.innerHTML = field.value || '';
+    var sync = function () { field.value = editable.innerHTML; };
+
+    rte.querySelectorAll('[data-cmd]').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.preventDefault();
+        editable.focus();
+        var cmd = btn.getAttribute('data-cmd');
+        var value = btn.getAttribute('data-value') || null;
+        document.execCommand(cmd, false, value);
+        sync();
+      });
+    });
+
+    editable.addEventListener('input', sync);
+    editable.addEventListener('blur', sync);
+    var form = rte.closest('form');
+    if (form) form.addEventListener('submit', sync);
+  });
 });

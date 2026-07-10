@@ -45,7 +45,7 @@ class Uploads
             return ['filename' => null, 'error' => 'مجلد الرفع على السيرفر غير قابل للكتابة (راجع صلاحيات ' . $destDir . ').'];
         }
 
-        $filename = 'company_' . bin2hex(random_bytes(8)) . '.' . self::ALLOWED[$imageInfo['mime']];
+        $filename = 'img_' . bin2hex(random_bytes(8)) . '.' . self::ALLOWED[$imageInfo['mime']];
         $dest = rtrim($destDir, '/') . '/' . $filename;
 
         if (!@move_uploaded_file($file['tmp_name'], $dest)) {

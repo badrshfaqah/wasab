@@ -1,0 +1,57 @@
+<?php
+
+use App\Core\Auth;
+use App\Core\Permission;
+use Modules\Documents\Models\Document;
+
+/**
+ * عناصر الصفحة الرئيسية لإضافة المستندات. يُستدعى فقط عندما تكون الإضافة مفعّلة،
+ * ويُفلتر تلقائياً حسب صلاحية المستخدم الحالي.
+ */
+return function (array $user): array {
+    if (!Permission::check('documents.view') || empty($user['company_id'])) {
+        return [];
+    }
+
+    $companyId = (int) $user['company_id'];
+    $userId = (int) $user['id'];
+    $canManage = $user['membership_type'] === 'system_admin' || $user['membership_type'] === 'company_admin' || Permission::check('documents.manage');
+
+    $widgets = [];
+
+    if (Permission::check('documents.create')) {
+        $widgets[] = [
+            'type' => 'shortcut',
+            'label' => 'مستند جديد',
+            'icon' => '➕',
+            'url' => route('/documents/create'),
+        ];
+    }
+
+    if ($canManage || Permission::check('documents.approve')) {
+        $pending = Document::countPendingApproval($companyId);
+        $widgets[] = [
+            'type' => 'stat',
+            'label' => 'مستندات تحتاج إجراء',
+            'value' => $pending,
+            'icon' => '✅',
+            'color' => $pending > 0 ? 'warning' : 'success',
+            'url' => route('/documents?status=pending_approval'),
+        ];
+    }
+
+    $recent = Document::recentFor($companyId, $canManage, $userId, 5);
+    $widgets[] = [
+        'type' => 'list',
+        'title' => 'آخر المستندات',
+        'icon' => '📄',
+        'empty_text' => 'لا توجد مستندات بعد',
+        'items' => array_map(fn ($d) => [
+            'label' => $d['title'],
+            'url' => route('/documents/' . $d['id']),
+            'meta' => $d['number'] ?: '—',
+        ], $recent),
+    ];
+
+    return $widgets;
+};

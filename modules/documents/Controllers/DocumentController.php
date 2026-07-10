@@ -1,0 +1,429 @@
+<?php
+
+namespace Modules\Documents\Controllers;
+
+use App\Core\ActivityLog;
+use App\Core\Auth;
+use App\Core\Csrf;
+use App\Core\Database;
+use App\Core\HtmlSanitizer;
+use App\Core\Notification;
+use App\Core\Request;
+use App\Core\View;
+use Modules\Documents\Models\Document;
+use Modules\Documents\Models\DocumentLog;
+use Modules\Documents\Models\DocumentSetting;
+use Modules\Documents\Models\DocumentTemplate;
+
+class DocumentController
+{
+    private const TYPES = ['general', 'letter', 'decision', 'certificate', 'authorization'];
+    private const STATUSES = ['draft', 'pending_approval', 'approved', 'signed', 'archived'];
+
+    public function index(): void
+    {
+        $companyId = $this->requireCompanyContext();
+        if (!$this->can('documents.view')) {
+            $this->forbidden();
+            return;
+        }
+
+        $filters = $this->currentFilters();
+        $page = max(1, (int) Request::query('page', 1));
+        $result = Document::paginate($companyId, $this->canManage(), Auth::id(), $page, 15, $filters);
+
+        View::render('documents::index', [
+            'pageTitle' => 'المستندات',
+            'documents' => $result['rows'],
+            'total' => $result['total'],
+            'page' => $page,
+            'perPage' => 15,
+            'filters' => $filters,
+            'types' => self::TYPES,
+            'statuses' => self::STATUSES,
+            'canManage' => $this->canManage(),
+            'canCreate' => $this->can('documents.create'),
+        ]);
+    }
+
+    public function create(): void
+    {
+        $companyId = $this->requireCompanyContext();
+        if (!$this->can('documents.create')) {
+            $this->forbidden();
+            return;
+        }
+
+        View::render('documents::form', [
+            'pageTitle' => 'مستند جديد',
+            'document' => null,
+            'templates' => DocumentTemplate::forCompany($companyId),
+            'types' => self::TYPES,
+        ]);
+    }
+
+    public function store(): void
+    {
+        $companyId = $this->requireCompanyContext();
+        if (!$this->can('documents.create')) {
+            $this->forbidden();
+            return;
+        }
+        $this->verifyCsrf('/documents/create');
+
+        $data = $this->validated($companyId);
+        if ($data === null) {
+            redirect('/documents/create');
+        }
+
+        $data['company_id'] = $companyId;
+        $data['created_by'] = Auth::id();
+
+        if ($data['visibility'] === 'private') {
+            // خاص: يُعتمد تلقائياً فوراً بلا مسار موافقة، ويُمنح رقماً مباشرة
+            $data['status'] = 'approved';
+            $data['approved_by'] = Auth::id();
+            $data['approved_at'] = date('Y-m-d H:i:s');
+            $data['number'] = DocumentSetting::generateNumber($companyId);
+        } else {
+            $data['status'] = 'draft';
+        }
+
+        $documentId = Document::create($data);
+        DocumentLog::add($documentId, Auth::id(), 'created', 'تم إنشاء المستند');
+
+        ActivityLog::log('documents.create', 'document', $documentId, "إنشاء مستند: {$data['title']}");
+        flash_set('success', 'تم إنشاء المستند.');
+        redirect('/documents/' . $documentId);
+    }
+
+    public function show(array $params): void
+    {
+        $companyId = $this->requireCompanyContext();
+        $document = $this->findVisible((int) $params['id'], $companyId);
+
+        View::render('documents::show', [
+            'pageTitle' => $document['title'],
+            'document' => $document,
+            'logs' => DocumentLog::forDocument($document['id']),
+            'canEdit' => $this->canEditDocument($document),
+            'canDelete' => $this->canDeleteDocument($document),
+            'canManage' => $this->canManage(),
+            'canApprove' => $this->can('documents.approve'),
+            'canSign' => $this->can('documents.sign'),
+        ]);
+    }
+
+    public function edit(array $params): void
+    {
+        $companyId = $this->requireCompanyContext();
+        $document = $this->findVisible((int) $params['id'], $companyId);
+        if (!$this->canEditDocument($document)) {
+            $this->forbidden();
+            return;
+        }
+
+        View::render('documents::form', [
+            'pageTitle' => 'تعديل مستند',
+            'document' => $document,
+            'templates' => DocumentTemplate::forCompany($companyId),
+            'types' => self::TYPES,
+        ]);
+    }
+
+    public function update(array $params): void
+    {
+        $companyId = $this->requireCompanyContext();
+        $document = $this->findVisible((int) $params['id'], $companyId);
+        if (!$this->canEditDocument($document)) {
+            $this->forbidden();
+            return;
+        }
+        $this->verifyCsrf('/documents/' . $document['id'] . '/edit');
+
+        $data = $this->validated($companyId);
+        if ($data === null) {
+            redirect('/documents/' . $document['id'] . '/edit');
+        }
+        $data['updated_at'] = date('Y-m-d H:i:s');
+
+        // تحويل مستند عام لخاص أثناء التعديل يُعتمد فوراً بنفس منطق الإنشاء المباشر
+        if ($data['visibility'] === 'private' && empty($document['number'])) {
+            $data['status'] = 'approved';
+            $data['approved_by'] = Auth::id();
+            $data['approved_at'] = date('Y-m-d H:i:s');
+            $data['number'] = DocumentSetting::generateNumber($companyId);
+        }
+
+        Document::update($document['id'], $data);
+        DocumentLog::add($document['id'], Auth::id(), 'updated', 'تم تعديل بيانات المستند');
+
+        ActivityLog::log('documents.update', 'document', $document['id'], "تعديل مستند: {$data['title']}");
+        flash_set('success', 'تم حفظ التعديلات.');
+        redirect('/documents/' . $document['id']);
+    }
+
+    public function destroy(array $params): void
+    {
+        $companyId = $this->requireCompanyContext();
+        $document = $this->findVisible((int) $params['id'], $companyId);
+        if (!$this->canDeleteDocument($document)) {
+            $this->forbidden();
+            return;
+        }
+        $this->verifyCsrf('/documents/' . $document['id']);
+
+        Document::delete($document['id']);
+        ActivityLog::log('documents.delete', 'document', $document['id'], "حذف مستند: {$document['title']}");
+        flash_set('success', 'تم حذف المستند.');
+        redirect('/documents');
+    }
+
+    public function updateStatus(array $params): void
+    {
+        $companyId = $this->requireCompanyContext();
+        $document = $this->findVisible((int) $params['id'], $companyId);
+        $this->verifyCsrf('/documents/' . $document['id']);
+
+        $action = Request::input('action');
+        $isCreator = (int) $document['created_by'] === Auth::id();
+
+        switch ($action) {
+            case 'submit':
+                if ($document['status'] !== 'draft' || $document['visibility'] !== 'public') {
+                    flash_set('error', 'لا يمكن إرسال هذا المستند للاعتماد في حالته الحالية.');
+                    redirect('/documents/' . $document['id']);
+                }
+                if (!$this->canManage() && !$isCreator) {
+                    $this->forbidden();
+                    return;
+                }
+                Document::update($document['id'], ['status' => 'pending_approval', 'updated_at' => date('Y-m-d H:i:s')]);
+                DocumentLog::add($document['id'], Auth::id(), 'submitted', 'تم إرسال المستند لطلب الاعتماد');
+                flash_set('success', 'تم إرسال المستند لطلب الاعتماد.');
+                break;
+
+            case 'approve':
+                if ($document['status'] !== 'pending_approval') {
+                    flash_set('error', 'هذا المستند ليس بانتظار الاعتماد.');
+                    redirect('/documents/' . $document['id']);
+                }
+                if (!$this->canManage() && !$this->can('documents.approve')) {
+                    $this->forbidden();
+                    return;
+                }
+                $update = [
+                    'status' => 'approved',
+                    'approved_by' => Auth::id(),
+                    'approved_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s'),
+                ];
+                if (empty($document['number'])) {
+                    $update['number'] = DocumentSetting::generateNumber($companyId);
+                }
+                Document::update($document['id'], $update);
+                DocumentLog::add($document['id'], Auth::id(), 'approved', 'تم اعتماد المستند');
+                Notification::send((int) $document['created_by'], 'تم اعتماد مستندك', $document['title'], route('/documents/' . $document['id']));
+                flash_set('success', 'تم اعتماد المستند.');
+                break;
+
+            case 'sign':
+                if ($document['status'] !== 'approved') {
+                    flash_set('error', 'هذا المستند ليس جاهزاً للتوقيع.');
+                    redirect('/documents/' . $document['id']);
+                }
+                if (!$this->canManage() && !$this->can('documents.sign')) {
+                    $this->forbidden();
+                    return;
+                }
+                Document::update($document['id'], [
+                    'status' => 'signed',
+                    'signed_by' => Auth::id(),
+                    'signed_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s'),
+                ]);
+                DocumentLog::add($document['id'], Auth::id(), 'signed', 'تم توقيع المستند');
+                Notification::send((int) $document['created_by'], 'تم توقيع مستندك', $document['title'], route('/documents/' . $document['id']));
+                flash_set('success', 'تم توقيع المستند.');
+                break;
+
+            case 'archive':
+                if ($document['status'] === 'archived') {
+                    flash_set('error', 'المستند مؤرشف بالفعل.');
+                    redirect('/documents/' . $document['id']);
+                }
+                if (!$this->canManage() && !$isCreator) {
+                    $this->forbidden();
+                    return;
+                }
+                Document::update($document['id'], [
+                    'status' => 'archived',
+                    'archived_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s'),
+                ]);
+                DocumentLog::add($document['id'], Auth::id(), 'archived', 'تمت أرشفة المستند');
+                flash_set('success', 'تمت أرشفة المستند.');
+                break;
+
+            default:
+                flash_set('error', 'إجراء غير معروف.');
+        }
+
+        redirect('/documents/' . $document['id']);
+    }
+
+    public function print(array $params): void
+    {
+        $companyId = $this->requireCompanyContext();
+        $document = $this->findVisible((int) $params['id'], $companyId);
+
+        $template = $document['template_id'] ? DocumentTemplate::find((int) $document['template_id']) : null;
+        if ($template && (int) $template['company_id'] !== $companyId) {
+            $template = null;
+        }
+
+        $settings = DocumentSetting::getOrCreate($companyId);
+        $company = Database::first('SELECT * FROM companies WHERE id = :id', ['id' => $companyId]);
+
+        View::render('documents::print', [
+            'document' => $document,
+            'template' => $template,
+            'settings' => $settings,
+            'company' => $company,
+        ], '');
+    }
+
+    // ---------------------------------------------------------------
+
+    private function requireCompanyContext(): int
+    {
+        $companyId = Auth::companyId();
+        if (!$companyId) {
+            View::render('documents::no-company', ['pageTitle' => 'المستندات']);
+            exit;
+        }
+        return $companyId;
+    }
+
+    private function can(string $key): bool
+    {
+        return \App\Core\Permission::check($key);
+    }
+
+    private function canManage(): bool
+    {
+        return Auth::isSystemAdmin() || Auth::isCompanyAdmin() || $this->can('documents.manage');
+    }
+
+    /** لا تعديل بعد الاعتماد حتى تبقى المستندات المعتمدة/الموقّعة سجلاً رسمياً موثوقاً. */
+    private function canEditDocument(array $document): bool
+    {
+        if (!in_array($document['status'], ['draft', 'pending_approval'], true)) {
+            return false;
+        }
+        if ($this->canManage()) {
+            return true;
+        }
+        return $this->can('documents.edit') && (int) $document['created_by'] === Auth::id();
+    }
+
+    private function canDeleteDocument(array $document): bool
+    {
+        if ($this->canManage()) {
+            return true;
+        }
+        if (!in_array($document['status'], ['draft', 'pending_approval'], true)) {
+            return false;
+        }
+        return $this->can('documents.delete') && (int) $document['created_by'] === Auth::id();
+    }
+
+    private function findVisible(int $id, int $companyId): array
+    {
+        $document = Document::find($id);
+        if (!$document || (int) $document['company_id'] !== $companyId) {
+            flash_set('error', 'المستند غير موجود.');
+            redirect('/documents');
+        }
+
+        if (!$this->can('documents.view')) {
+            $this->forbidden();
+            exit;
+        }
+
+        $visible = $this->canManage() || (int) $document['created_by'] === Auth::id();
+        if (!$visible) {
+            $this->forbidden();
+            exit;
+        }
+
+        return $document;
+    }
+
+    private function currentFilters(): array
+    {
+        $filters = [];
+        if ($q = trim((string) Request::query('q', ''))) {
+            $filters['q'] = $q;
+        }
+        $type = Request::query('type', '');
+        if (in_array($type, self::TYPES, true)) {
+            $filters['type'] = $type;
+        }
+        $status = Request::query('status', '');
+        if (in_array($status, self::STATUSES, true)) {
+            $filters['status'] = $status;
+        }
+        return $filters;
+    }
+
+    private function verifyCsrf(string $back): void
+    {
+        if (!Csrf::verify(Request::input('_csrf'))) {
+            flash_set('error', 'انتهت صلاحية الجلسة، حاول مرة أخرى.');
+            redirect($back);
+        }
+    }
+
+    private function forbidden(): void
+    {
+        http_response_code(403);
+        View::render('errors/403', [], '');
+    }
+
+    private function validated(int $companyId): ?array
+    {
+        $title = trim((string) Request::input('title', ''));
+        $type = Request::input('type', 'general');
+        $visibility = Request::input('visibility', 'public');
+        $templateId = (int) Request::input('template_id', 0) ?: null;
+        $content = HtmlSanitizer::sanitize(Request::input('content', ''));
+
+        if ($title === '') {
+            flash_set('error', 'عنوان المستند مطلوب.');
+            return null;
+        }
+        if (!in_array($type, self::TYPES, true)) {
+            $type = 'general';
+        }
+        if (!in_array($visibility, ['public', 'private'], true)) {
+            $visibility = 'public';
+        }
+
+        if ($templateId) {
+            $template = DocumentTemplate::find($templateId);
+            if (!$template || (int) $template['company_id'] !== $companyId) {
+                flash_set('error', 'القالب المختار غير صالح.');
+                return null;
+            }
+        }
+
+        return [
+            'title' => $title,
+            'type' => $type,
+            'visibility' => $visibility,
+            'template_id' => $templateId,
+            'content' => $content,
+        ];
+    }
+}

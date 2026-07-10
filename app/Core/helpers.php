@@ -145,6 +145,11 @@ function status_badge(string $status): string
         'medium' => ['متوسطة', 'info'],
         'high' => ['عالية', 'warning'],
         'urgent' => ['عاجلة', 'danger'],
+        'draft' => ['مسودة', 'muted'],
+        'pending_approval' => ['بانتظار الموافقة', 'warning'],
+        'approved' => ['معتمد', 'info'],
+        'signed' => ['موقّع', 'success'],
+        'archived' => ['مؤرشف', 'muted'],
     ];
     [$label, $class] = $map[$status] ?? [$status, 'muted'];
     return '<span class="badge badge-' . $class . '">' . e($label) . '</span>';
