@@ -36,7 +36,7 @@
             <input type="file" name="logo" accept="image/png,image/jpeg,image/webp">
             <?php if (!empty($company['logo'])): ?>
                 <div style="margin-top:8px;">
-                    <img src="<?= e(base_url('storage/uploads/' . $company['logo'])) ?>" alt="الشعار الحالي" style="height:40px;border-radius:6px;">
+                    <img src="<?= e(base_url('storage/uploads/core/' . $company['logo'])) ?>" alt="الشعار الحالي" style="height:40px;border-radius:6px;">
                 </div>
             <?php endif; ?>
         </div>

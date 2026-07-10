@@ -29,11 +29,11 @@ class ModuleController
 
         if ($failed) {
             $messages = array_map(fn ($r) => $r['label'] . ': ' . $r['error'], $failed);
-            flash_set('error', 'فشل تحديث بعض عناصر قاعدة البيانات: ' . implode(' | ', $messages) . '. راجع storage/logs/app.log.');
+            flash_set('error', 'فشل تطبيق بعض ترقيات النواة: ' . implode(' | ', $messages) . '. راجع storage/logs/app.log.');
         } elseif (array_filter($results, fn ($r) => $r['status'] === 'applied')) {
-            flash_set('success', 'تم تحديث قاعدة بيانات النواة بنجاح.');
+            flash_set('success', 'تم تحديث النواة بنجاح.');
         } else {
-            flash_set('success', 'قاعدة بيانات النواة محدّثة بالفعل، لا يوجد شيء لتطبيقه.');
+            flash_set('success', 'النواة محدّثة بالفعل، لا يوجد شيء لتطبيقه.');
         }
 
         redirect('/extensions');

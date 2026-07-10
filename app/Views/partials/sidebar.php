@@ -32,7 +32,7 @@ $coreItems[] = ['label' => 'سجل العمليات', 'icon' => '📜', 'url' =>
 <aside class="sidebar">
     <div class="brand">
         <?php if (!empty($company['logo'])): ?>
-            <img src="<?= e(base_url('storage/uploads/' . $company['logo'])) ?>" alt="">
+            <img src="<?= e(base_url('storage/uploads/core/' . $company['logo'])) ?>" alt="">
         <?php else: ?>
             <span>🗂️</span>
         <?php endif; ?>

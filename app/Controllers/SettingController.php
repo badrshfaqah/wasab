@@ -60,7 +60,7 @@ class SettingController
                 $update['name'] = $name;
             }
 
-            $upload = Uploads::handleImage('logo', BASE_PATH . '/storage/uploads');
+            $upload = Uploads::handleImage('logo', BASE_PATH . '/storage/uploads/core');
             if ($upload['filename']) {
                 $update['logo'] = $upload['filename'];
             }

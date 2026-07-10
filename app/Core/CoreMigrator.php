@@ -24,7 +24,7 @@ namespace App\Core;
  */
 class CoreMigrator
 {
-    public const CURRENT_VERSION = 2;
+    public const CURRENT_VERSION = 3;
     private const RETRY_COOLDOWN_SECONDS = 300;
 
     private static function migrations(): array
@@ -37,6 +37,10 @@ class CoreMigrator
                     'sidebar_color',
                     "VARCHAR(7) NOT NULL DEFAULT '#111827' AFTER `primary_color`"
                 ),
+            ],
+            3 => [
+                'label' => 'نقل شعارات الشركات المرفوعة سابقاً إلى storage/uploads/core',
+                'run' => fn () => self::moveLegacyCompanyLogos(),
             ],
         ];
     }
@@ -134,6 +138,43 @@ class CoreMigrator
         );
         if (!$exists) {
             Database::pdo()->exec("ALTER TABLE `{$table}` ADD COLUMN `{$column}` {$definition}");
+        }
+    }
+
+    /**
+     * توحيد تنظيم الرفوعات: شعارات الشركات كانت تُحفظ في جذر storage/uploads/،
+     * بينما كل إضافة تحفظ رفوعاتها في مجلد خاص باسمها (storage/uploads/tasks/ مثلاً).
+     * هذه الترقية تنقل أي شعار قديم فعلياً على القرص إلى storage/uploads/core/
+     * ليطابق نفس القاعدة، دون أن تختفي شعارات الشركات المرفوعة مسبقاً.
+     */
+    private static function moveLegacyCompanyLogos(): void
+    {
+        $root = BASE_PATH . '/storage/uploads';
+        if (!is_dir($root)) {
+            return;
+        }
+
+        $target = $root . '/core';
+        $moved = false;
+
+        foreach (scandir($root) as $file) {
+            if ($file === '.' || $file === '..' || !is_file($root . '/' . $file)) {
+                continue;
+            }
+            if (!preg_match('/^company_[0-9a-f]+\.(png|jpe?g|webp)$/i', $file)) {
+                continue;
+            }
+
+            if (!$moved) {
+                if (!is_dir($target) && !@mkdir($target, 0755, true) && !is_dir($target)) {
+                    throw new \RuntimeException("تعذر إنشاء المجلد {$target}");
+                }
+                $moved = true;
+            }
+
+            if (!@rename($root . '/' . $file, $target . '/' . $file)) {
+                throw new \RuntimeException("تعذر نقل الملف {$file} إلى storage/uploads/core/");
+            }
         }
     }
 }

@@ -42,7 +42,7 @@ class Uploads
             return ['filename' => null, 'error' => 'تعذر الوصول لمجلد الرفع على السيرفر.'];
         }
         if (!is_writable($destDir)) {
-            return ['filename' => null, 'error' => 'مجلد الرفع على السيرفر غير قابل للكتابة (راجع صلاحيات storage/uploads).'];
+            return ['filename' => null, 'error' => 'مجلد الرفع على السيرفر غير قابل للكتابة (راجع صلاحيات ' . $destDir . ').'];
         }
 
         $filename = 'company_' . bin2hex(random_bytes(8)) . '.' . self::ALLOWED[$imageInfo['mime']];

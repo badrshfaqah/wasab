@@ -4,21 +4,21 @@
 
 <div class="card">
     <div class="card-title">
-        <span>🗄️ قاعدة بيانات النواة</span>
+        <span>🗄️ ترقيات النواة (قاعدة البيانات والملفات)</span>
         <?= $coreSchemaUpToDate ? status_badge('active') : status_badge('pending') ?>
     </div>
     <p class="hint" style="margin:0 0 12px;">
         <?php if ($coreSchemaUpToDate): ?>
-            جداول النواة محدّثة بالكامل. عادة يتم هذا تلقائياً بمجرد رفع ملفات جديدة، لكن يمكنك الضغط على الزر يدوياً
-            في أي وقت (مثلاً بعد رفع تحديث، أو لإعادة المحاولة إن واجهت رسالة خطأ سابقاً).
+            النواة محدّثة بالكامل (جداول قاعدة البيانات وتنظيم الملفات). عادة يتم هذا تلقائياً بمجرد رفع ملفات جديدة،
+            لكن يمكنك الضغط على الزر يدوياً في أي وقت (مثلاً بعد رفع تحديث، أو لإعادة المحاولة إن واجهت رسالة خطأ سابقاً).
         <?php else: ?>
-            يتوفر تحديث لبنية جداول النواة لم يُطبَّق تلقائياً بعد (على الأغلب بسبب صلاحيات قاعدة البيانات على
+            يتوفر تحديث لبنية النواة لم يُطبَّق تلقائياً بعد (على الأغلب بسبب صلاحيات قاعدة البيانات أو الملفات على
             الاستضافة). اضغط الزر لإعادة المحاولة الآن.
         <?php endif; ?>
     </p>
     <form method="post" action="<?= route('/extensions/update-core-database') ?>">
         <?= csrf_field() ?>
-        <button class="btn <?= $coreSchemaUpToDate ? 'btn-outline' : '' ?> btn-sm" type="submit">تحديث قاعدة بيانات النواة</button>
+        <button class="btn <?= $coreSchemaUpToDate ? 'btn-outline' : '' ?> btn-sm" type="submit">تحديث النواة</button>
     </form>
 </div>
 
