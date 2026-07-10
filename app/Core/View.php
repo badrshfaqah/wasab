@@ -47,12 +47,20 @@ class View
         echo self::renderPartial($layout, $data);
     }
 
+    /**
+     * تُشغَّل داخل دالة مغلقة معزولة لا تحمل أي متغيرات محلية أخرى عدا __path/__data
+     * (تُحذف قبل include) - بدونها كان أي مفتاح بيانات باسم "file" أو "view" أو "data"
+     * يصطدم صامتاً مع متغيرات هذه الدالة نفسها بسبب EXTR_SKIP فيفقد المُستدعي قيمته
+     * الحقيقية دون أي خطأ ظاهر (نفس الحل التاريخي المعروف من محرّكات عرض PHP المشابهة).
+     */
     public static function renderPartial(string $view, array $data = []): string
     {
-        $file = self::resolve($view);
-        extract($data, EXTR_SKIP);
-        ob_start();
-        include $file;
-        return ob_get_clean();
+        return (function (string $__path, array $__data) {
+            extract($__data, EXTR_SKIP);
+            unset($__data);
+            ob_start();
+            include $__path;
+            return ob_get_clean();
+        })(self::resolve($view), $data);
     }
 }

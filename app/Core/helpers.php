@@ -150,6 +150,8 @@ function status_badge(string $status): string
         'approved' => ['معتمد', 'info'],
         'signed' => ['موقّع', 'success'],
         'archived' => ['مؤرشف', 'muted'],
+        'expired' => ['منتهي الصلاحية', 'danger'],
+        'closed' => ['مغلق', 'muted'],
     ];
     [$label, $class] = $map[$status] ?? [$status, 'muted'];
     return '<span class="badge badge-' . $class . '">' . e($label) . '</span>';

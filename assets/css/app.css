@@ -252,6 +252,15 @@ tr:hover td{background:#fafbfc;}
 .doc-log{padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;}
 .doc-log:last-child{border-bottom:0;}
 .doc-log-meta{color:var(--muted);font-size:12px;}
+
+/* أرشيف الملفات */
+.archive-card{display:block;}
+.archive-thumb{
+  height:110px;border-radius:8px;background:var(--bg) center/cover no-repeat;border:1px solid var(--border);
+  margin-bottom:8px;display:flex;align-items:center;justify-content:center;
+}
+.archive-thumb-icon{font-size:40px;}
+.archive-card-name{font-weight:600;font-size:13.5px;margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .doc-content-preview{line-height:1.9;font-size:14.5px;}
 .doc-content-preview :is(ul,ol){padding-inline-start:24px;}
 
