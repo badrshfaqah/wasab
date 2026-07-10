@@ -40,6 +40,12 @@ modules/
     nav.php                     روابط القائمة الجانبية
     Widgets/dashboard.php        عناصر الصفحة الرئيسية
     Controllers/ Models/ Views/    ملفات الإضافة الخاصة بها فقط
+  phone/                 إضافة "التلفون" (Innocalls SIP/WebRTC): مفتاح API لكل شركة يحدده
+                          مدير النظام من /phone/admin، وكل موظف يضيف تحويلته الخاصة من
+                          /phone/settings. ودجت اتصال عائم يظهر في كل الصفحات عبر global.php
+                          (أول إضافة تستخدم هذا الـ hook). تحتاج رفع ملفي SDK الخاصين بـ
+                          Innocalls يدوياً في assets/vendor/innocalls/ (راجع README هناك) -
+                          بدونهما تعمل الإضافة عادياً لكن الاتصال الفعلي لا يعمل.
 assets/                CSS/JS خفيفة بدون مكتبات خارجية أو CDN
 storage/               رفعات الملفات وملف قفل التثبيت (تُنشأ تلقائياً)
 ```

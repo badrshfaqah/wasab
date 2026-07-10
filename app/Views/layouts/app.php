@@ -56,5 +56,10 @@ if ($impersonating) {
     </div>
 </div>
 <script src="<?= asset('js/app.js') ?>"></script>
+<?php if ($user): ?>
+    <?php foreach (\App\Core\ModuleManager::collectGlobalWidgets($user) as $widgetHtml): ?>
+        <?= $widgetHtml ?>
+    <?php endforeach; ?>
+<?php endif; ?>
 </body>
 </html>

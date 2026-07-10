@@ -294,4 +294,32 @@ class ModuleManager
         }
         return $items;
     }
+
+    /**
+     * عناصر عامة (HTML/JS) تُحقن في كل صفحة بعد تسجيل الدخول - مثل ودجت هاتف عائم أو شريط إشعار مستمر.
+     * تُجمع فقط من الإضافات المفعّلة، وكل إضافة مسؤولة عن فحص صلاحية المستخدم داخل global.php الخاص بها.
+     */
+    public static function collectGlobalWidgets(array $user): array
+    {
+        $widgets = [];
+        foreach (self::installedRows() as $key => $row) {
+            if ($row['status'] !== 'active') {
+                continue;
+            }
+            $file = self::modulesPath() . '/' . $key . '/global.php';
+            if (!is_file($file)) {
+                continue;
+            }
+            $provider = require $file;
+            if (is_callable($provider)) {
+                $result = $provider($user);
+                if (is_array($result)) {
+                    $widgets = array_merge($widgets, $result);
+                } elseif (is_string($result) && $result !== '') {
+                    $widgets[] = $result;
+                }
+            }
+        }
+        return $widgets;
+    }
 }
