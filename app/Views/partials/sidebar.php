@@ -18,7 +18,14 @@ foreach ($moduleItems as $item) {
 $coreItems[] = ['label' => 'الشركات', 'icon' => '🏢', 'url' => route('/companies'), 'show' => $isSystemAdmin];
 $coreItems[] = ['label' => 'المستخدمون', 'icon' => '👥', 'url' => route('/users'), 'show' => $manageCore];
 $coreItems[] = ['label' => 'الأدوار والصلاحيات', 'icon' => '🛡️', 'url' => route('/roles'), 'show' => $manageCore];
-$coreItems[] = ['label' => 'الإضافات', 'icon' => '🧩', 'url' => route('/extensions'), 'show' => $isSystemAdmin];
+$pendingModuleUpdates = $isSystemAdmin ? ModuleManager::countPendingUpdates() : 0;
+$coreItems[] = [
+    'label' => 'الإضافات',
+    'icon' => '🧩',
+    'url' => route('/extensions'),
+    'show' => $isSystemAdmin,
+    'badge' => $pendingModuleUpdates > 0 ? $pendingModuleUpdates : null,
+];
 $coreItems[] = ['label' => 'الإعدادات', 'icon' => '⚙️', 'url' => route('/settings'), 'show' => $manageCore];
 $coreItems[] = ['label' => 'سجل العمليات', 'icon' => '📜', 'url' => route('/activity-log'), 'show' => $manageCore];
 ?>
@@ -36,6 +43,7 @@ $coreItems[] = ['label' => 'سجل العمليات', 'icon' => '📜', 'url' =>
             <?php if (empty($item['show'])) continue; ?>
             <a class="nav-link<?= rtrim($currentPath, '/') === rtrim(parse_url($item['url'], PHP_URL_PATH), '/') ? ' active' : '' ?>" href="<?= $item['url'] ?>">
                 <span class="ic"><?= $item['icon'] ?></span><span><?= e($item['label']) ?></span>
+                <?php if (!empty($item['badge'])): ?><span class="nav-badge"><?= (int) $item['badge'] ?></span><?php endif; ?>
             </a>
         <?php endforeach; ?>
     </nav>

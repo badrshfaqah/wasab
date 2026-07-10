@@ -81,6 +81,12 @@ class ModuleManager
         return $list;
     }
 
+    /** عدد الإضافات المثبتة التي رُفعت لها ملفات بإصدار أحدث على القرص وتحتاج الضغط على "تحديث" */
+    public static function countPendingUpdates(): int
+    {
+        return count(array_filter(self::list(), fn ($m) => $m['needs_update']));
+    }
+
     public static function isActive(string $key): bool
     {
         $rows = self::installedRows();
