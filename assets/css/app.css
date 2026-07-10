@@ -168,16 +168,12 @@ tr:hover td{background:#fafbfc;}
 
 /* ودجت الهاتف العائم (إضافة التلفون) */
 .phone-widget{position:fixed;bottom:20px;left:20px;z-index:70;font-family:inherit;}
-.phone-widget-collapsed{
-  display:flex;align-items:center;justify-content:center;gap:4px;
-  width:52px;height:52px;border-radius:50%;background:var(--primary);color:#fff;
-  font-size:20px;box-shadow:0 4px 14px rgba(0,0,0,.18);cursor:pointer;text-decoration:none;position:relative;
-}
 .phone-widget-toggle{
-  width:52px;height:52px;border-radius:50%;background:var(--primary);color:#fff;border:0;
-  font-size:20px;box-shadow:0 4px 14px rgba(0,0,0,.18);cursor:pointer;position:relative;
+  display:flex;align-items:center;gap:8px;
+  height:46px;padding:0 18px;border-radius:26px;background:var(--primary);color:#fff;border:0;
+  font-size:14px;font-weight:700;font-family:inherit;box-shadow:0 4px 14px rgba(0,0,0,.18);cursor:pointer;position:relative;
 }
-.phone-status-dot{position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:50%;border:2px solid #fff;background:#9ca3af;}
+.phone-status-dot{position:relative;top:-8px;width:10px;height:10px;border-radius:50%;border:2px solid #fff;background:#9ca3af;flex-shrink:0;}
 .phone-status-dot.online{background:var(--success);}
 .phone-status-dot.offline{background:#9ca3af;}
 .phone-status-dot.warning{background:var(--warning);}
