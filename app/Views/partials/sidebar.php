@@ -15,6 +15,12 @@ foreach ($moduleItems as $item) {
     $coreItems[] = $item + ['show' => true];
 }
 
+// خط فاصل بين روابط الإضافات وبين قسم الإدارة (المستخدمون/الصلاحيات/الإعدادات...) -
+// يُعرض فقط إن كان هناك فعلاً عنصر إداري سيظهر بعده، حتى لا يبقى خطاً معلّقاً بلا شيء تحته.
+if ($isSystemAdmin || $manageCore) {
+    $coreItems[] = ['divider' => true];
+}
+
 $coreItems[] = ['label' => 'الشركات', 'icon' => '🏢', 'url' => route('/companies'), 'show' => $isSystemAdmin];
 $coreItems[] = ['label' => 'المستخدمون', 'icon' => '👥', 'url' => route('/users'), 'show' => $manageCore];
 $coreItems[] = ['label' => 'الأدوار والصلاحيات', 'icon' => '🛡️', 'url' => route('/roles'), 'show' => $manageCore];
@@ -40,6 +46,10 @@ $coreItems[] = ['label' => 'سجل العمليات', 'icon' => '📜', 'url' =>
     </div>
     <nav>
         <?php foreach ($coreItems as $item): ?>
+            <?php if (!empty($item['divider'])): ?>
+                <div class="nav-divider"></div>
+                <?php continue; ?>
+            <?php endif; ?>
             <?php if (empty($item['show'])) continue; ?>
             <a class="nav-link<?= rtrim($currentPath, '/') === rtrim(parse_url($item['url'], PHP_URL_PATH), '/') ? ' active' : '' ?>" href="<?= $item['url'] ?>">
                 <span class="ic"><?= $item['icon'] ?></span><span><?= e($item['label']) ?></span>

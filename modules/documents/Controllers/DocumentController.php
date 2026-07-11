@@ -258,11 +258,32 @@ class DocumentController
                 }
                 Document::update($document['id'], [
                     'status' => 'archived',
+                    'previous_status' => $document['status'],
                     'archived_at' => date('Y-m-d H:i:s'),
                     'updated_at' => date('Y-m-d H:i:s'),
                 ]);
                 DocumentLog::add($document['id'], Auth::id(), 'archived', 'تمت أرشفة المستند');
                 flash_set('success', 'تمت أرشفة المستند.');
+                break;
+
+            case 'restore':
+                if ($document['status'] !== 'archived') {
+                    flash_set('error', 'المستند ليس مؤرشفاً.');
+                    redirect('/documents/' . $document['id']);
+                }
+                if (!$this->canManage()) {
+                    $this->forbidden();
+                    return;
+                }
+                $restoredStatus = $document['previous_status'] ?: 'draft';
+                Document::update($document['id'], [
+                    'status' => $restoredStatus,
+                    'previous_status' => null,
+                    'archived_at' => null,
+                    'updated_at' => date('Y-m-d H:i:s'),
+                ]);
+                DocumentLog::add($document['id'], Auth::id(), 'restored', 'تمت استعادة المستند من الأرشيف');
+                flash_set('success', 'تمت استعادة المستند من الأرشيف.');
                 break;
 
             default:

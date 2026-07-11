@@ -29,6 +29,7 @@ return function (PDO $pdo): void {
             `type` ENUM('general','letter','decision','certificate','authorization') NOT NULL DEFAULT 'general',
             `visibility` ENUM('public','private') NOT NULL DEFAULT 'public',
             `status` ENUM('draft','pending_approval','approved','signed','archived') NOT NULL DEFAULT 'draft',
+            `previous_status` ENUM('draft','pending_approval','approved','signed') NULL COMMENT 'الحالة قبل الأرشفة، لاستعادة المستند إليها',
             `number` VARCHAR(50) NULL,
             `title` VARCHAR(255) NOT NULL,
             `content` LONGTEXT NULL,

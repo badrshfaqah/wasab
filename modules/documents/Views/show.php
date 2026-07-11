@@ -8,6 +8,7 @@ $canApproveNow = $document['status'] === 'pending_approval' && ($canManage || $c
 $canSignNow = $document['status'] === 'approved' && ($canManage || $canSign);
 $canArchive = $document['status'] !== 'archived'
     && ($canManage || (int) $document['created_by'] === (int) current_user()['id']);
+$canRestore = $document['status'] === 'archived' && $canManage;
 ?>
 <div class="page-head">
     <div>
@@ -41,7 +42,7 @@ $canArchive = $document['status'] !== 'archived'
             <p class="hint">لا يوجد محتوى.</p>
         <?php endif; ?>
 
-        <?php if ($canSubmit || $canApproveNow || $canSignNow || $canArchive): ?>
+        <?php if ($canSubmit || $canApproveNow || $canSignNow || $canArchive || $canRestore): ?>
             <div class="form-actions" style="margin-top:20px;">
                 <?php if ($canSubmit): ?>
                     <form method="post" action="<?= route('/documents/' . $document['id'] . '/status') ?>">
@@ -69,6 +70,13 @@ $canArchive = $document['status'] !== 'archived'
                         <?= csrf_field() ?>
                         <input type="hidden" name="action" value="archive">
                         <button class="btn btn-outline" type="submit">🗄️ أرشفة</button>
+                    </form>
+                <?php endif; ?>
+                <?php if ($canRestore): ?>
+                    <form method="post" action="<?= route('/documents/' . $document['id'] . '/status') ?>" data-confirm="استعادة هذا المستند من الأرشيف؟">
+                        <?= csrf_field() ?>
+                        <input type="hidden" name="action" value="restore">
+                        <button class="btn btn-outline" type="submit">↩️ استعادة من الأرشيف</button>
                     </form>
                 <?php endif; ?>
             </div>
