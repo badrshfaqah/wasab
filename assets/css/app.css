@@ -259,6 +259,7 @@ tr:hover td{background:#fafbfc;}
 .doc-log-meta{color:var(--muted);font-size:12px;}
 
 /* التقويم الموحّد */
+.cal-grid-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;}
 .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;}
 .cal-weekday{text-align:center;font-size:12px;font-weight:700;color:var(--muted);padding:6px 0;}
 .cal-cell{
@@ -272,6 +273,7 @@ tr:hover td{background:#fafbfc;}
   display:block;font-size:11px;padding:2px 6px;border-radius:5px;color:#fff;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-decoration:none;
 }
+.cal-event bdi{unicode-bidi:isolate;}
 .cal-event-tasks{background:#2563eb;}
 .cal-event-archive{background:#16a34a;}
 .cal-event-meetings{background:#d97706;}
@@ -284,10 +286,16 @@ tr:hover td{background:#fafbfc;}
 .cal-legend-dot.cal-event-meetings{background:#d97706;}
 .cal-legend-dot.cal-event-documents{background:#7c3aed;}
 .cal-legend-dot.cal-event-company{background:#db2777;}
+/*
+  دون هذا: على شاشات الجوال الضيقة كانت الخلايا تُضغط لعرض 36px فقط، فيصبح نص
+  الحدث (خصوصاً "الوقت" اللاتيني داخل حاوية RTL) مقطوعاً بشكل غير مقروء يظهر
+  كأرقام مبعثرة تحت بعضها. الحل: عرض عمود أدنى مريح للقراءة (72px) مع السماح
+  بتمرير أفقي للشبكة نفسها بدل ضغط محتواها.
+*/
 @media (max-width:900px){
-  .cal-grid{grid-template-columns:repeat(7,minmax(36px,1fr));}
+  .cal-grid{grid-template-columns:repeat(7,minmax(72px,1fr));min-width:560px;}
   .cal-cell{min-height:64px;padding:4px;font-size:11px;}
-  .cal-event{font-size:9.5px;padding:1px 3px;}
+  .cal-event{font-size:10px;padding:1px 4px;}
 }
 
 /* أرشيف الملفات */

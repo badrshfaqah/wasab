@@ -20,7 +20,7 @@ class CronRunner
     private static function remindCompanyEvents(): void
     {
         $events = Database::select(
-            'SELECT * FROM calendar_events WHERE event_date = :d AND reminder_sent_at IS NULL',
+            'SELECT * FROM calendar_events WHERE event_date = :d AND reminder_sent_at IS NULL AND send_reminder = 1',
             ['d' => date('Y-m-d')]
         );
 

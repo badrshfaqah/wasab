@@ -147,6 +147,7 @@ CREATE TABLE IF NOT EXISTS `calendar_events` (
     `description` VARCHAR(500) NULL,
     `event_date` DATE NOT NULL,
     `created_by` INT UNSIGNED NULL,
+    `send_reminder` TINYINT(1) NOT NULL DEFAULT 1 COMMENT 'هل يُرسل تنبيه لأعضاء الشركة يوم الحدث؟',
     `reminder_sent_at` DATETIME NULL COMMENT 'وقت إرسال تذكير الحدث لأعضاء الشركة (مرة واحدة فقط) عبر cron.php',
     `created_at` DATETIME NOT NULL,
     KEY `calendar_events_company_index` (`company_id`),

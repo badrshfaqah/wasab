@@ -24,7 +24,7 @@ namespace App\Core;
  */
 class CoreMigrator
 {
-    public const CURRENT_VERSION = 6;
+    public const CURRENT_VERSION = 7;
     private const RETRY_COOLDOWN_SECONDS = 300;
 
     private static function migrations(): array
@@ -56,6 +56,14 @@ class CoreMigrator
                     'calendar_events',
                     'reminder_sent_at',
                     "DATETIME NULL AFTER `created_by`"
+                ),
+            ],
+            7 => [
+                'label' => 'إضافة خيار تفعيل/إيقاف التنبيه لكل حدث تقويم خاص بالشركة',
+                'run' => fn () => self::addColumnIfMissing(
+                    'calendar_events',
+                    'send_reminder',
+                    "TINYINT(1) NOT NULL DEFAULT 1 AFTER `created_by`"
                 ),
             ],
         ];

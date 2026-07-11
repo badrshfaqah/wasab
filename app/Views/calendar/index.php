@@ -22,6 +22,7 @@ $monthCompanyEvents = array_filter($companyEvents, fn ($ce) => substr($ce['event
 <div class="card">
     <div class="card-title"><span><?= e($monthLabel) ?></span></div>
 
+    <div class="cal-grid-scroll">
     <div class="cal-grid">
         <?php foreach ($weekdays as $w): ?>
             <div class="cal-weekday"><?= e($w) ?></div>
@@ -41,7 +42,7 @@ $monthCompanyEvents = array_filter($companyEvents, fn ($ce) => substr($ce['event
                 <div class="cal-day-num"><?= $day ?></div>
                 <?php foreach (array_slice($dayEvents, 0, 4) as $ev): ?>
                     <a class="cal-event <?= $colorClass[$ev['module']] ?? '' ?>" href="<?= e($ev['url']) ?>" title="<?= e($ev['title']) ?>">
-                        <?= !empty($ev['time']) ? e($ev['time']) . ' ' : '' ?><?= e($ev['title']) ?>
+                        <?php if (!empty($ev['time'])): ?><bdi><?= e($ev['time']) ?></bdi> <?php endif; ?><?= e($ev['title']) ?>
                     </a>
                 <?php endforeach; ?>
                 <?php if (count($dayEvents) > 4): ?>
@@ -49,6 +50,7 @@ $monthCompanyEvents = array_filter($companyEvents, fn ($ce) => substr($ce['event
                 <?php endif; ?>
             </div>
         <?php endfor; ?>
+    </div>
     </div>
 
     <div style="display:flex;gap:16px;margin-top:16px;font-size:12px;color:var(--muted);flex-wrap:wrap;">
@@ -79,6 +81,12 @@ $monthCompanyEvents = array_filter($companyEvents, fn ($ce) => substr($ce['event
             <label>وصف (اختياري)</label>
             <textarea name="description" rows="2" maxlength="500"></textarea>
         </div>
+        <div class="field">
+            <label style="display:flex;align-items:center;gap:8px;font-weight:400;">
+                <input type="checkbox" name="send_reminder" value="1" checked style="width:auto;">
+                🔔 إرسال تنبيه لجميع أعضاء الشركة يوم الحدث
+            </label>
+        </div>
         <div class="form-actions">
             <button class="btn" type="submit">إضافة الحدث</button>
         </div>
@@ -92,7 +100,7 @@ $monthCompanyEvents = array_filter($companyEvents, fn ($ce) => substr($ce['event
     <div class="table-wrap">
     <table>
         <thead>
-            <tr><th>التاريخ</th><th>العنوان</th><th>الوصف</th><th>أضافها</th><?php if ($canManageEvents): ?><th></th><?php endif; ?></tr>
+            <tr><th>التاريخ</th><th>العنوان</th><th>الوصف</th><th>التنبيه</th><th>أضافها</th><?php if ($canManageEvents): ?><th></th><?php endif; ?></tr>
         </thead>
         <tbody>
             <?php foreach ($monthCompanyEvents as $ce): ?>
@@ -100,6 +108,7 @@ $monthCompanyEvents = array_filter($companyEvents, fn ($ce) => substr($ce['event
                     <td><?= e($ce['event_date']) ?></td>
                     <td><?= e($ce['title']) ?></td>
                     <td><?= e($ce['description'] ?? '') ?></td>
+                    <td><?= !empty($ce['send_reminder']) ? '🔔 مفعّل' : '🔕 معطّل' ?></td>
                     <td><?= e($ce['creator_name'] ?? '-') ?></td>
                     <?php if ($canManageEvents): ?>
                     <td>

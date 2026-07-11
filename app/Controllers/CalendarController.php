@@ -106,6 +106,7 @@ class CalendarController
             'description' => $description ?: null,
             'event_date' => $eventDate,
             'created_by' => Auth::id(),
+            'send_reminder' => Request::input('send_reminder') ? 1 : 0,
         ]);
 
         ActivityLog::log('calendar.event_create', 'calendar_event', $eventId, "إضافة حدث تقويم: {$title}");
