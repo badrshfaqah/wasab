@@ -24,8 +24,9 @@ $router->post('/logout', [AuthController::class, 'logout'], [[Middleware::class,
 // ---------- الرئيسية ----------
 $router->get('/', [DashboardController::class, 'index'], [[Middleware::class, 'auth']]);
 
-// ---------- التحديثات والإصدارات (وصاب) ----------
-$router->get('/wasab', [WasabController::class, 'index'], [[Middleware::class, 'auth']]);
+// ---------- صفحة "وصاب" العامة عن المنتج (بلا تسجيل دخول عمداً - مخصصة للنشر
+// كصفحة تعريفية بموقع الشركة، تشمل وصف المنتج وقائمة ميزاته وسجل تحديثاته) ----------
+$router->get('/wasab', [WasabController::class, 'index'], []);
 
 // ---------- التقويم (يجمع أحداث كل الإضافات المفعّلة) ----------
 $router->get('/calendar', [CalendarController::class, 'index'], [[Middleware::class, 'auth']]);

@@ -31,7 +31,7 @@ body{display:flex;flex-direction:column;align-items:center;justify-content:cente
     </form>
 </div>
 <footer class="app-footer">
-    <span>إصدار <?= e(\App\Core\Wasab::currentVersion()) ?></span>
+    <a href="<?= route('/wasab') ?>">إصدار <?= e(\App\Core\Wasab::currentVersion()) ?></a>
     <span>·</span>
     <a href="https://almgrat.com" target="_blank" rel="noopener">وصاب</a>
 </footer>
