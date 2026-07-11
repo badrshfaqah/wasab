@@ -1,0 +1,35 @@
+<?php
+
+use App\Core\Middleware;
+use App\Core\Router;
+use Modules\Employees\Controllers\EmployeeController;
+
+/**
+ * يُحمَّل فقط عندما تكون إضافة الملف الوظيفي مفعّلة. لا علاقة له بملفات النواة.
+ * /employees/create مسجّل قبل /employees/{id} حتى لا يلتقطها الموجّه كمعرّف ملف.
+ */
+return function (Router $router): void {
+    $auth = [Middleware::class, 'auth'];
+
+    $router->get('/employees', [EmployeeController::class, 'index'], [$auth]);
+    $router->get('/employees/create', [EmployeeController::class, 'create'], [$auth]);
+    $router->post('/employees', [EmployeeController::class, 'store'], [$auth]);
+
+    $router->get('/employees/{id}', [EmployeeController::class, 'show'], [$auth]);
+    $router->get('/employees/{id}/edit', [EmployeeController::class, 'edit'], [$auth]);
+    $router->post('/employees/{id}', [EmployeeController::class, 'update'], [$auth]);
+    $router->post('/employees/{id}/delete', [EmployeeController::class, 'destroy'], [$auth]);
+
+    $router->post('/employees/{id}/dependents', [EmployeeController::class, 'addDependent'], [$auth]);
+    $router->post('/employees/{id}/dependents/{dependentId}/delete', [EmployeeController::class, 'deleteDependent'], [$auth]);
+
+    $router->post('/employees/{id}/certifications', [EmployeeController::class, 'addCertification'], [$auth]);
+    $router->post('/employees/{id}/certifications/{certId}/delete', [EmployeeController::class, 'deleteCertification'], [$auth]);
+
+    $router->post('/employees/{id}/documents', [EmployeeController::class, 'uploadDocument'], [$auth]);
+    $router->get('/employees/{id}/documents/{docId}', [EmployeeController::class, 'downloadDocument'], [$auth]);
+    $router->post('/employees/{id}/documents/{docId}/delete', [EmployeeController::class, 'deleteDocument'], [$auth]);
+
+    $router->post('/employees/{id}/timeline', [EmployeeController::class, 'addTimelineEntry'], [$auth]);
+    $router->post('/employees/{id}/timeline/{entryId}/delete', [EmployeeController::class, 'deleteTimelineEntry'], [$auth]);
+};

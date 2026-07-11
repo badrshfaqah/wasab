@@ -7,6 +7,7 @@ $colorClass = [
     'meetings' => 'cal-event-meetings',
     'documents' => 'cal-event-documents',
     'company' => 'cal-event-company',
+    'employees' => 'cal-event-employees',
 ];
 $monthCompanyEvents = array_filter($companyEvents, fn ($ce) => substr($ce['event_date'], 0, 7) === $month);
 ?>
@@ -59,6 +60,7 @@ $monthCompanyEvents = array_filter($companyEvents, fn ($ce) => substr($ce['event
         <span><span class="cal-legend-dot cal-event-meetings"></span> الاجتماعات</span>
         <span><span class="cal-legend-dot cal-event-documents"></span> المستندات</span>
         <span><span class="cal-legend-dot cal-event-company"></span> أحداث الشركة</span>
+        <span><span class="cal-legend-dot cal-event-employees"></span> الملف الوظيفي</span>
     </div>
 </div>
 

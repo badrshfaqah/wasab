@@ -300,6 +300,7 @@ tr:hover td{background:#fafbfc;}
 .cal-event-meetings{background:#d97706;}
 .cal-event-documents{background:#7c3aed;}
 .cal-event-company{background:#db2777;}
+.cal-event-employees{background:#0891b2;}
 .cal-more{font-size:11px;color:var(--muted);}
 .cal-legend-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-inline-end:4px;vertical-align:middle;}
 .cal-legend-dot.cal-event-tasks{background:#2563eb;}
@@ -307,6 +308,7 @@ tr:hover td{background:#fafbfc;}
 .cal-legend-dot.cal-event-meetings{background:#d97706;}
 .cal-legend-dot.cal-event-documents{background:#7c3aed;}
 .cal-legend-dot.cal-event-company{background:#db2777;}
+.cal-legend-dot.cal-event-employees{background:#0891b2;}
 /*
   دون هذا: على شاشات الجوال الضيقة كانت الخلايا تُضغط لعرض 36px فقط، فيصبح نص
   الحدث (خصوصاً "الوقت" اللاتيني داخل حاوية RTL) مقطوعاً بشكل غير مقروء يظهر

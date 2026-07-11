@@ -155,6 +155,9 @@ function status_badge(string $status): string
     $map = [
         'active' => ['نشط', 'success'],
         'inactive' => ['غير نشط', 'muted'],
+        'on_leave' => ['إجازة', 'warning'],
+        'suspended' => ['موقوف', 'danger'],
+        'terminated' => ['منتهي الخدمة', 'muted'],
         'pending' => ['قيد الانتظار', 'warning'],
         'todo' => ['لم تبدأ', 'muted'],
         'in_progress' => ['قيد التنفيذ', 'info'],

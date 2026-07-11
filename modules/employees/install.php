@@ -1,0 +1,118 @@
+<?php
+/**
+ * تثبيت إضافة الملف الوظيفي: ينشئ جداولها الخاصة فقط، دون المساس بجداول النواة.
+ * لا يوجد ربط FK بجدولي users/companies عمداً (استقلالية الإضافة عن النواة، ونفس
+ * السبب الجوهري لتصميم هذه الإضافة: linked_user_id مجرد عمود عادي غير مقيّد بمفتاح
+ * أجنبي، فلو حُذف حساب المستخدم لاحقاً يبقى الملف الوظيفي كاملاً دون أي أثر).
+ */
+return function (PDO $pdo): void {
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS `employees_profiles` (
+            `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            `company_id` INT UNSIGNED NOT NULL,
+            `linked_user_id` INT UNSIGNED NULL COMMENT 'ربط اختياري بحساب دخول موجود - عمود عادي بلا FK عمداً',
+            `full_name` VARCHAR(200) NOT NULL,
+            `photo` VARCHAR(255) NULL,
+            `national_id` VARCHAR(50) NULL,
+            `nationality` VARCHAR(100) NULL,
+            `birth_date` DATE NULL,
+            `gender` ENUM('male','female') NULL,
+            `marital_status` ENUM('single','married','divorced','widowed') NULL,
+            `phone` VARCHAR(50) NULL,
+            `personal_email` VARCHAR(150) NULL,
+            `address` VARCHAR(255) NULL,
+            `emergency_contact_name` VARCHAR(150) NULL,
+            `emergency_contact_phone` VARCHAR(50) NULL,
+            `emergency_contact_relation` VARCHAR(100) NULL,
+            `job_title` VARCHAR(150) NULL,
+            `department` VARCHAR(150) NULL,
+            `manager_employee_id` INT UNSIGNED NULL,
+            `branch` VARCHAR(150) NULL,
+            `hire_date` DATE NULL,
+            `employment_type` ENUM('full_time','part_time','contract') NOT NULL DEFAULT 'full_time',
+            `status` ENUM('active','on_leave','suspended','terminated') NOT NULL DEFAULT 'active',
+            `contract_type` VARCHAR(100) NULL,
+            `contract_start_date` DATE NULL,
+            `contract_end_date` DATE NULL,
+            `probation_end_date` DATE NULL,
+            `salary_base` DECIMAL(10,2) NULL,
+            `salary_allowances` DECIMAL(10,2) NULL,
+            `bank_name` VARCHAR(150) NULL,
+            `bank_iban` VARCHAR(50) NULL,
+            `gosi_number` VARCHAR(50) NULL,
+            `medical_insurance_provider` VARCHAR(150) NULL,
+            `medical_insurance_policy_number` VARCHAR(100) NULL,
+            `driving_license_number` VARCHAR(100) NULL,
+            `driving_license_expiry` DATE NULL,
+            `skills` TEXT NULL,
+            `languages` TEXT NULL,
+            `admin_notes` TEXT NULL COMMENT 'خاصة بمن يدير الإضافة فقط - لا تظهر للموظف نفسه أبداً',
+            `created_by` INT UNSIGNED NOT NULL,
+            `created_at` DATETIME NOT NULL,
+            `updated_at` DATETIME NULL,
+            UNIQUE KEY `employees_profiles_linked_user_unique` (`linked_user_id`),
+            KEY `employees_profiles_company_index` (`company_id`),
+            KEY `employees_profiles_manager_index` (`manager_employee_id`),
+            KEY `employees_profiles_status_index` (`status`),
+            CONSTRAINT `employees_profiles_manager_fk` FOREIGN KEY (`manager_employee_id`) REFERENCES `employees_profiles`(`id`) ON DELETE SET NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    ");
+
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS `employees_dependents` (
+            `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            `employee_id` INT UNSIGNED NOT NULL,
+            `name` VARCHAR(150) NOT NULL,
+            `relation` ENUM('spouse','child','other') NOT NULL DEFAULT 'child',
+            `birth_date` DATE NULL,
+            `created_at` DATETIME NOT NULL,
+            KEY `employees_dependents_employee_index` (`employee_id`),
+            CONSTRAINT `employees_dependents_employee_fk` FOREIGN KEY (`employee_id`) REFERENCES `employees_profiles`(`id`) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    ");
+
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS `employees_certifications` (
+            `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            `employee_id` INT UNSIGNED NOT NULL,
+            `title` VARCHAR(200) NOT NULL,
+            `issuer` VARCHAR(150) NULL,
+            `issue_date` DATE NULL,
+            `expiry_date` DATE NULL COMMENT 'يظهر كتنبيه بالتقويم الموحّد قبل الانتهاء إن وُجد',
+            `created_at` DATETIME NOT NULL,
+            KEY `employees_certifications_employee_index` (`employee_id`),
+            KEY `employees_certifications_expiry_index` (`expiry_date`),
+            CONSTRAINT `employees_certifications_employee_fk` FOREIGN KEY (`employee_id`) REFERENCES `employees_profiles`(`id`) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    ");
+
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS `employees_documents` (
+            `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            `employee_id` INT UNSIGNED NOT NULL,
+            `title` VARCHAR(200) NOT NULL,
+            `original_name` VARCHAR(255) NOT NULL,
+            `stored_name` VARCHAR(255) NOT NULL,
+            `extension` VARCHAR(10) NULL,
+            `size` INT UNSIGNED NULL,
+            `uploaded_by` INT UNSIGNED NOT NULL,
+            `created_at` DATETIME NOT NULL,
+            KEY `employees_documents_employee_index` (`employee_id`),
+            CONSTRAINT `employees_documents_employee_fk` FOREIGN KEY (`employee_id`) REFERENCES `employees_profiles`(`id`) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    ");
+
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS `employees_timeline` (
+            `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            `employee_id` INT UNSIGNED NOT NULL,
+            `event_type` VARCHAR(50) NOT NULL DEFAULT 'note',
+            `description` TEXT NOT NULL,
+            `event_date` DATE NOT NULL,
+            `created_by` INT UNSIGNED NULL,
+            `created_at` DATETIME NOT NULL,
+            KEY `employees_timeline_employee_index` (`employee_id`),
+            CONSTRAINT `employees_timeline_employee_fk` FOREIGN KEY (`employee_id`) REFERENCES `employees_profiles`(`id`) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    ");
+};
