@@ -13,8 +13,10 @@ use Modules\Archive\Models\ArchiveCategory;
 use Modules\Archive\Models\ArchiveFile;
 use Modules\Archive\Models\ArchiveFileDownload;
 use Modules\Archive\Models\ArchiveFileLog;
+use Modules\Archive\Models\ArchiveFileShare;
 use Modules\Archive\Models\ArchiveFileVersion;
 use Modules\Archive\Models\ArchiveSetting;
+use Modules\Archive\Models\ArchiveTag;
 
 class ArchiveFileController
 {
@@ -45,6 +47,7 @@ class ArchiveFileController
             'filters' => $filters,
             'view' => $view,
             'categories' => ArchiveCategory::tree($companyId),
+            'tags' => ArchiveTag::forCompany($companyId),
             'canCreate' => $this->can('archive.create'),
             'canManage' => $this->canManage(),
         ]);
@@ -64,6 +67,8 @@ class ArchiveFileController
             'categories' => ArchiveCategory::tree($companyId),
             'companyUsers' => $this->companyUsers($companyId),
             'accessUserIds' => [],
+            'allTags' => ArchiveTag::forCompany($companyId),
+            'fileTags' => [],
         ]);
     }
 
@@ -105,6 +110,7 @@ class ArchiveFileController
         if ($meta['visibility_type'] === 'specific_users') {
             ArchiveFile::setAccessUsers($fileId, (array) Request::input('access_users', []));
         }
+        $this->syncTagsFromRequest($companyId, $fileId);
 
         ArchiveFileLog::add($fileId, Auth::id(), 'uploaded', 'تم رفع الملف');
         ActivityLog::log('archive.upload', 'archive_file', $fileId, "رفع ملف: {$upload['original']}");
@@ -128,11 +134,14 @@ class ArchiveFileController
             'logs' => ArchiveFileLog::forFile($file['id']),
             'downloads' => ArchiveFileDownload::forFile($file['id']),
             'versions' => ArchiveFileVersion::forFile($file['id']),
+            'tags' => ArchiveTag::forFile($file['id']),
+            'shares' => ArchiveFileShare::forFile($file['id']),
             'categories' => ArchiveCategory::tree($companyId),
             'expiryWarningDays' => (int) ArchiveSetting::getOrCreate($companyId)['expiry_warning_days'],
             'canEdit' => $this->can('archive.edit'),
             'canDelete' => $this->can('archive.delete'),
             'canDownload' => $this->can('archive.download'),
+            'canShare' => $this->can('archive.share'),
             'canManage' => $this->canManage(),
         ]);
     }
@@ -152,6 +161,8 @@ class ArchiveFileController
             'categories' => ArchiveCategory::tree($companyId),
             'companyUsers' => $this->companyUsers($companyId),
             'accessUserIds' => ArchiveFile::accessUserIds($file['id']),
+            'allTags' => ArchiveTag::forCompany($companyId),
+            'fileTags' => ArchiveTag::forFile($file['id']),
         ]);
     }
 
@@ -179,6 +190,7 @@ class ArchiveFileController
             $file['id'],
             $meta['visibility_type'] === 'specific_users' ? (array) Request::input('access_users', []) : []
         );
+        $this->syncTagsFromRequest($companyId, $file['id']);
 
         ArchiveFileLog::add($file['id'], Auth::id(), $categoryChanged ? 'category_changed' : 'updated', $categoryChanged ? 'تم تغيير تصنيف الملف' : 'تم تعديل بيانات الملف');
         ActivityLog::log('archive.update', 'archive_file', $file['id'], "تعديل ملف: {$file['original_name']}");
@@ -291,6 +303,7 @@ class ArchiveFileController
         redirect('/archive/' . $file['id']);
     }
 
+    /** حذف ناعم: ينقل الملف لسلة المحذوفات. الملف على القرص والصف يبقيان حتى الاستعادة أو الحذف النهائي. */
     public function destroy(array $params): void
     {
         $companyId = $this->requireCompanyContext();
@@ -301,15 +314,108 @@ class ArchiveFileController
         }
         $this->verifyCsrf('/archive/' . $file['id']);
 
+        ArchiveFile::softDelete($file['id'], Auth::id());
+        ArchiveFileLog::add($file['id'], Auth::id(), 'trashed', 'تم نقل الملف إلى سلة المحذوفات');
+        ActivityLog::log('archive.delete', 'archive_file', $file['id'], "نقل ملف لسلة المحذوفات: {$file['original_name']}");
+        flash_set('success', 'تم نقل الملف إلى سلة المحذوفات.');
+        redirect('/archive');
+    }
+
+    public function trash(): void
+    {
+        $companyId = $this->requireCompanyContext();
+        if (!$this->canManage() && !$this->can('archive.delete')) {
+            $this->forbidden();
+            return;
+        }
+
+        View::render('archive::trash', [
+            'pageTitle' => 'سلة المحذوفات',
+            'files' => ArchiveFile::trashed($companyId),
+        ]);
+    }
+
+    public function restore(array $params): void
+    {
+        $companyId = $this->requireCompanyContext();
+        if (!$this->canManage() && !$this->can('archive.delete')) {
+            $this->forbidden();
+            return;
+        }
+        $file = $this->findTrashed((int) $params['id'], $companyId);
+        $this->verifyCsrf('/archive/trash');
+
+        ArchiveFile::restore($file['id'], Auth::id());
+        ArchiveFileLog::add($file['id'], Auth::id(), 'restored', 'تمت استعادة الملف من سلة المحذوفات');
+        ActivityLog::log('archive.restore', 'archive_file', $file['id'], "استعادة ملف: {$file['original_name']}");
+        flash_set('success', 'تمت استعادة الملف.');
+        redirect('/archive/trash');
+    }
+
+    /** حذف نهائي فعلي من سلة المحذوفات فقط: يحذف الملف من القرص وكل إصداراته السابقة والصف نفسه. */
+    public function permanentDelete(array $params): void
+    {
+        $companyId = $this->requireCompanyContext();
+        if (!$this->canManage() && !$this->can('archive.delete')) {
+            $this->forbidden();
+            return;
+        }
+        $file = $this->findTrashed((int) $params['id'], $companyId);
+        $this->verifyCsrf('/archive/trash');
+
         foreach (ArchiveFileVersion::forFile($file['id']) as $v) {
             @unlink(BASE_PATH . self::STORAGE_DIR . '/' . $v['stored_name']);
         }
         @unlink(BASE_PATH . self::STORAGE_DIR . '/' . $file['stored_name']);
 
         ArchiveFile::delete($file['id']);
-        ActivityLog::log('archive.delete', 'archive_file', $file['id'], "حذف ملف: {$file['original_name']}");
-        flash_set('success', 'تم حذف الملف.');
-        redirect('/archive');
+        ActivityLog::log('archive.delete', 'archive_file', $file['id'], "حذف نهائي لملف: {$file['original_name']}");
+        flash_set('success', 'تم حذف الملف نهائياً.');
+        redirect('/archive/trash');
+    }
+
+    public function createShare(array $params): void
+    {
+        $companyId = $this->requireCompanyContext();
+        [$file] = $this->findVisible((int) $params['id'], $companyId);
+        if (!$this->can('archive.share')) {
+            $this->forbidden();
+            return;
+        }
+        $this->verifyCsrf('/archive/' . $file['id']);
+
+        $days = (int) Request::input('expires_in_days', 7);
+        if ($days < 1 || $days > 90) {
+            $days = 7;
+        }
+        $maxDownloads = (int) Request::input('max_downloads', 0) ?: null;
+        $expiresAt = date('Y-m-d H:i:s', strtotime("+{$days} days"));
+
+        ArchiveFileShare::create($file['id'], Auth::id(), $expiresAt, $maxDownloads);
+        ArchiveFileLog::add($file['id'], Auth::id(), 'shared', 'تم إنشاء رابط مشاركة مؤقت');
+        ActivityLog::log('archive.share', 'archive_file', $file['id'], "مشاركة ملف: {$file['original_name']}");
+        flash_set('success', 'تم إنشاء رابط المشاركة.');
+        redirect('/archive/' . $file['id']);
+    }
+
+    public function revokeShare(array $params): void
+    {
+        $companyId = $this->requireCompanyContext();
+        [$file] = $this->findVisible((int) $params['id'], $companyId);
+        if (!$this->can('archive.share')) {
+            $this->forbidden();
+            return;
+        }
+        $this->verifyCsrf('/archive/' . $file['id']);
+
+        $share = ArchiveFileShare::find((int) $params['shareId']);
+        if ($share && (int) $share['file_id'] === $file['id']) {
+            ArchiveFileShare::revoke($share['id']);
+            ArchiveFileLog::add($file['id'], Auth::id(), 'share_revoked', 'تم إلغاء رابط مشاركة');
+        }
+
+        flash_set('success', 'تم إلغاء رابط المشاركة.');
+        redirect('/archive/' . $file['id']);
     }
 
     public function download(array $params): void
@@ -385,7 +491,7 @@ class ArchiveFileController
     private function findVisible(int $id, int $companyId): array
     {
         $file = ArchiveFile::find($id);
-        if (!$file || (int) $file['company_id'] !== $companyId) {
+        if (!$file || (int) $file['company_id'] !== $companyId || $file['deleted_at'] !== null) {
             flash_set('error', 'الملف غير موجود.');
             redirect('/archive');
         }
@@ -404,6 +510,29 @@ class ArchiveFileController
         }
 
         return [$file, $category];
+    }
+
+    /** يُستخدم فقط من إجراءات سلة المحذوفات (استعادة/حذف نهائي) - يشترط أن يكون الملف فعلاً في السلة. */
+    private function findTrashed(int $id, int $companyId): array
+    {
+        $file = ArchiveFile::find($id);
+        if (!$file || (int) $file['company_id'] !== $companyId || $file['deleted_at'] === null) {
+            flash_set('error', 'الملف غير موجود في سلة المحذوفات.');
+            redirect('/archive/trash');
+        }
+        return $file;
+    }
+
+    private function syncTagsFromRequest(int $companyId, int $fileId): void
+    {
+        $raw = trim((string) Request::input('tags', ''));
+        if ($raw === '') {
+            ArchiveTag::syncForFile($fileId, []);
+            return;
+        }
+        $names = array_filter(array_map('trim', explode(',', $raw)));
+        $tagIds = ArchiveTag::findOrCreateIds($companyId, $names);
+        ArchiveTag::syncForFile($fileId, $tagIds);
     }
 
     private function companyUsers(int $companyId): array
@@ -426,6 +555,9 @@ class ArchiveFileController
         }
         if ($extension = Request::query('extension', '')) {
             $filters['extension'] = $extension;
+        }
+        if ($tagId = (int) Request::query('tag_id', 0)) {
+            $filters['tag_id'] = $tagId;
         }
         $sort = Request::query('sort', 'date_desc');
         $filters['sort'] = in_array($sort, ['name_asc', 'name_desc', 'date_asc', 'date_desc', 'size_asc', 'size_desc', 'modified_desc'], true) ? $sort : 'date_desc';

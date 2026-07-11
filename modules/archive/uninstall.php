@@ -5,6 +5,9 @@
  */
 return function (PDO $pdo): void {
     $pdo->exec('SET FOREIGN_KEY_CHECKS = 0');
+    $pdo->exec('DROP TABLE IF EXISTS `archive_file_shares`');
+    $pdo->exec('DROP TABLE IF EXISTS `archive_file_tags`');
+    $pdo->exec('DROP TABLE IF EXISTS `archive_tags`');
     $pdo->exec('DROP TABLE IF EXISTS `archive_file_downloads`');
     $pdo->exec('DROP TABLE IF EXISTS `archive_file_logs`');
     $pdo->exec('DROP TABLE IF EXISTS `archive_file_versions`');

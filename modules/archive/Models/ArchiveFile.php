@@ -80,9 +80,34 @@ class ArchiveFile
         Database::update('archive_files', $data, 'id = :id', ['id' => $id]);
     }
 
+    /** حذف نهائي فعلي (يُستدعى فقط من سلة المحذوفات) - يحذف الصف نهائياً. */
     public static function delete(int $id): void
     {
         Database::delete('archive_files', 'id = :id', ['id' => $id]);
+    }
+
+    /** نقل لسلة المحذوفات: الصف والملف على القرص يبقيان حتى الاستعادة أو الحذف النهائي. */
+    public static function softDelete(int $id, int $userId): void
+    {
+        Database::update('archive_files', ['deleted_at' => date('Y-m-d H:i:s'), 'updated_by' => $userId], 'id = :id', ['id' => $id]);
+    }
+
+    public static function restore(int $id, int $userId): void
+    {
+        Database::update('archive_files', ['deleted_at' => null, 'updated_by' => $userId], 'id = :id', ['id' => $id]);
+    }
+
+    public static function trashed(int $companyId): array
+    {
+        return Database::select(
+            'SELECT f.*, c.name AS category_name, u.name AS deleter_name
+               FROM archive_files f
+               JOIN archive_categories c ON c.id = f.category_id
+               LEFT JOIN users u ON u.id = f.updated_by
+              WHERE f.company_id = :c AND f.deleted_at IS NOT NULL
+              ORDER BY f.deleted_at DESC',
+            ['c' => $companyId]
+        );
     }
 
     public static function incrementView(int $id): void
@@ -226,9 +251,13 @@ class ArchiveFile
 
     private static function buildFilters(int $companyId, array $filters): array
     {
-        $where = 'f.company_id = :company_id';
+        $where = 'f.company_id = :company_id AND f.deleted_at IS NULL';
         $params = ['company_id' => $companyId];
 
+        if (!empty($filters['tag_id'])) {
+            $where .= ' AND EXISTS (SELECT 1 FROM archive_file_tags ft WHERE ft.file_id = f.id AND ft.tag_id = :tag_id)';
+            $params['tag_id'] = (int) $filters['tag_id'];
+        }
         if (!empty($filters['category_id'])) {
             $where .= ' AND f.category_id = :category_id';
             $params['category_id'] = (int) $filters['category_id'];
@@ -262,7 +291,7 @@ class ArchiveFile
             "SELECT f.*, c.name AS category_name
                FROM archive_files f
                JOIN archive_categories c ON c.id = f.category_id
-              WHERE f.company_id = :company_id AND {$where} AND {$visSql}
+              WHERE f.company_id = :company_id AND f.deleted_at IS NULL AND {$where} AND {$visSql}
               ORDER BY {$order}
               LIMIT {$limit}",
             $params
@@ -296,7 +325,7 @@ class ArchiveFile
             'SELECT f.*, c.name AS category_name
                FROM archive_files f
                JOIN archive_categories c ON c.id = f.category_id
-              WHERE f.company_id = :c AND f.created_by = :u
+              WHERE f.company_id = :c AND f.created_by = :u AND f.deleted_at IS NULL
               ORDER BY f.created_at DESC
               LIMIT ' . $limit,
             ['c' => $companyId, 'u' => $userId]
@@ -310,6 +339,7 @@ class ArchiveFile
                FROM archive_files f
                JOIN archive_categories c ON c.id = f.category_id
               WHERE f.company_id = :c
+                AND f.deleted_at IS NULL
                 AND f.created_by != :u1
                 AND (
                     (f.visibility_type = 'specific_users' AND EXISTS (SELECT 1 FROM archive_file_users fu WHERE fu.file_id = f.id AND fu.user_id = :u2))
@@ -325,7 +355,7 @@ class ArchiveFile
     {
         return Database::first(
             "SELECT COUNT(*) AS c FROM archive_files
-              WHERE company_id = :c AND status = 'active' AND expires_at IS NOT NULL
+              WHERE company_id = :c AND deleted_at IS NULL AND status = 'active' AND expires_at IS NOT NULL
                 AND expires_at <= DATE_ADD(CURDATE(), INTERVAL {$withinDays} DAY)",
             ['c' => $companyId]
         )['c'] ?? 0;
@@ -336,7 +366,7 @@ class ArchiveFile
     {
         Database::pdo()->prepare(
             "UPDATE archive_files SET status = 'expired'
-              WHERE company_id = :c AND status = 'active' AND expires_at IS NOT NULL AND expires_at < CURDATE()"
+              WHERE company_id = :c AND deleted_at IS NULL AND status = 'active' AND expires_at IS NOT NULL AND expires_at < CURDATE()"
         )->execute(['c' => $companyId]);
     }
 }

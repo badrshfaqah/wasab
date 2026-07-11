@@ -21,6 +21,7 @@ $formatSize = function (int $bytes) {
     <div style="display:flex;gap:8px;">
         <?php if ($canManage): ?>
             <a class="btn btn-outline" href="<?= route('/archive/categories') ?>">🗂️ التصنيفات</a>
+            <a class="btn btn-outline" href="<?= route('/archive/trash') ?>">🗑️ سلة المحذوفات</a>
             <a class="btn btn-outline" href="<?= route('/archive/settings') ?>">⚙️ الإعدادات</a>
         <?php endif; ?>
         <?php if ($canCreate): ?>
@@ -42,6 +43,15 @@ $formatSize = function (int $bytes) {
                 <option value="">الكل</option>
                 <?php foreach ($categories as $c): ?>
                     <option value="<?= $c['id'] ?>" <?= (int) ($filters['category_id'] ?? 0) === (int) $c['id'] ? 'selected' : '' ?>><?= str_repeat('— ', $c['depth']) . e($c['name']) ?></option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+        <div class="field" style="margin:0;min-width:150px;">
+            <label>الوسم</label>
+            <select name="tag_id">
+                <option value="">الكل</option>
+                <?php foreach ($tags as $t): ?>
+                    <option value="<?= $t['id'] ?>" <?= (int) ($filters['tag_id'] ?? 0) === (int) $t['id'] ? 'selected' : '' ?>><?= e($t['name']) ?></option>
                 <?php endforeach; ?>
             </select>
         </div>

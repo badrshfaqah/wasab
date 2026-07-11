@@ -10,6 +10,7 @@ return [
     ['key' => 'archive.edit', 'label' => 'تعديل الملفات'],
     ['key' => 'archive.delete', 'label' => 'حذف الملفات'],
     ['key' => 'archive.download', 'label' => 'تحميل الملفات'],
+    ['key' => 'archive.share', 'label' => 'مشاركة الملفات برابط مؤقت'],
     ['key' => 'archive.categories.create', 'label' => 'إنشاء التصنيفات'],
     ['key' => 'archive.categories.edit', 'label' => 'تعديل التصنيفات'],
     ['key' => 'archive.categories.delete', 'label' => 'حذف التصنيفات'],

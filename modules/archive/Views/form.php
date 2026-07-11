@@ -41,6 +41,13 @@
                 <input type="text" name="keywords" value="<?= e($file['keywords'] ?? '') ?>" placeholder="افصل بينها بفاصلة">
             </div>
         </div>
+        <div class="field">
+            <label>الوسوم (Tags)</label>
+            <input type="text" name="tags" list="existing-tags" value="<?= e(implode(', ', array_column($fileTags, 'name'))) ?>" placeholder="افصل بين الوسوم بفاصلة، مثال: عقود, 2026">
+            <datalist id="existing-tags">
+                <?php foreach ($allTags as $t): ?><option value="<?= e($t['name']) ?>"><?php endforeach; ?>
+            </datalist>
+        </div>
         <div class="grid-2">
             <div class="field">
                 <label>من يستطيع رؤية هذا الملف؟</label>

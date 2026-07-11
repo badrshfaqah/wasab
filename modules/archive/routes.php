@@ -5,11 +5,16 @@ use App\Core\Router;
 use Modules\Archive\Controllers\ArchiveCategoryController;
 use Modules\Archive\Controllers\ArchiveFileController;
 use Modules\Archive\Controllers\ArchiveSettingController;
+use Modules\Archive\Controllers\ArchiveShareController;
 
 /**
  * يُحمَّل فقط عندما تكون إضافة أرشيف الملفات مفعّلة. لا علاقة له بملفات النواة.
- * المسارات الثابتة (upload/categories/settings) مسجّلة قبل مسارات {id} حتى لا
+ * المسارات الثابتة (upload/categories/settings/trash) مسجّلة قبل مسارات {id} حتى لا
  * يلتقطها الموجّه كمعرّف ملف (يطابق أول مسار مسجَّل يوافق نمطه).
+ *
+ * مسار /archive/share/{token} وحده بلا middleware مصادقة عمداً - هذا هو معنى رابط
+ * المشاركة المؤقت (يُفتح بدون تسجيل دخول)، والأمان هنا يعتمد على التوكن العشوائي
+ * الطويل مع التحقق من الانتهاء/الإلغاء/حد التحميلات داخل الكونترولر نفسه.
  */
 return function (Router $router): void {
     $auth = [Middleware::class, 'auth'];
@@ -17,6 +22,8 @@ return function (Router $router): void {
     $router->get('/archive', [ArchiveFileController::class, 'index'], [$auth]);
     $router->get('/archive/upload', [ArchiveFileController::class, 'create'], [$auth]);
     $router->post('/archive/upload', [ArchiveFileController::class, 'store'], [$auth]);
+    $router->get('/archive/trash', [ArchiveFileController::class, 'trash'], [$auth]);
+    $router->get('/archive/share/{token}', [ArchiveShareController::class, 'download'], []);
 
     $router->get('/archive/categories', [ArchiveCategoryController::class, 'index'], [$auth]);
     $router->get('/archive/categories/create', [ArchiveCategoryController::class, 'create'], [$auth]);
@@ -35,6 +42,10 @@ return function (Router $router): void {
     $router->post('/archive/{id}/replace', [ArchiveFileController::class, 'replace'], [$auth]);
     $router->post('/archive/{id}/status', [ArchiveFileController::class, 'statusAction'], [$auth]);
     $router->post('/archive/{id}/delete', [ArchiveFileController::class, 'destroy'], [$auth]);
+    $router->post('/archive/{id}/restore', [ArchiveFileController::class, 'restore'], [$auth]);
+    $router->post('/archive/{id}/permanent-delete', [ArchiveFileController::class, 'permanentDelete'], [$auth]);
     $router->get('/archive/{id}/download', [ArchiveFileController::class, 'download'], [$auth]);
     $router->get('/archive/{id}/preview', [ArchiveFileController::class, 'preview'], [$auth]);
+    $router->post('/archive/{id}/share', [ArchiveFileController::class, 'createShare'], [$auth]);
+    $router->post('/archive/{id}/share/{shareId}/revoke', [ArchiveFileController::class, 'revokeShare'], [$auth]);
 };
