@@ -54,6 +54,11 @@ if ($impersonating) {
             <?php endif; ?>
             <?= $content ?>
         </div>
+        <footer class="app-footer">
+            <a href="<?= route('/wasab') ?>">إصدار <?= e(\App\Core\Wasab::currentVersion()) ?></a>
+            <span>·</span>
+            <a href="https://almgrat.com" target="_blank" rel="noopener">وصاب</a>
+        </footer>
     </div>
 </div>
 <script src="<?= asset('js/app.js') ?>"></script>

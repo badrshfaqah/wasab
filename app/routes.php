@@ -13,6 +13,7 @@ use App\Controllers\ProfileController;
 use App\Controllers\RoleController;
 use App\Controllers\SettingController;
 use App\Controllers\UserController;
+use App\Controllers\WasabController;
 use App\Core\Middleware;
 
 // ---------- ضيف ----------
@@ -22,6 +23,9 @@ $router->post('/logout', [AuthController::class, 'logout'], [[Middleware::class,
 
 // ---------- الرئيسية ----------
 $router->get('/', [DashboardController::class, 'index'], [[Middleware::class, 'auth']]);
+
+// ---------- التحديثات والإصدارات (وصاب) ----------
+$router->get('/wasab', [WasabController::class, 'index'], [[Middleware::class, 'auth']]);
 
 // ---------- التقويم (يجمع أحداث كل الإضافات المفعّلة) ----------
 $router->get('/calendar', [CalendarController::class, 'index'], [[Middleware::class, 'auth']]);
