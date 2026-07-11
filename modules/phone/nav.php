@@ -8,6 +8,7 @@ return function (array $user): array {
 
     if (Permission::check('phone.view')) {
         $items[] = ['label' => 'الهاتف', 'icon' => '📞', 'url' => route('/phone/settings')];
+        $items[] = ['label' => 'دليل جهات الاتصال', 'icon' => '📇', 'url' => route('/phone/contacts')];
     }
 
     if (Auth::isSystemAdmin()) {

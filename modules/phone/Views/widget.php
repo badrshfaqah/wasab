@@ -220,6 +220,10 @@ $config = $ready ? e(json_encode([
         openPanel();
     }
 
+    // يتيح لصفحات أخرى (دليل جهات الاتصال مثلاً) تشغيل مكالمة عبر هذا الودجت
+    // دون معرفة تفاصيل تهيئته - يفشل بصمت إن كان الهاتف غير جاهز بعد.
+    window.__phoneDial = function (number) { dial(number); };
+
     dialBtn.addEventListener('click', function () { dial(dialInput.value); });
     dialInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') dial(dialInput.value); });
     backspaceBtn.addEventListener('click', function () { dialInput.value = dialInput.value.slice(0, -1); });
