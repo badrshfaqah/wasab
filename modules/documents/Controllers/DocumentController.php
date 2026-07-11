@@ -418,6 +418,7 @@ class DocumentController
         $type = Request::input('type', 'general');
         $visibility = Request::input('visibility', 'public');
         $templateId = (int) Request::input('template_id', 0) ?: null;
+        $followUpDate = Request::input('follow_up_date') ?: null;
         $content = HtmlSanitizer::sanitize(Request::input('content', ''));
 
         if ($title === '') {
@@ -444,6 +445,7 @@ class DocumentController
             'type' => $type,
             'visibility' => $visibility,
             'template_id' => $templateId,
+            'follow_up_date' => $followUpDate,
             'content' => $content,
         ];
     }

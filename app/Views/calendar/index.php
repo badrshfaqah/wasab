@@ -5,6 +5,7 @@ $colorClass = [
     'tasks' => 'cal-event-tasks',
     'archive' => 'cal-event-archive',
     'meetings' => 'cal-event-meetings',
+    'documents' => 'cal-event-documents',
 ];
 ?>
 <div class="page-head">
@@ -52,5 +53,6 @@ $colorClass = [
         <span><span class="cal-legend-dot cal-event-tasks"></span> المهام</span>
         <span><span class="cal-legend-dot cal-event-archive"></span> أرشيف الملفات</span>
         <span><span class="cal-legend-dot cal-event-meetings"></span> الاجتماعات</span>
+        <span><span class="cal-legend-dot cal-event-documents"></span> المستندات</span>
     </div>
 </div>

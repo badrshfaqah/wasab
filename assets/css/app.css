@@ -275,11 +275,13 @@ tr:hover td{background:#fafbfc;}
 .cal-event-tasks{background:#2563eb;}
 .cal-event-archive{background:#16a34a;}
 .cal-event-meetings{background:#d97706;}
+.cal-event-documents{background:#7c3aed;}
 .cal-more{font-size:11px;color:var(--muted);}
 .cal-legend-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-inline-end:4px;vertical-align:middle;}
 .cal-legend-dot.cal-event-tasks{background:#2563eb;}
 .cal-legend-dot.cal-event-archive{background:#16a34a;}
 .cal-legend-dot.cal-event-meetings{background:#d97706;}
+.cal-legend-dot.cal-event-documents{background:#7c3aed;}
 @media (max-width:900px){
   .cal-grid{grid-template-columns:repeat(7,minmax(36px,1fr));}
   .cal-cell{min-height:64px;padding:4px;font-size:11px;}

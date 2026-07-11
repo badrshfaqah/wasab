@@ -34,6 +34,7 @@ return function (PDO $pdo): void {
             `title` VARCHAR(255) NOT NULL,
             `content` LONGTEXT NULL,
             `template_id` INT UNSIGNED NULL,
+            `follow_up_date` DATE NULL COMMENT 'تاريخ متابعة اختياري - يظهر كحدث بالتقويم الموحّد',
             `created_by` INT UNSIGNED NOT NULL,
             `approved_by` INT UNSIGNED NULL,
             `approved_at` DATETIME NULL,
@@ -46,6 +47,7 @@ return function (PDO $pdo): void {
             KEY `documents_status_index` (`status`),
             KEY `documents_creator_index` (`created_by`),
             KEY `documents_template_index` (`template_id`),
+            KEY `documents_follow_up_index` (`follow_up_date`),
             UNIQUE KEY `documents_company_number_unique` (`company_id`, `number`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     ");

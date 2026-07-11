@@ -16,4 +16,18 @@ return function (PDO $pdo, string $fromVersion): void {
             ");
         }
     }
+
+    if (version_compare($fromVersion, '1.2.0', '<')) {
+        $exists = $pdo->query(
+            "SELECT 1 FROM information_schema.columns
+              WHERE table_schema = DATABASE() AND table_name = 'documents_documents' AND column_name = 'follow_up_date'"
+        )->fetch();
+        if (!$exists) {
+            $pdo->exec("
+                ALTER TABLE `documents_documents`
+                ADD COLUMN `follow_up_date` DATE NULL COMMENT 'تاريخ متابعة اختياري - يظهر كحدث بالتقويم الموحّد' AFTER `template_id`,
+                ADD KEY `documents_follow_up_index` (`follow_up_date`)
+            ");
+        }
+    }
 };

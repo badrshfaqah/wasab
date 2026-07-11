@@ -17,6 +17,7 @@ $canRestore = $document['status'] === 'archived' && $canManage;
             <?= e($typeLabels[$document['type']] ?? $document['type']) ?>
             <?php if ($document['number']): ?> · رقم: <strong><?= e($document['number']) ?></strong><?php endif; ?>
             · <?= status_badge($document['status']) ?>
+            <?php if (!empty($document['follow_up_date'])): ?> · 📅 متابعة: <?= format_date($document['follow_up_date']) ?><?php endif; ?>
         </p>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">

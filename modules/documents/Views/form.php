@@ -36,6 +36,11 @@ $typeLabels = Document::typeLabels();
             </div>
         </div>
         <div class="field">
+            <label>تاريخ متابعة (اختياري)</label>
+            <input type="date" name="follow_up_date" value="<?= e($document['follow_up_date'] ?? '') ?>">
+            <p class="hint">يظهر هذا التاريخ كحدث بالتقويم الموحّد لتذكيرك بمتابعة هذا المستند.</p>
+        </div>
+        <div class="field">
             <label style="display:flex;align-items:center;gap:16px;font-weight:400;">
                 <span style="display:flex;align-items:center;gap:6px;">
                     <input type="radio" name="visibility" value="public" style="width:auto;" <?= ($document['visibility'] ?? 'public') === 'public' ? 'checked' : '' ?>>

@@ -121,4 +121,19 @@ class Document
             $params
         );
     }
+
+    /** لمزوّد التقويم: المستندات التي لها تاريخ متابعة ضمن نطاق معيّن، بنفس نطاق الرؤية المعتاد. */
+    public static function forCalendarRange(int $companyId, bool $seeAll, int $userId, string $fromDate, string $toDate): array
+    {
+        $where = 'company_id = :c AND follow_up_date IS NOT NULL AND follow_up_date BETWEEN :from AND :to';
+        $params = ['c' => $companyId, 'from' => $fromDate, 'to' => $toDate];
+        if (!$seeAll) {
+            $where .= ' AND created_by = :u';
+            $params['u'] = $userId;
+        }
+        return Database::select(
+            "SELECT id, title, follow_up_date FROM documents_documents WHERE {$where} ORDER BY follow_up_date",
+            $params
+        );
+    }
 }
