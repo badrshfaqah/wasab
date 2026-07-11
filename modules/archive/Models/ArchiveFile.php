@@ -141,10 +141,13 @@ class ArchiveFile
     /**
      * فحص إمكانية مشاهدة مستخدم عادي لملف واحد (بعد التحقق من نفس الشركة وصلاحية
      * archive.view الأساسية في الكونترولر). system_admin يتجاوز كل شيء دائماً
-     * (نفس قاعدة Permission::check العامة)، أما "مدير النظام فقط" فهي الاستثناء
-     * الوحيد الذي لا يتجاوزه حتى مدير الشركة - وإلا لما كان لهذا الخيار أي معنى.
+     * (نفس قاعدة Permission::check العامة). "مدير النظام فقط" و"مدير الشركة فقط"
+     * كلاهما مقيّد بالهوية الفعلية للمستخدم (membership_type) حصراً - $canManage
+     * (الذي يشمل أيضاً أي مستخدم عادي مُنح صلاحية archive.manage عبر الأدوار) عمداً
+     * لا يتجاوز هذين المستويين، وإلا لأصبح "مدير الشركة فقط" بلا معنى حقيقي بمجرد
+     * منح موظف صلاحية إدارة كاملة. canManage يبقى يتجاوز فقط "الكل"/"مستخدمون محددون".
      */
-    public static function isVisibleTo(array $file, array $category, int $userId, bool $isSystemAdmin, bool $canManage): bool
+    public static function isVisibleTo(array $file, array $category, int $userId, bool $isSystemAdmin, bool $canManage, bool $isCompanyAdmin): bool
     {
         if ($isSystemAdmin) {
             return true;
@@ -155,14 +158,14 @@ class ArchiveFile
         if ($visibility === 'system_admin_only') {
             return false;
         }
+        if ($visibility === 'company_admin_only') {
+            return $isCompanyAdmin;
+        }
         if ($canManage) {
             return true;
         }
         if ($visibility === 'all') {
             return true;
-        }
-        if ($visibility === 'company_admin_only') {
-            return false;
         }
         if ($visibility === 'specific_users') {
             if (in_array($userId, self::accessUserIds((int) $file['id']), true)) {
@@ -182,16 +185,24 @@ class ArchiveFile
      * معلومة ولو لم يستطع فتح الملف فعلياً. مبنية كجزء WHERE يُدمج مع بقية الشروط،
      * ويفترض أن الاستعلام يستخدم alias "f" للملفات و"c" للتصنيفات (JOIN مطلوب).
      */
-    private static function visibilitySql(int $userId, bool $isSystemAdmin, bool $canManage): array
+    private static function visibilitySql(int $userId, bool $isSystemAdmin, bool $canManage, bool $isCompanyAdmin): array
     {
         if ($isSystemAdmin) {
             return ['1=1', []];
         }
 
         $canManageFlag = $canManage ? 1 : 0;
+        $isCompanyAdminFlag = $isCompanyAdmin ? 1 : 0;
         $sql = "(
             (CASE WHEN f.visibility_type = 'inherit' THEN c.visibility_type ELSE f.visibility_type END) = 'all'
-            OR (:vis_can_manage = 1 AND (CASE WHEN f.visibility_type = 'inherit' THEN c.visibility_type ELSE f.visibility_type END) != 'system_admin_only')
+            OR (
+                :vis_can_manage = 1
+                AND (CASE WHEN f.visibility_type = 'inherit' THEN c.visibility_type ELSE f.visibility_type END) NOT IN ('system_admin_only', 'company_admin_only')
+            )
+            OR (
+                (CASE WHEN f.visibility_type = 'inherit' THEN c.visibility_type ELSE f.visibility_type END) = 'company_admin_only'
+                AND :vis_is_company_admin = 1
+            )
             OR (
                 (CASE WHEN f.visibility_type = 'inherit' THEN c.visibility_type ELSE f.visibility_type END) = 'specific_users'
                 AND (
@@ -204,12 +215,17 @@ class ArchiveFile
         // PDO في وضع native prepares (ATTR_EMULATE_PREPARES=false) لا يقبل إعادة استخدام
         // نفس اسم المعامل المسمّى أكثر من مرة بنفس الاستعلام - كل تكرار يحتاج اسماً مختلفاً
         // ولو كانت القيمة نفسها.
-        return [$sql, ['vis_uid1' => $userId, 'vis_uid2' => $userId, 'vis_can_manage' => $canManageFlag]];
+        return [$sql, [
+            'vis_uid1' => $userId,
+            'vis_uid2' => $userId,
+            'vis_can_manage' => $canManageFlag,
+            'vis_is_company_admin' => $isCompanyAdminFlag,
+        ]];
     }
 
-    public static function paginate(int $companyId, int $userId, bool $isSystemAdmin, bool $canManage, array $filters, int $page, int $perPage): array
+    public static function paginate(int $companyId, int $userId, bool $isSystemAdmin, bool $canManage, bool $isCompanyAdmin, array $filters, int $page, int $perPage): array
     {
-        [$visSql, $visParams] = self::visibilitySql($userId, $isSystemAdmin, $canManage);
+        [$visSql, $visParams] = self::visibilitySql($userId, $isSystemAdmin, $canManage, $isCompanyAdmin);
         [$where, $params] = self::buildFilters($companyId, $filters);
         $where .= ' AND ' . $visSql;
         $params = array_merge($params, $visParams);
@@ -282,9 +298,9 @@ class ArchiveFile
         return [$where, $params];
     }
 
-    private static function visibleRecent(int $companyId, int $userId, bool $isSystemAdmin, bool $canManage, string $where, array $extraParams, string $order, int $limit): array
+    private static function visibleRecent(int $companyId, int $userId, bool $isSystemAdmin, bool $canManage, bool $isCompanyAdmin, string $where, array $extraParams, string $order, int $limit): array
     {
-        [$visSql, $visParams] = self::visibilitySql($userId, $isSystemAdmin, $canManage);
+        [$visSql, $visParams] = self::visibilitySql($userId, $isSystemAdmin, $canManage, $isCompanyAdmin);
         $params = array_merge(['company_id' => $companyId], $extraParams, $visParams);
 
         return Database::select(
@@ -298,15 +314,15 @@ class ArchiveFile
         );
     }
 
-    public static function recent(int $companyId, int $userId, bool $isSystemAdmin, bool $canManage, int $limit = 5): array
+    public static function recent(int $companyId, int $userId, bool $isSystemAdmin, bool $canManage, bool $isCompanyAdmin, int $limit = 5): array
     {
-        return self::visibleRecent($companyId, $userId, $isSystemAdmin, $canManage, '1=1', [], 'f.created_at DESC', $limit);
+        return self::visibleRecent($companyId, $userId, $isSystemAdmin, $canManage, $isCompanyAdmin, '1=1', [], 'f.created_at DESC', $limit);
     }
 
-    public static function expiringSoon(int $companyId, int $userId, bool $isSystemAdmin, bool $canManage, int $withinDays, int $limit = 5): array
+    public static function expiringSoon(int $companyId, int $userId, bool $isSystemAdmin, bool $canManage, bool $isCompanyAdmin, int $withinDays, int $limit = 5): array
     {
         return self::visibleRecent(
-            $companyId, $userId, $isSystemAdmin, $canManage,
+            $companyId, $userId, $isSystemAdmin, $canManage, $isCompanyAdmin,
             "f.status = 'active' AND f.expires_at IS NOT NULL AND f.expires_at <= DATE_ADD(CURDATE(), INTERVAL {$withinDays} DAY)",
             [],
             'f.expires_at ASC',
@@ -314,9 +330,9 @@ class ArchiveFile
         );
     }
 
-    public static function mostViewed(int $companyId, int $userId, bool $isSystemAdmin, bool $canManage, int $limit = 5): array
+    public static function mostViewed(int $companyId, int $userId, bool $isSystemAdmin, bool $canManage, bool $isCompanyAdmin, int $limit = 5): array
     {
-        return self::visibleRecent($companyId, $userId, $isSystemAdmin, $canManage, 'f.view_count > 0', [], 'f.view_count DESC', $limit);
+        return self::visibleRecent($companyId, $userId, $isSystemAdmin, $canManage, $isCompanyAdmin, 'f.view_count > 0', [], 'f.view_count DESC', $limit);
     }
 
     public static function myUploads(int $companyId, int $userId, int $limit = 5): array

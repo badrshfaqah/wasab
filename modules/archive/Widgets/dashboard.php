@@ -18,7 +18,8 @@ return function (array $user): array {
     $companyId = (int) $user['company_id'];
     $userId = (int) $user['id'];
     $isSystemAdmin = $user['membership_type'] === 'system_admin';
-    $canManage = $isSystemAdmin || $user['membership_type'] === 'company_admin' || Permission::check('archive.manage');
+    $isCompanyAdmin = $user['membership_type'] === 'company_admin';
+    $canManage = $isSystemAdmin || $isCompanyAdmin || Permission::check('archive.manage');
 
     ArchiveFile::markExpiredPastDue($companyId);
     $widgets = [];
@@ -46,17 +47,17 @@ return function (array $user): array {
 
     $widgets[] = [
         'type' => 'list', 'title' => 'آخر الملفات المضافة', 'icon' => '🆕', 'empty_text' => 'لا توجد ملفات بعد',
-        'items' => $toItems(ArchiveFile::recent($companyId, $userId, $isSystemAdmin, $canManage, 5)),
+        'items' => $toItems(ArchiveFile::recent($companyId, $userId, $isSystemAdmin, $canManage, $isCompanyAdmin, 5)),
     ];
 
     $widgets[] = [
         'type' => 'list', 'title' => 'الملفات التي قاربت على الانتهاء', 'icon' => '⏰', 'empty_text' => 'لا توجد ملفات قاربت على الانتهاء',
-        'items' => $toItems(ArchiveFile::expiringSoon($companyId, $userId, $isSystemAdmin, $canManage, $warningDays, 5), 'expires_at'),
+        'items' => $toItems(ArchiveFile::expiringSoon($companyId, $userId, $isSystemAdmin, $canManage, $isCompanyAdmin, $warningDays, 5), 'expires_at'),
     ];
 
     $widgets[] = [
         'type' => 'list', 'title' => 'أكثر الملفات مشاهدة', 'icon' => '👁️', 'empty_text' => 'لا توجد مشاهدات بعد',
-        'items' => $toItems(ArchiveFile::mostViewed($companyId, $userId, $isSystemAdmin, $canManage, 5)),
+        'items' => $toItems(ArchiveFile::mostViewed($companyId, $userId, $isSystemAdmin, $canManage, $isCompanyAdmin, 5)),
     ];
 
     $widgets[] = [

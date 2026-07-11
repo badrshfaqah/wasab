@@ -36,7 +36,7 @@ class ArchiveFileController
         $page = max(1, (int) Request::query('page', 1));
         $view = Request::query('view', 'list') === 'grid' ? 'grid' : 'list';
 
-        $result = ArchiveFile::paginate($companyId, Auth::id(), Auth::isSystemAdmin(), $this->canManage(), $filters, $page, 24);
+        $result = ArchiveFile::paginate($companyId, Auth::id(), Auth::isSystemAdmin(), $this->canManage(), Auth::isCompanyAdmin(), $filters, $page, 24);
 
         View::render('archive::index', [
             'pageTitle' => 'أرشيف الملفات',
@@ -503,7 +503,7 @@ class ArchiveFileController
             exit;
         }
 
-        $visible = ArchiveFile::isVisibleTo($file, $category, Auth::id(), Auth::isSystemAdmin(), $this->canManage());
+        $visible = ArchiveFile::isVisibleTo($file, $category, Auth::id(), Auth::isSystemAdmin(), $this->canManage(), Auth::isCompanyAdmin());
         if (!$visible) {
             $this->forbidden();
             exit;
