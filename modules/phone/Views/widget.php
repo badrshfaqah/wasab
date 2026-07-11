@@ -21,10 +21,11 @@ $config = $ready ? e(json_encode([
 <div id="phone-widget" class="phone-widget" <?= $ready ? 'data-config="' . $config . '"' : '' ?>>
     <div id="phone-incoming-toast" class="phone-incoming-toast" hidden>
         <span class="phone-status-dot online" style="position:static;border:0;"></span>
-        <div>
+        <div style="flex:1;">
             <div style="font-weight:700;">مكالمة واردة</div>
             <div class="hint" style="margin:0;">اضغط للرد</div>
         </div>
+        <button type="button" id="phone-toast-dismiss" title="تجاهل" style="background:none;border:0;cursor:pointer;font-size:16px;color:inherit;padding:2px 6px;">✕</button>
     </div>
 
     <button type="button" id="phone-widget-toggle" class="phone-widget-toggle">
@@ -99,6 +100,15 @@ $config = $ready ? e(json_encode([
     toggle.addEventListener('click', function () { panel.hidden = !panel.hidden; toast.hidden = true; });
     toast.addEventListener('click', openPanel);
 
+    var toastDismissBtn = document.getElementById('phone-toast-dismiss');
+    if (toastDismissBtn) {
+        toastDismissBtn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            toast.hidden = true;
+            if (window.__phoneForceIdle) window.__phoneForceIdle();
+        });
+    }
+
     <?php if ($state === 'disabled'): ?>
     var enableBtn = document.getElementById('phone-enable-btn');
     if (enableBtn) {
@@ -134,6 +144,25 @@ $config = $ready ? e(json_encode([
     var instance = null;
     var callState = 'idle'; // idle | ringing | active
     var registered = 'unknown'; // unknown | online | offline
+    var ringTimeout = null;
+
+    // احتياط ضد بقاء الواجهة عالقة على "مكالمة واردة" (مثلاً بسبب حالة اتصال معلّقة
+    // من طرف السنترال) - تُعاد الحالة تلقائياً لغير مشغولة بعد مهلة معقولة إن لم تُجب
+    // أو تُرفض، بالإضافة لزر "✕" على التنبيه العائم يتيح تجاهلها يدوياً فوراً.
+    function startRingTimeout() {
+        clearTimeout(ringTimeout);
+        ringTimeout = setTimeout(forceIdle, 45000);
+    }
+    function clearRingTimeout() {
+        clearTimeout(ringTimeout);
+    }
+    function forceIdle() {
+        clearRingTimeout();
+        try { instance && instance.hangup && instance.hangup(); } catch (e) { /* تجاهل: قد لا توجد مكالمة فعلية لإنهائها */ }
+        callState = 'idle';
+        render();
+    }
+    window.__phoneForceIdle = forceIdle;
 
     function render() {
         sectionRinging.hidden = callState !== 'ringing';
@@ -191,13 +220,13 @@ $config = $ready ? e(json_encode([
                     instance.on('registered', function () { registered = 'online'; render(); });
                     instance.on('unregistered', function () { registered = 'offline'; render(); });
                     instance.on('registrationFailed', function () { registered = 'offline'; render(); });
-                    instance.on('callRinging', function () { callState = 'ringing'; render(); openPanel(); });
-                    instance.on('callStarted', function () { callState = 'active'; render(); });
-                    instance.on('callAnswered', function () { callState = 'active'; render(); });
-                    instance.on('callEnded', function () { callState = 'idle'; render(); });
-                    instance.on('callFailed', function () { callState = 'idle'; render(); });
-                    instance.on('callRejected', function () { callState = 'idle'; render(); });
-                    instance.on('callMissed', function () { callState = 'idle'; render(); });
+                    instance.on('callRinging', function () { callState = 'ringing'; render(); openPanel(); startRingTimeout(); });
+                    instance.on('callStarted', function () { clearRingTimeout(); callState = 'active'; render(); });
+                    instance.on('callAnswered', function () { clearRingTimeout(); callState = 'active'; render(); });
+                    instance.on('callEnded', function () { clearRingTimeout(); callState = 'idle'; render(); });
+                    instance.on('callFailed', function () { clearRingTimeout(); callState = 'idle'; render(); });
+                    instance.on('callRejected', function () { clearRingTimeout(); callState = 'idle'; render(); });
+                    instance.on('callMissed', function () { clearRingTimeout(); callState = 'idle'; render(); });
                     render();
                 } catch (e) {
                     headerText.textContent = 'تعذر تهيئة الهاتف';
@@ -232,16 +261,19 @@ $config = $ready ? e(json_encode([
     });
 
     answerBtn.addEventListener('click', function () {
+        clearRingTimeout();
         if (instance && instance.showWebrtc) instance.showWebrtc();
         callState = 'active';
         render();
     });
     rejectBtn.addEventListener('click', function () {
+        clearRingTimeout();
         instance && instance.hangup();
         callState = 'idle';
         render();
     });
     hangupBtn.addEventListener('click', function () {
+        clearRingTimeout();
         instance && instance.hangup();
         callState = 'idle';
         render();
