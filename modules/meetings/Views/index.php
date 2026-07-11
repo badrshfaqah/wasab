@@ -18,7 +18,7 @@ $meetingsQuery = function (array $filters, array $overrides = []) {
 </div>
 
 <div class="card">
-    <form method="get" action="<?= route('/meetings') ?>" style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin-bottom:16px;">
+    <form method="get" action="<?= route('/meetings') ?>" class="filters-toolbar" style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin-bottom:16px;">
         <div class="field" style="margin:0;flex:1;min-width:200px;">
             <label>بحث بعنوان الاجتماع</label>
             <input type="text" name="q" value="<?= e($filters['q'] ?? '') ?>" placeholder="اكتب جزءاً من العنوان...">

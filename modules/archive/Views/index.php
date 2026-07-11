@@ -31,7 +31,7 @@ $formatSize = function (int $bytes) {
 </div>
 
 <div class="card">
-    <form method="get" action="<?= route('/archive') ?>" style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin-bottom:16px;">
+    <form method="get" action="<?= route('/archive') ?>" class="filters-toolbar" style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin-bottom:16px;">
         <input type="hidden" name="view" value="<?= e($view) ?>">
         <div class="field" style="margin:0;flex:1;min-width:200px;">
             <label>بحث بالاسم أو الوصف أو الكلمات المفتاحية</label>
@@ -80,7 +80,7 @@ $formatSize = function (int $bytes) {
         <?php if (array_diff_key($filters, ['sort' => 1])): ?>
             <a class="btn btn-outline btn-sm" href="<?= $filesQuery(['sort' => $filters['sort'] ?? null], ['view' => $view]) ?>">مسح الفلاتر</a>
         <?php endif; ?>
-        <div style="margin-inline-start:auto;display:flex;gap:6px;">
+        <div class="view-toggle" style="margin-inline-start:auto;display:flex;gap:6px;">
             <a class="btn btn-sm <?= $view === 'list' ? '' : 'btn-outline' ?>" href="<?= $filesQuery($filters, ['view' => 'list']) ?>">☰ قائمة</a>
             <a class="btn btn-sm <?= $view === 'grid' ? '' : 'btn-outline' ?>" href="<?= $filesQuery($filters, ['view' => 'grid']) ?>">▦ بطاقات</a>
         </div>

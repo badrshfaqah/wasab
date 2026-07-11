@@ -101,6 +101,20 @@ a{color:inherit;text-decoration:none;}
 .page-head{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:18px;}
 .page-head h1{font-size:20px;margin:0;}
 .page-head p{color:var(--muted);margin:4px 0 0;font-size:13px;}
+/* أزرار عنوان الصفحة (تعديل/رفع ملف/تصنيفات...) كانت أحياناً صفاً واحداً بلا التفاف،
+   فتدفع كامل الصفحة للتمرير أفقياً على شاشات الجوال الضيقة إذا زاد عددها. */
+.page-head > div:last-child{flex-wrap:wrap;}
+/* نموذج البحث/الفلاتر أعلى الجداول (بحث + قوائم منسدلة + زر بحث) كان يضغط زر
+   "بحث" بجانب آخر قائمة بدل أن يظهر بوضوح كصف مستقل - نُكدّس كل حقل بعرض كامل
+   على الجوال بدل تركه يضيق حتى يفقد وضوحه. */
+@media (max-width:600px){
+  .filters-toolbar{flex-direction:column;align-items:stretch !important;}
+  .filters-toolbar .field{width:100%;min-width:0 !important;flex:1 1 100% !important;}
+  .filters-toolbar > button,
+  .filters-toolbar > a.btn{width:100%;text-align:center;}
+  .filters-toolbar .view-toggle{margin-inline-start:0 !important;width:100%;}
+  .filters-toolbar .view-toggle > a{flex:1;}
+}
 
 /* بطاقات */
 .cards-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:20px;}
@@ -167,7 +181,7 @@ tr:hover td{background:#fafbfc;}
 .tabs a.active{color:var(--primary);border-bottom-color:var(--primary);font-weight:700;}
 
 /* لوحة كانبان */
-.board-wrap{display:flex;gap:14px;overflow-x:auto;padding-bottom:8px;align-items:flex-start;}
+.board-wrap{display:flex;gap:14px;overflow-x:auto;padding-bottom:8px;align-items:flex-start;-webkit-overflow-scrolling:touch;}
 .board-column{background:var(--card);border:1px solid var(--border);border-radius:12px;width:260px;flex-shrink:0;display:flex;flex-direction:column;max-height:calc(100vh - 220px);}
 .board-column-head{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--border);font-weight:700;font-size:13.5px;}
 .board-column-body{padding:10px;overflow-y:auto;flex:1;min-height:80px;transition:background .15s;}
@@ -315,4 +329,7 @@ tr:hover td{background:#fafbfc;}
   .main{margin-right:0;}
   .menu-toggle{display:block;}
   .grid-2,.grid-3{grid-template-columns:1fr;}
+  /* زر الهاتف العائم أسفل يسار الشاشة كان يتراكب فوق آخر عنصر بالصفحة (نص/أيقونة
+     حالة فارغة مثلاً) على الصفحات القصيرة - نحجز له مساحة أسفل المحتوى دائماً. */
+  .content{padding-bottom:88px;}
 }

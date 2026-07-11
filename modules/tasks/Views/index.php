@@ -35,7 +35,7 @@ $tasksQuery = function (string $scope, array $filters, array $overrides = []): s
 </div>
 
 <div class="card">
-    <form method="get" action="<?= route('/tasks') ?>" style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin-bottom:16px;">
+    <form method="get" action="<?= route('/tasks') ?>" class="filters-toolbar" style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin-bottom:16px;">
         <input type="hidden" name="scope" value="<?= e($scope) ?>">
         <div class="field" style="margin:0;flex:1;min-width:180px;">
             <label>بحث بالعنوان</label>
