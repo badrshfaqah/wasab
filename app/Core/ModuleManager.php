@@ -329,4 +329,36 @@ class ModuleManager
         }
         return $widgets;
     }
+
+    /**
+     * أحداث التقويم الموحّد من كل إضافة مفعّلة تملك modules/{key}/calendar.php - ميزة
+     * أساسية بالنواة (لا علاقة لها بأي إضافة معيّنة)، لكن الإضافات هي مصدر الأحداث.
+     * كل إضافة مسؤولة عن فلترة ما يراه المستخدم الحالي داخل مزوّدها الخاص، وعن كفاءة
+     * استعلامها ضمن نطاق [$fromDate, $toDate] المُمرَّر (YYYY-MM-DD) بدل إعادة كل شيء.
+     * كل حدث: ['date'=>'Y-m-d', 'time'=>?'H:i', 'title'=>string, 'url'=>string, 'color'=>?string].
+     */
+    public static function collectCalendarEvents(array $user, string $fromDate, string $toDate): array
+    {
+        $events = [];
+        foreach (self::installedRows() as $key => $row) {
+            if ($row['status'] !== 'active') {
+                continue;
+            }
+            $file = self::modulesPath() . '/' . $key . '/calendar.php';
+            if (!is_file($file)) {
+                continue;
+            }
+            $provider = require $file;
+            if (is_callable($provider)) {
+                $result = $provider($user, $fromDate, $toDate);
+                if (is_array($result)) {
+                    foreach ($result as $event) {
+                        $event['module'] = $key;
+                        $events[] = $event;
+                    }
+                }
+            }
+        }
+        return $events;
+    }
 }

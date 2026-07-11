@@ -4,6 +4,7 @@
 
 use App\Controllers\ActivityLogController;
 use App\Controllers\AuthController;
+use App\Controllers\CalendarController;
 use App\Controllers\CompanyController;
 use App\Controllers\DashboardController;
 use App\Controllers\ModuleController;
@@ -21,6 +22,9 @@ $router->post('/logout', [AuthController::class, 'logout'], [[Middleware::class,
 
 // ---------- الرئيسية ----------
 $router->get('/', [DashboardController::class, 'index'], [[Middleware::class, 'auth']]);
+
+// ---------- التقويم (يجمع أحداث كل الإضافات المفعّلة) ----------
+$router->get('/calendar', [CalendarController::class, 'index'], [[Middleware::class, 'auth']]);
 
 // ---------- الملف الشخصي ----------
 $router->get('/profile', [ProfileController::class, 'show'], [[Middleware::class, 'auth']]);

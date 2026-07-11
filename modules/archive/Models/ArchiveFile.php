@@ -335,6 +335,18 @@ class ArchiveFile
         return self::visibleRecent($companyId, $userId, $isSystemAdmin, $canManage, $isCompanyAdmin, 'f.view_count > 0', [], 'f.view_count DESC', $limit);
     }
 
+    /** لمزوّد التقويم: الملفات التي تنتهي صلاحيتها ضمن نطاق تاريخ معيّن، مع احترام صلاحية المشاهدة كالمعتاد. */
+    public static function forCalendarRange(int $companyId, int $userId, bool $isSystemAdmin, bool $canManage, bool $isCompanyAdmin, string $fromDate, string $toDate): array
+    {
+        return self::visibleRecent(
+            $companyId, $userId, $isSystemAdmin, $canManage, $isCompanyAdmin,
+            "f.status = 'active' AND f.expires_at IS NOT NULL AND f.expires_at BETWEEN :cal_from AND :cal_to",
+            ['cal_from' => $fromDate, 'cal_to' => $toDate],
+            'f.expires_at ASC',
+            200
+        );
+    }
+
     public static function myUploads(int $companyId, int $userId, int $limit = 5): array
     {
         return Database::select(
