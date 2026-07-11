@@ -57,6 +57,7 @@ CREATE TABLE IF NOT EXISTS `permissions` (
     `module_key` VARCHAR(50) NOT NULL,
     `permission_key` VARCHAR(150) NOT NULL,
     `label` VARCHAR(150) NOT NULL,
+    `default_level` ENUM('employee','manager') NOT NULL DEFAULT 'employee' COMMENT 'تصنيف إرشادي فقط (لا يُطبَّق تلقائياً) يساعد عند إنشاء أدوار جديدة مستقبلاً',
     UNIQUE KEY `permissions_key_unique` (`permission_key`),
     KEY `permissions_module_index` (`module_key`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

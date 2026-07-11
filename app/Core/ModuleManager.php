@@ -233,6 +233,7 @@ class ModuleManager
                     'module_key' => $key,
                     'permission_key' => $def['key'],
                     'label' => $def['label'],
+                    'default_level' => $def['default_level'] ?? 'employee',
                 ]);
             }
         }

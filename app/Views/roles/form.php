@@ -40,6 +40,11 @@ $isEdit = $role !== null;
                             <label style="display:flex;align-items:center;gap:6px;font-weight:400;">
                                 <input type="checkbox" name="permissions[]" value="<?= $p['id'] ?>" style="width:auto;" <?= in_array((int) $p['id'], $rolePermissionIds, true) ? 'checked' : '' ?>>
                                 <?= e($p['label']) ?>
+                                <?php if (($p['default_level'] ?? 'employee') === 'manager'): ?>
+                                    <span class="badge badge-warning" title="تصنيف إرشادي فقط، لا يمنع تعيينها لأي دور">مدير</span>
+                                <?php else: ?>
+                                    <span class="badge badge-muted" title="تصنيف إرشادي فقط، لا يمنع تعيينها لأي دور">موظف</span>
+                                <?php endif; ?>
                             </label>
                         <?php endforeach; ?>
                     </div>

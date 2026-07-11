@@ -24,7 +24,7 @@ namespace App\Core;
  */
 class CoreMigrator
 {
-    public const CURRENT_VERSION = 3;
+    public const CURRENT_VERSION = 4;
     private const RETRY_COOLDOWN_SECONDS = 300;
 
     private static function migrations(): array
@@ -41,6 +41,10 @@ class CoreMigrator
             3 => [
                 'label' => 'نقل شعارات الشركات المرفوعة سابقاً إلى storage/uploads/core',
                 'run' => fn () => self::moveLegacyCompanyLogos(),
+            ],
+            4 => [
+                'label' => 'إضافة مستوى افتراضي (موظف/مدير) إرشادي لكل صلاحية',
+                'run' => fn () => self::addPermissionDefaultLevel(),
             ],
         ];
     }
@@ -139,6 +143,33 @@ class CoreMigrator
         if (!$exists) {
             Database::pdo()->exec("ALTER TABLE `{$table}` ADD COLUMN `{$column}` {$definition}");
         }
+    }
+
+    /**
+     * تضيف عمود default_level (تصنيف إرشادي فقط: موظف/مدير) لجدول الصلاحيات، وتُصحّح
+     * قيمته بأثر رجعي للصلاحيات الحساسة الموجودة مسبقاً في المواقع المثبَّتة (التي
+     * كانت سترث القيمة الافتراضية "موظف" من تعريف العمود وحده لو تُركت بلا تصحيح،
+     * لأن ModuleManager::syncPermissions() لا يُحدِّث صفوفاً موجودة أصلاً، فقط يُضيف
+     * الناقص). الصلاحيات المستقبلية تُصنَّف مباشرة عبر permissions.php لكل إضافة.
+     */
+    private static function addPermissionDefaultLevel(): void
+    {
+        self::addColumnIfMissing(
+            'permissions',
+            'default_level',
+            "ENUM('employee','manager') NOT NULL DEFAULT 'employee' AFTER `label`"
+        );
+
+        $managerKeys = [
+            'tasks.delete', 'tasks.approve', 'tasks.manage',
+            'phone.manage_contacts',
+            'documents.delete', 'documents.approve', 'documents.sign', 'documents.manage',
+            'archive.delete', 'archive.share',
+            'archive.categories.create', 'archive.categories.edit', 'archive.categories.delete', 'archive.manage',
+        ];
+        $placeholders = implode(',', array_fill(0, count($managerKeys), '?'));
+        $stmt = Database::pdo()->prepare("UPDATE `permissions` SET `default_level` = 'manager' WHERE `permission_key` IN ({$placeholders})");
+        $stmt->execute($managerKeys);
     }
 
     /**
