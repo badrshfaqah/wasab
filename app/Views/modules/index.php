@@ -22,11 +22,17 @@
     </form>
 </div>
 
+<?php $installedKeys = array_column(array_filter($modules, fn ($m) => $m['installed']), 'key'); ?>
+<div class="card">
+    <p class="hint" style="margin:0;">رتّب ظهور الإضافات بالقائمة الجانبية بأسهم التحريك ⬆️⬇️ (تظهر فقط على الإضافات المثبَّتة).</p>
+</div>
+
 <div class="cards-row" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr));">
 <?php if (!$modules): ?>
     <div class="empty-state"><div class="ic">🧩</div>لا توجد إضافات داخل مجلد modules/ حالياً.</div>
 <?php endif; ?>
 <?php foreach ($modules as $m): ?>
+    <?php $order = $m['installed'] ? array_search($m['key'], $installedKeys, true) : null; ?>
     <div class="card" style="margin-bottom:0;">
         <div class="card-title">
             <span>🧩 <?= e($m['name']) ?></span>
@@ -42,6 +48,16 @@
         <p class="hint">الإصدار: <?= e($m['version']) ?><?= $m['needs_update'] ? ' (يتوفر تحديث)' : '' ?></p>
 
         <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;">
+            <?php if ($m['installed']): ?>
+                <form method="post" action="<?= route('/extensions/' . $m['key'] . '/move-up') ?>">
+                    <?= csrf_field() ?>
+                    <button class="btn btn-outline btn-sm" type="submit" <?= $order === 0 ? 'disabled' : '' ?> title="تحريك للأعلى">⬆️</button>
+                </form>
+                <form method="post" action="<?= route('/extensions/' . $m['key'] . '/move-down') ?>">
+                    <?= csrf_field() ?>
+                    <button class="btn btn-outline btn-sm" type="submit" <?= $order === count($installedKeys) - 1 ? 'disabled' : '' ?> title="تحريك للأسفل">⬇️</button>
+                </form>
+            <?php endif; ?>
             <?php if (!$m['installed']): ?>
                 <form method="post" action="<?= route('/extensions/' . $m['key'] . '/install') ?>">
                     <?= csrf_field() ?>

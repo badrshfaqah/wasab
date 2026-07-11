@@ -24,7 +24,7 @@ namespace App\Core;
  */
 class CoreMigrator
 {
-    public const CURRENT_VERSION = 7;
+    public const CURRENT_VERSION = 8;
     private const RETRY_COOLDOWN_SECONDS = 300;
 
     private static function migrations(): array
@@ -65,6 +65,10 @@ class CoreMigrator
                     'send_reminder',
                     "TINYINT(1) NOT NULL DEFAULT 1 AFTER `created_by`"
                 ),
+            ],
+            8 => [
+                'label' => 'إضافة عمود ترتيب الإضافات بالقائمة الجانبية',
+                'run' => fn () => self::addModuleSortOrder(),
             ],
         ];
     }
@@ -190,6 +194,17 @@ class CoreMigrator
         $placeholders = implode(',', array_fill(0, count($managerKeys), '?'));
         $stmt = Database::pdo()->prepare("UPDATE `permissions` SET `default_level` = 'manager' WHERE `permission_key` IN ({$placeholders})");
         $stmt->execute($managerKeys);
+    }
+
+    /**
+     * تضيف عمود sort_order لجدول modules (ترتيب رابط كل إضافة بالقائمة الجانبية)، وتُصحّح
+     * قيمته بأثر رجعي بنفس ترتيب التثبيت الحالي (id) للمواقع المثبَّتة مسبقاً - نفس الترتيب
+     * الظاهر لهم أصلاً حالياً، فلا يتغيّر شيء بصرياً إلا بعد إعادة الترتيب يدوياً من صفحة الإضافات.
+     */
+    private static function addModuleSortOrder(): void
+    {
+        self::addColumnIfMissing('modules', 'sort_order', "INT NOT NULL DEFAULT 0 AFTER `status`");
+        Database::pdo()->exec('UPDATE `modules` SET `sort_order` = `id` WHERE `sort_order` = 0');
     }
 
     /** جدول أحداث التقويم الخاصة بكل شركة (يضيفها مدير النظام/الشركة يدوياً من صفحة التقويم). */

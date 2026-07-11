@@ -104,6 +104,20 @@ class ModuleController
         redirect('/extensions');
     }
 
+    public function moveUp(array $params): void
+    {
+        $this->verifyCsrf();
+        ModuleManager::moveUp($params['key']);
+        redirect('/extensions');
+    }
+
+    public function moveDown(array $params): void
+    {
+        $this->verifyCsrf();
+        ModuleManager::moveDown($params['key']);
+        redirect('/extensions');
+    }
+
     private function verifyCsrf(): void
     {
         if (!Csrf::verify(Request::input('_csrf'))) {

@@ -42,13 +42,13 @@ class ModuleManager
         return $found;
     }
 
-    /** حالة الإضافات المسجلة في قاعدة البيانات: module_key => row */
+    /** حالة الإضافات المسجلة في قاعدة البيانات: module_key => row، بترتيب القائمة الجانبية المخصص. */
     public static function installedRows(): array
     {
         if (self::$installedCache !== null) {
             return self::$installedCache;
         }
-        $rows = Database::select('SELECT * FROM modules');
+        $rows = Database::select('SELECT * FROM modules ORDER BY sort_order ASC, id ASC');
         self::$installedCache = [];
         foreach ($rows as $row) {
             self::$installedCache[$row['module_key']] = $row;
@@ -56,16 +56,18 @@ class ModuleManager
         return self::$installedCache;
     }
 
-    /** قائمة مدمجة: بيانات القرص + حالة قاعدة البيانات، لصفحة إدارة الإضافات */
+    /**
+     * قائمة مدمجة: بيانات القرص + حالة قاعدة البيانات، لصفحة إدارة الإضافات - المثبّتة
+     * أولاً بترتيبها المخصص (نفس ترتيب ظهورها بالقائمة الجانبية)، ثم غير المثبّتة بعدها
+     * أبجدياً (ترتيبها لا يهم فعلياً لأنها لا تظهر بالقائمة الجانبية أصلاً).
+     */
     public static function list(): array
     {
         $disk = self::discover();
         $db = self::installedRows();
 
-        $list = [];
-        foreach ($disk as $key => $manifest) {
-            $row = $db[$key] ?? null;
-            $list[] = [
+        $build = function (string $key, array $manifest, ?array $row): array {
+            return [
                 'key' => $key,
                 'name' => $manifest['name'] ?? $key,
                 'description' => $manifest['description'] ?? '',
@@ -76,9 +78,58 @@ class ModuleManager
                 'installed_version' => $row['version'] ?? null,
                 'needs_update' => $row && version_compare($row['version'], $manifest['version'] ?? '1.0.0', '<'),
             ];
+        };
+
+        $list = [];
+        foreach ($db as $key => $row) {
+            if (!isset($disk[$key])) {
+                continue;
+            }
+            $list[] = $build($key, $disk[$key], $row);
+        }
+        foreach ($disk as $key => $manifest) {
+            if (isset($db[$key])) {
+                continue;
+            }
+            $list[] = $build($key, $manifest, null);
         }
 
         return $list;
+    }
+
+    /** يحرّك رابط الإضافة خطوة للأعلى بالقائمة الجانبية (يتبادل الترتيب مع الإضافة السابقة مباشرة). */
+    public static function moveUp(string $key): void
+    {
+        self::swapOrder($key, -1);
+    }
+
+    /** يحرّك رابط الإضافة خطوة للأسفل بالقائمة الجانبية (يتبادل الترتيب مع الإضافة التالية مباشرة). */
+    public static function moveDown(string $key): void
+    {
+        self::swapOrder($key, 1);
+    }
+
+    private static function swapOrder(string $key, int $direction): void
+    {
+        $keys = array_keys(self::installedRows());
+        $index = array_search($key, $keys, true);
+        if ($index === false) {
+            return;
+        }
+
+        $targetIndex = $index + $direction;
+        if ($targetIndex < 0 || $targetIndex >= count($keys)) {
+            return;
+        }
+
+        $rows = self::installedRows();
+        $current = $rows[$key];
+        $target = $rows[$keys[$targetIndex]];
+
+        Database::update('modules', ['sort_order' => $target['sort_order']], 'id = :id', ['id' => $current['id']]);
+        Database::update('modules', ['sort_order' => $current['sort_order']], 'id = :id', ['id' => $target['id']]);
+
+        self::$installedCache = null;
     }
 
     /** عدد الإضافات المثبتة التي رُفعت لها ملفات بإصدار أحدث على القرص وتحتاج الضغط على "تحديث" */
@@ -123,11 +174,14 @@ class ModuleManager
 
         self::syncPermissions($key);
 
+        $maxOrder = Database::first('SELECT MAX(sort_order) AS m FROM modules')['m'] ?? 0;
+
         Database::insert('modules', [
             'module_key' => $key,
             'name' => $manifest['name'] ?? $key,
             'version' => $manifest['version'] ?? '1.0.0',
             'status' => 'inactive',
+            'sort_order' => (int) $maxOrder + 1,
             'installed_at' => date('Y-m-d H:i:s'),
         ]);
 

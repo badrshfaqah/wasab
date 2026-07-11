@@ -92,6 +92,7 @@ CREATE TABLE IF NOT EXISTS `modules` (
     `name` VARCHAR(150) NOT NULL,
     `version` VARCHAR(20) NOT NULL,
     `status` ENUM('active','inactive') NOT NULL DEFAULT 'inactive',
+    `sort_order` INT NOT NULL DEFAULT 0 COMMENT 'ترتيب ظهور رابط الإضافة بالقائمة الجانبية - يُضبط من صفحة الإضافات',
     `installed_at` DATETIME NOT NULL,
     `updated_at` DATETIME NULL,
     UNIQUE KEY `modules_key_unique` (`module_key`)

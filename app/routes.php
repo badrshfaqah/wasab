@@ -70,6 +70,8 @@ $router->post('/extensions/{key}/activate', [ModuleController::class, 'activate'
 $router->post('/extensions/{key}/deactivate', [ModuleController::class, 'deactivate'], [[Middleware::class, 'auth'], [Middleware::class, 'systemAdmin']]);
 $router->post('/extensions/{key}/update', [ModuleController::class, 'update'], [[Middleware::class, 'auth'], [Middleware::class, 'systemAdmin']]);
 $router->post('/extensions/{key}/remove', [ModuleController::class, 'remove'], [[Middleware::class, 'auth'], [Middleware::class, 'systemAdmin']]);
+$router->post('/extensions/{key}/move-up', [ModuleController::class, 'moveUp'], [[Middleware::class, 'auth'], [Middleware::class, 'systemAdmin']]);
+$router->post('/extensions/{key}/move-down', [ModuleController::class, 'moveDown'], [[Middleware::class, 'auth'], [Middleware::class, 'systemAdmin']]);
 $router->post('/extensions/update-core-database', [ModuleController::class, 'updateDatabase'], [[Middleware::class, 'auth'], [Middleware::class, 'systemAdmin']]);
 
 // ---------- الإعدادات ----------
