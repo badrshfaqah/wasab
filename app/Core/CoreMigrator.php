@@ -24,7 +24,7 @@ namespace App\Core;
  */
 class CoreMigrator
 {
-    public const CURRENT_VERSION = 4;
+    public const CURRENT_VERSION = 5;
     private const RETRY_COOLDOWN_SECONDS = 300;
 
     private static function migrations(): array
@@ -45,6 +45,10 @@ class CoreMigrator
             4 => [
                 'label' => 'إضافة مستوى افتراضي (موظف/مدير) إرشادي لكل صلاحية',
                 'run' => fn () => self::addPermissionDefaultLevel(),
+            ],
+            5 => [
+                'label' => 'إضافة جدول أحداث التقويم الخاصة بالشركة',
+                'run' => fn () => self::createCalendarEventsTable(),
             ],
         ];
     }
@@ -170,6 +174,25 @@ class CoreMigrator
         $placeholders = implode(',', array_fill(0, count($managerKeys), '?'));
         $stmt = Database::pdo()->prepare("UPDATE `permissions` SET `default_level` = 'manager' WHERE `permission_key` IN ({$placeholders})");
         $stmt->execute($managerKeys);
+    }
+
+    /** جدول أحداث التقويم الخاصة بكل شركة (يضيفها مدير النظام/الشركة يدوياً من صفحة التقويم). */
+    private static function createCalendarEventsTable(): void
+    {
+        Database::pdo()->exec("
+            CREATE TABLE IF NOT EXISTS `calendar_events` (
+                `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                `company_id` INT UNSIGNED NOT NULL,
+                `title` VARCHAR(200) NOT NULL,
+                `description` VARCHAR(500) NULL,
+                `event_date` DATE NOT NULL,
+                `created_by` INT UNSIGNED NULL,
+                `created_at` DATETIME NOT NULL,
+                KEY `calendar_events_company_index` (`company_id`),
+                KEY `calendar_events_date_index` (`event_date`),
+                CONSTRAINT `calendar_events_company_fk` FOREIGN KEY (`company_id`) REFERENCES `companies`(`id`) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        ");
     }
 
     /**

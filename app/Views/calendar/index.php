@@ -6,7 +6,9 @@ $colorClass = [
     'archive' => 'cal-event-archive',
     'meetings' => 'cal-event-meetings',
     'documents' => 'cal-event-documents',
+    'company' => 'cal-event-company',
 ];
+$monthCompanyEvents = array_filter($companyEvents, fn ($ce) => substr($ce['event_date'], 0, 7) === $month);
 ?>
 <div class="page-head">
     <div><h1>التقويم</h1><p>كل التواريخ المحدَّدة من الإضافات المفعّلة: مهام، ملفات، اجتماعات، وغيرها مستقبلاً.</p></div>
@@ -54,5 +56,63 @@ $colorClass = [
         <span><span class="cal-legend-dot cal-event-archive"></span> أرشيف الملفات</span>
         <span><span class="cal-legend-dot cal-event-meetings"></span> الاجتماعات</span>
         <span><span class="cal-legend-dot cal-event-documents"></span> المستندات</span>
+        <span><span class="cal-legend-dot cal-event-company"></span> أحداث الشركة</span>
     </div>
 </div>
+
+<?php if ($canManageEvents): ?>
+<div class="card">
+    <div class="card-title"><span>إضافة حدث خاص بالشركة</span></div>
+    <form method="post" action="<?= route('/calendar/events') ?>">
+        <?= csrf_field() ?>
+        <div class="grid-2">
+            <div class="field">
+                <label>عنوان الحدث</label>
+                <input type="text" name="title" required maxlength="200">
+            </div>
+            <div class="field">
+                <label>التاريخ</label>
+                <input type="date" name="event_date" required value="<?= e($month . '-01') ?>">
+            </div>
+        </div>
+        <div class="field">
+            <label>وصف (اختياري)</label>
+            <textarea name="description" rows="2" maxlength="500"></textarea>
+        </div>
+        <div class="form-actions">
+            <button class="btn" type="submit">إضافة الحدث</button>
+        </div>
+    </form>
+</div>
+<?php endif; ?>
+
+<?php if ($monthCompanyEvents): ?>
+<div class="card">
+    <div class="card-title"><span>أحداث الشركة هذا الشهر</span></div>
+    <div class="table-wrap">
+    <table>
+        <thead>
+            <tr><th>التاريخ</th><th>العنوان</th><th>الوصف</th><th>أضافها</th><?php if ($canManageEvents): ?><th></th><?php endif; ?></tr>
+        </thead>
+        <tbody>
+            <?php foreach ($monthCompanyEvents as $ce): ?>
+                <tr id="event-<?= (int) $ce['id'] ?>">
+                    <td><?= e($ce['event_date']) ?></td>
+                    <td><?= e($ce['title']) ?></td>
+                    <td><?= e($ce['description'] ?? '') ?></td>
+                    <td><?= e($ce['creator_name'] ?? '-') ?></td>
+                    <?php if ($canManageEvents): ?>
+                    <td>
+                        <form method="post" action="<?= route('/calendar/events/' . $ce['id'] . '/delete') ?>" onsubmit="return confirm('حذف هذا الحدث؟');">
+                            <?= csrf_field() ?>
+                            <button type="submit" class="btn btn-outline btn-sm">حذف</button>
+                        </form>
+                    </td>
+                    <?php endif; ?>
+                </tr>
+            <?php endforeach; ?>
+        </tbody>
+    </table>
+    </div>
+</div>
+<?php endif; ?>

@@ -25,6 +25,8 @@ $router->get('/', [DashboardController::class, 'index'], [[Middleware::class, 'a
 
 // ---------- التقويم (يجمع أحداث كل الإضافات المفعّلة) ----------
 $router->get('/calendar', [CalendarController::class, 'index'], [[Middleware::class, 'auth']]);
+$router->post('/calendar/events', [CalendarController::class, 'storeEvent'], [[Middleware::class, 'auth']]);
+$router->post('/calendar/events/{id}/delete', [CalendarController::class, 'destroyEvent'], [[Middleware::class, 'auth']]);
 
 // ---------- الملف الشخصي ----------
 $router->get('/profile', [ProfileController::class, 'show'], [[Middleware::class, 'auth']]);

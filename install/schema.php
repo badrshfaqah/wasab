@@ -139,4 +139,19 @@ CREATE TABLE IF NOT EXISTS `activity_log` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 ",
 
+'calendar_events' => "
+CREATE TABLE IF NOT EXISTS `calendar_events` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `company_id` INT UNSIGNED NOT NULL,
+    `title` VARCHAR(200) NOT NULL,
+    `description` VARCHAR(500) NULL,
+    `event_date` DATE NOT NULL,
+    `created_by` INT UNSIGNED NULL,
+    `created_at` DATETIME NOT NULL,
+    KEY `calendar_events_company_index` (`company_id`),
+    KEY `calendar_events_date_index` (`event_date`),
+    CONSTRAINT `calendar_events_company_fk` FOREIGN KEY (`company_id`) REFERENCES `companies`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+",
+
 ];
