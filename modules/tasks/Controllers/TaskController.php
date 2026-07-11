@@ -8,6 +8,7 @@ use App\Core\Csrf;
 use App\Core\Database;
 use App\Core\Notification;
 use App\Core\Request;
+use App\Core\Uploads;
 use App\Core\View;
 use Modules\Tasks\Models\Task;
 use Modules\Tasks\Models\TaskAttachment;
@@ -403,33 +404,31 @@ class TaskController
         redirect('/tasks/' . $task['id']);
     }
 
+    private const ATTACHMENT_EXTENSIONS = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'zip', 'jpg', 'jpeg', 'png', 'webp', 'gif'];
+    private const ATTACHMENT_MAX_BYTES = 10 * 1024 * 1024;
+
     public function uploadAttachment(array $params): void
     {
         $companyId = $this->requireCompanyContext();
         $task = $this->findVisible((int) $params['id'], $companyId);
+        if (!$this->canManageSubtasks($task)) {
+            $this->forbidden();
+            return;
+        }
         $this->verifyCsrf('/tasks/' . $task['id']);
 
-        $file = Request::file('file');
-        if (!$file || $file['error'] !== UPLOAD_ERR_OK) {
+        $upload = Uploads::handleFile('file', BASE_PATH . '/storage/uploads/tasks', self::ATTACHMENT_EXTENSIONS, self::ATTACHMENT_MAX_BYTES);
+        if ($upload['error']) {
+            flash_set('error', $upload['error']);
+            redirect('/tasks/' . $task['id']);
+        }
+        if (!$upload['filename']) {
             flash_set('error', 'يرجى اختيار ملف صالح.');
             redirect('/tasks/' . $task['id']);
         }
-        if ($file['size'] > 10 * 1024 * 1024) {
-            flash_set('error', 'الحد الأقصى لحجم الملف هو 10 ميجابايت.');
-            redirect('/tasks/' . $task['id']);
-        }
 
-        $dir = BASE_PATH . '/storage/uploads/tasks';
-        if (!is_dir($dir)) {
-            mkdir($dir, 0755, true);
-        }
-
-        $ext = pathinfo($file['name'], PATHINFO_EXTENSION);
-        $stored = bin2hex(random_bytes(16)) . ($ext ? '.' . preg_replace('/[^a-zA-Z0-9]/', '', $ext) : '');
-        move_uploaded_file($file['tmp_name'], $dir . '/' . $stored);
-
-        TaskAttachment::add($task['id'], Auth::id(), $file['name'], $stored, (int) $file['size']);
-        TaskLog::add($task['id'], Auth::id(), 'attachment_added', 'تم إرفاق ملف: ' . $file['name']);
+        TaskAttachment::add($task['id'], Auth::id(), $upload['original'], $upload['filename'], $upload['size']);
+        TaskLog::add($task['id'], Auth::id(), 'attachment_added', 'تم إرفاق ملف: ' . $upload['original']);
 
         flash_set('success', 'تم رفع الملف.');
         redirect('/tasks/' . $task['id']);
