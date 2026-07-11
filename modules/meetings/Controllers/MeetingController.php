@@ -17,6 +17,8 @@ class MeetingController
 {
     private const TYPES = ['in_person', 'online'];
     private const STATUSES = ['scheduled', 'completed', 'cancelled'];
+    private const RECURRENCE_RULES = ['none', 'weekly', 'monthly'];
+    private const MAX_RECURRENCE_OCCURRENCES = 52;
 
     public function index(): void
     {
@@ -52,9 +54,12 @@ class MeetingController
 
         View::render('meetings::form', [
             'pageTitle' => 'اجتماع جديد',
+            'isEdit' => false,
+            'formAction' => route('/meetings'),
             'meeting' => null,
             'attendees' => [],
             'companyUsers' => $this->companyUsers($companyId),
+            'conflicts' => [],
         ]);
     }
 
@@ -71,15 +76,82 @@ class MeetingController
         if ($data === null) {
             redirect('/meetings/create');
         }
+
+        [$userIds, $external] = $this->parseAttendeeRequest($companyId);
+
+        if (!Request::input('confirm_conflicts')) {
+            $conflicts = Meeting::findConflicts($companyId, array_merge($userIds, [Auth::id()]), Auth::id(), $data['starts_at'], $data['ends_at'], null);
+            if ($conflicts) {
+                View::render('meetings::form', [
+                    'pageTitle' => 'اجتماع جديد',
+                    'isEdit' => false,
+                    'formAction' => route('/meetings'),
+                    'meeting' => $data,
+                    'attendees' => $this->syntheticAttendees($userIds, $external),
+                    'companyUsers' => $this->companyUsers($companyId),
+                    'conflicts' => $conflicts,
+                ]);
+                return;
+            }
+        }
+
+        $recurrenceRule = Request::input('recurrence_rule', 'none');
+        if (!in_array($recurrenceRule, self::RECURRENCE_RULES, true)) {
+            $recurrenceRule = 'none';
+        }
+        $recurrenceEndDate = trim((string) Request::input('recurrence_end_date', ''));
+        if ($recurrenceRule !== 'none' && $recurrenceEndDate === '') {
+            flash_set('error', 'يرجى تحديد تاريخ نهاية التكرار.');
+            View::render('meetings::form', [
+                'pageTitle' => 'اجتماع جديد',
+                'isEdit' => false,
+                'formAction' => route('/meetings'),
+                'meeting' => array_merge($data, ['recurrence_rule' => $recurrenceRule]),
+                'attendees' => $this->syntheticAttendees($userIds, $external),
+                'companyUsers' => $this->companyUsers($companyId),
+                'conflicts' => [],
+            ]);
+            return;
+        }
+
         $data['company_id'] = $companyId;
         $data['created_by'] = Auth::id();
+        $data['recurrence_rule'] = $recurrenceRule;
+        $data['recurrence_end_date'] = $recurrenceRule !== 'none' ? $recurrenceEndDate : null;
 
         $meetingId = Meeting::create($data);
-        $this->syncAttendees($meetingId, $companyId);
+        $this->applyAttendees($meetingId, $userIds, $external);
 
         ActivityLog::log('meetings.create', 'meeting', $meetingId, "إنشاء اجتماع: {$data['title']}");
         $this->notifyAttendees($meetingId, 'دعوة لحضور اجتماع', $data['title']);
-        flash_set('success', 'تم إنشاء الاجتماع.');
+
+        $occurrenceCount = 0;
+        if ($recurrenceRule !== 'none') {
+            Meeting::update($meetingId, ['recurrence_group_id' => $meetingId]);
+            $occurrences = Meeting::generateOccurrences($data['starts_at'], $data['ends_at'], $recurrenceRule, $recurrenceEndDate, self::MAX_RECURRENCE_OCCURRENCES);
+            foreach ($occurrences as [$occStartsAt, $occEndsAt]) {
+                $occId = Meeting::create([
+                    'company_id' => $companyId,
+                    'created_by' => Auth::id(),
+                    'title' => $data['title'],
+                    'type' => $data['type'],
+                    'location' => $data['location'],
+                    'description' => $data['description'],
+                    'starts_at' => $occStartsAt,
+                    'ends_at' => $occEndsAt,
+                    'recurrence_rule' => $recurrenceRule,
+                    'recurrence_end_date' => $recurrenceEndDate,
+                    'recurrence_group_id' => $meetingId,
+                ]);
+                $this->applyAttendees($occId, $userIds, $external);
+                $occurrenceCount++;
+            }
+            ActivityLog::log('meetings.create_recurring', 'meeting', $meetingId, "توليد {$occurrenceCount} موعد إضافي لسلسلة متكررة");
+        }
+
+        flash_set('success', $occurrenceCount > 0
+            ? "تم إنشاء الاجتماع مع {$occurrenceCount} موعد متكرر إضافي."
+            : 'تم إنشاء الاجتماع.');
         redirect('/meetings/' . $meetingId);
     }
 
@@ -101,6 +173,20 @@ class MeetingController
         ]);
     }
 
+    /** محضر الاجتماع بصيغة صفحة قابلة للطباعة (تصدير PDF عبر "طباعة" بالمتصفح) - بلا تخطيط النظام العادي. */
+    public function print(array $params): void
+    {
+        $companyId = $this->requireCompanyContext();
+        $meeting = $this->findVisible((int) $params['id'], $companyId);
+
+        View::render('meetings::print', [
+            'pageTitle' => $meeting['title'],
+            'meeting' => $meeting,
+            'attendees' => MeetingAttendee::forMeeting($meeting['id']),
+            'notes' => MeetingNote::forMeeting($meeting['id']),
+        ], '');
+    }
+
     public function edit(array $params): void
     {
         $companyId = $this->requireCompanyContext();
@@ -112,9 +198,12 @@ class MeetingController
 
         View::render('meetings::form', [
             'pageTitle' => 'تعديل اجتماع',
+            'isEdit' => true,
+            'formAction' => route('/meetings/' . $meeting['id']),
             'meeting' => $meeting,
             'attendees' => MeetingAttendee::forMeeting($meeting['id']),
             'companyUsers' => $this->companyUsers($companyId),
+            'conflicts' => [],
         ]);
     }
 
@@ -133,11 +222,56 @@ class MeetingController
             redirect('/meetings/' . $meeting['id'] . '/edit');
         }
 
+        [$userIds, $external] = $this->parseAttendeeRequest($companyId);
+
+        if (!Request::input('confirm_conflicts')) {
+            $conflicts = Meeting::findConflicts($companyId, array_merge($userIds, [Auth::id()]), Auth::id(), $data['starts_at'], $data['ends_at'], $meeting['id']);
+            if ($conflicts) {
+                View::render('meetings::form', [
+                    'pageTitle' => 'تعديل اجتماع',
+                    'isEdit' => true,
+                    'formAction' => route('/meetings/' . $meeting['id']),
+                    'meeting' => array_merge($meeting, $data),
+                    'attendees' => $this->syntheticAttendees($userIds, $external),
+                    'companyUsers' => $this->companyUsers($companyId),
+                    'conflicts' => $conflicts,
+                ]);
+                return;
+            }
+        }
+
+        // إعادة تعيين تذكير الموعد القريب إن تغيّر وقت البداية، حتى يصل تذكير صحيح للموعد الجديد.
+        if ($data['starts_at'] !== $meeting['starts_at']) {
+            $data['reminder_sent_at'] = null;
+        }
+
         Meeting::update($meeting['id'], $data);
-        $this->syncAttendees($meeting['id'], $companyId);
+        $this->applyAttendees($meeting['id'], $userIds, $external);
 
         ActivityLog::log('meetings.update', 'meeting', $meeting['id'], "تعديل اجتماع: {$data['title']}");
         flash_set('success', 'تم حفظ التعديلات.');
+        redirect('/meetings/' . $meeting['id']);
+    }
+
+    /** يوقف باقي مواعيد السلسلة المتكررة (كل ما هو قادم بعد هذا الموعد) - لا يحذف هذا الموعد نفسه ولا التاريخية منها. */
+    public function stopRecurrence(array $params): void
+    {
+        $companyId = $this->requireCompanyContext();
+        $meeting = $this->findVisible((int) $params['id'], $companyId);
+        if (!$this->canEditMeeting($meeting)) {
+            $this->forbidden();
+            return;
+        }
+        $this->verifyCsrf('/meetings/' . $meeting['id']);
+
+        if (empty($meeting['recurrence_group_id'])) {
+            flash_set('error', 'هذا الاجتماع ليس جزءاً من سلسلة متكررة.');
+            redirect('/meetings/' . $meeting['id']);
+        }
+
+        $count = Meeting::stopRecurrence((int) $meeting['recurrence_group_id'], $companyId, $meeting['id']);
+        ActivityLog::log('meetings.stop_recurrence', 'meeting', $meeting['id'], "إيقاف تكرار سلسلة اجتماعات (حذف {$count} موعد قادم)");
+        flash_set('success', "تم إيقاف التكرار، وحُذف {$count} موعد قادم من السلسلة.");
         redirect('/meetings/' . $meeting['id']);
     }
 
@@ -373,12 +507,8 @@ class MeetingController
         View::render('errors/403', [], '');
     }
 
-    /**
-     * يوفّق قائمة الحاضرين المطلوبة (داخليين مختارين + خارجيين من النص) مع القائمة
-     * الحالية بالقاعدة: يحافظ على رد من هو باقٍ (لا يُصفّر قبوله/رفضه لمجرد حفظ
-     * تعديل بسيط على عنوان الاجتماع مثلاً)، يحذف من أُزيل، ويضيف الجديد كـ pending.
-     */
-    private function syncAttendees(int $meetingId, int $companyId): void
+    /** يقرأ ويُصحّح قائمة الحاضرين المطلوبة من الطلب: [مصفوفة user_id داخليين, مصفوفة خارجيين ['name','contact']]. */
+    private function parseAttendeeRequest(int $companyId): array
     {
         $requestedUserIds = array_map('intval', (array) Request::input('attendee_user_ids', []));
         $validUserIds = array_column($this->companyUsers($companyId), 'id');
@@ -395,6 +525,17 @@ class MeetingController
             $requestedExternal[] = ['name' => $name, 'contact' => $parts[1] ?? null];
         }
 
+        return [$requestedUserIds, $requestedExternal];
+    }
+
+    /**
+     * يوفّق قائمة الحاضرين المطلوبة (داخليين مختارين + خارجيين من النص) مع القائمة
+     * الحالية بالقاعدة: يحافظ على رد من هو باقٍ (لا يُصفّر قبوله/رفضه لمجرد حفظ
+     * تعديل بسيط على عنوان الاجتماع مثلاً)، يحذف من أُزيل، ويضيف الجديد كـ pending.
+     * لموعد جديد بالكامل (لا حاضرين سابقين) تُختزل هذه الموفَقة لإضافة الجميع كجدد.
+     */
+    private function applyAttendees(int $meetingId, array $requestedUserIds, array $requestedExternal): void
+    {
         $existing = MeetingAttendee::forMeeting($meetingId);
         $existingUserIds = [];
         foreach ($existing as $row) {
@@ -421,6 +562,16 @@ class MeetingController
         foreach ($requestedExternal as $ext) {
             MeetingAttendee::addExternal($meetingId, $ext['name'], $ext['contact']);
         }
+    }
+
+    /** يبني شكل صفوف حاضرين وهمي (بلا id فعلي) لإعادة عرض النموذج بعد تنبيه تعارض مواعيد، قبل أي إدراج فعلي بالقاعدة. */
+    private function syntheticAttendees(array $userIds, array $external): array
+    {
+        $rows = array_map(fn ($uid) => ['user_id' => $uid, 'external_name' => null, 'external_contact' => null], $userIds);
+        foreach ($external as $ext) {
+            $rows[] = ['user_id' => null, 'external_name' => $ext['name'], 'external_contact' => $ext['contact']];
+        }
+        return $rows;
     }
 
     private function notifyAttendees(int $meetingId, string $title, string $message): void

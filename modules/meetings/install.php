@@ -17,12 +17,17 @@ return function (PDO $pdo): void {
             `description` TEXT NULL,
             `outcomes` TEXT NULL,
             `status` ENUM('scheduled','completed','cancelled') NOT NULL DEFAULT 'scheduled',
+            `recurrence_rule` ENUM('none','weekly','monthly') NOT NULL DEFAULT 'none',
+            `recurrence_end_date` DATE NULL COMMENT 'آخر تاريخ يتوقف عنده توليد مواعيد جديدة لهذه السلسلة',
+            `recurrence_group_id` INT UNSIGNED NULL COMMENT 'معرّف أول موعد بالسلسلة - يربط كل مواعيد نفس التكرار ببعضها',
+            `reminder_sent_at` DATETIME NULL COMMENT 'وقت إرسال تذكير الاجتماع القريب (مرة واحدة فقط) عبر cron.php',
             `created_by` INT UNSIGNED NOT NULL,
             `created_at` DATETIME NOT NULL,
             `updated_at` DATETIME NULL,
             KEY `meetings_company_index` (`company_id`),
             KEY `meetings_starts_at_index` (`starts_at`),
-            KEY `meetings_creator_index` (`created_by`)
+            KEY `meetings_creator_index` (`created_by`),
+            KEY `meetings_recurrence_group_index` (`recurrence_group_id`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     ");
 

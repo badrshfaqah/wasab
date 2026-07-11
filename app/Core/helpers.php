@@ -35,9 +35,29 @@ function app_name(): string
     }
 }
 
+/**
+ * خارج سياق طلب ويب حي (مثل cron.php) لا يوجد Host نستنتج منه عنوان الموقع، فنستخدم
+ * "عنوان الموقع" من الإعدادات إن عُرِّف؛ إن لم يُعرَّف نرجع لنفس الاستنتاج المعتاد
+ * (سيُنتج رابطاً غير صحيح كـ "http://localhost/..." لكن دون أي كسر أو استثناء).
+ */
 function base_url(string $path = ''): string
 {
+    if (PHP_SAPI === 'cli') {
+        $configured = rtrim((string) app_url(), '/');
+        if ($configured !== '') {
+            return $configured . '/' . ltrim($path, '/');
+        }
+    }
     return Request::baseUrl() . '/' . ltrim($path, '/');
+}
+
+function app_url(): string
+{
+    try {
+        return \App\Core\Setting::get('app_url', null, config_get('app_url', ''));
+    } catch (\Throwable $e) {
+        return config_get('app_url', '');
+    }
 }
 
 function asset(string $path): string

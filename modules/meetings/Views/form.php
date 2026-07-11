@@ -1,8 +1,9 @@
 <?php
 use Modules\Meetings\Models\Meeting;
 
-$isEdit = $meeting !== null;
 $typeLabels = Meeting::typeLabels();
+$recurrenceLabels = Meeting::recurrenceLabels();
+$conflicts = $conflicts ?? [];
 
 $selectedUserIds = array_column(array_filter($attendees, fn ($a) => $a['user_id']), 'user_id');
 $externalText = implode("\n", array_map(
@@ -21,8 +22,20 @@ $toLocalDatetime = function (?string $value) {
     <div><h1><?= $isEdit ? 'تعديل اجتماع' : 'اجتماع جديد' ?></h1></div>
 </div>
 
+<?php if ($conflicts): ?>
+<div class="alert alert-danger">
+    <strong>⚠️ تنبيه: يوجد تعارض بالمواعيد</strong>
+    <ul style="margin:8px 0 0 0;padding-inline-start:20px;">
+        <?php foreach ($conflicts as $c): ?>
+            <li><?= e($c['person_name']) ?> لديه اجتماع "<?= e($c['title']) ?>" الساعة <?= format_date($c['starts_at'], 'Y-m-d H:i') ?></li>
+        <?php endforeach; ?>
+    </ul>
+    <p class="hint" style="margin-top:6px;">يمكنك تعديل الموعد أدناه وإعادة التحقق، أو تجاهل التنبيه والحفظ كما هو.</p>
+</div>
+<?php endif; ?>
+
 <div class="card" style="max-width:760px;">
-    <form method="post" action="<?= $isEdit ? route('/meetings/' . $meeting['id']) : route('/meetings') ?>">
+    <form method="post" action="<?= $formAction ?>">
         <?= csrf_field() ?>
         <div class="field">
             <label>عنوان الاجتماع</label>
@@ -90,8 +103,41 @@ $toLocalDatetime = function (?string $value) {
             <p class="hint">سطر واحد لكل شخص. اسم الحاضر، وبعد فاصلة بيانات التواصل إن رغبت.</p>
         </div>
 
+        <?php if (!$isEdit): ?>
+        <div class="grid-2">
+            <div class="field">
+                <label>تكرار الاجتماع</label>
+                <select name="recurrence_rule" id="meeting-recurrence">
+                    <?php foreach ($recurrenceLabels as $key => $label): ?>
+                        <option value="<?= $key ?>" <?= ($meeting['recurrence_rule'] ?? 'none') === $key ? 'selected' : '' ?>><?= e($label) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div class="field" id="meeting-recurrence-end-wrap">
+                <label>تاريخ نهاية التكرار</label>
+                <input type="date" name="recurrence_end_date" id="meeting-recurrence-end" value="<?= e($meeting['recurrence_end_date'] ?? '') ?>">
+            </div>
+        </div>
+        <script>
+        (function () {
+            var rule = document.getElementById('meeting-recurrence');
+            var wrap = document.getElementById('meeting-recurrence-end-wrap');
+            function sync() {
+                wrap.style.display = rule.value === 'none' ? 'none' : '';
+            }
+            rule.addEventListener('change', sync);
+            sync();
+        })();
+        </script>
+        <?php endif; ?>
+
         <div class="form-actions">
-            <button class="btn" type="submit"><?= $isEdit ? 'حفظ التعديلات' : 'إنشاء الاجتماع' ?></button>
+            <?php if ($conflicts): ?>
+                <button class="btn btn-danger" type="submit" name="confirm_conflicts" value="1">تجاهل التعارض والحفظ</button>
+                <button class="btn btn-outline" type="submit">إعادة التحقق</button>
+            <?php else: ?>
+                <button class="btn" type="submit"><?= $isEdit ? 'حفظ التعديلات' : 'إنشاء الاجتماع' ?></button>
+            <?php endif; ?>
             <a class="btn btn-outline" href="<?= $isEdit ? route('/meetings/' . $meeting['id']) : route('/meetings') ?>">إلغاء</a>
         </div>
     </form>

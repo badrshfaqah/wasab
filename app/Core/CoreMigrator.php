@@ -24,7 +24,7 @@ namespace App\Core;
  */
 class CoreMigrator
 {
-    public const CURRENT_VERSION = 5;
+    public const CURRENT_VERSION = 6;
     private const RETRY_COOLDOWN_SECONDS = 300;
 
     private static function migrations(): array
@@ -49,6 +49,14 @@ class CoreMigrator
             5 => [
                 'label' => 'إضافة جدول أحداث التقويم الخاصة بالشركة',
                 'run' => fn () => self::createCalendarEventsTable(),
+            ],
+            6 => [
+                'label' => 'إضافة عمود تذكير أحداث التقويم الخاصة بالشركة',
+                'run' => fn () => self::addColumnIfMissing(
+                    'calendar_events',
+                    'reminder_sent_at',
+                    "DATETIME NULL AFTER `created_by`"
+                ),
             ],
         ];
     }

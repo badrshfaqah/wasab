@@ -11,6 +11,11 @@
             <label>اسم النظام</label>
             <input type="text" name="app_name" value="<?= e($appName) ?>" required>
         </div>
+        <div class="field">
+            <label>عنوان الموقع (اختياري)</label>
+            <input type="text" name="app_url" value="<?= e($appUrl) ?>" placeholder="https://example.com/system">
+            <p class="hint">يُستخدم فقط لبناء روابط صحيحة داخل الإشعارات المُرسلة من مهام الجدولة الدورية (cron.php) مثل تذكير الاجتماعات، حيث لا يوجد طلب متصفح حي لاستنتاج العنوان منه. اتركه فارغاً إن كنت لا تستخدم Cron.</p>
+        </div>
         <div class="form-actions"><button class="btn" type="submit">حفظ</button></div>
     </form>
 <?php else: ?>

@@ -2,17 +2,31 @@
 use Modules\Meetings\Models\Meeting;
 
 $typeLabels = Meeting::typeLabels();
+$recurrenceLabels = Meeting::recurrenceLabels();
 $beforeNotes = array_filter($notes, fn ($n) => $n['phase'] === 'before');
 $afterNotes = array_filter($notes, fn ($n) => $n['phase'] === 'after');
+$isRecurring = ($meeting['recurrence_rule'] ?? 'none') !== 'none';
 ?>
 <div class="page-head">
     <div>
         <h1><?= e($meeting['title']) ?></h1>
-        <p><?= e($typeLabels[$meeting['type']] ?? $meeting['type']) ?> · <?= status_badge($meeting['status']) ?> · <?= format_date($meeting['starts_at'], 'Y-m-d H:i') ?></p>
+        <p>
+            <?= e($typeLabels[$meeting['type']] ?? $meeting['type']) ?> · <?= status_badge($meeting['status']) ?> · <?= format_date($meeting['starts_at'], 'Y-m-d H:i') ?>
+            <?php if ($isRecurring): ?>
+                · 🔁 يتكرر <?= e($recurrenceLabels[$meeting['recurrence_rule']]) ?> حتى <?= e($meeting['recurrence_end_date']) ?>
+            <?php endif; ?>
+        </p>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <a class="btn btn-outline" href="<?= route('/meetings/' . $meeting['id'] . '/print') ?>" target="_blank">🖨️ طباعة / PDF</a>
         <?php if ($canEdit): ?>
             <a class="btn btn-outline" href="<?= route('/meetings/' . $meeting['id'] . '/edit') ?>">تعديل</a>
+        <?php endif; ?>
+        <?php if ($canEdit && !empty($meeting['recurrence_group_id'])): ?>
+            <form method="post" action="<?= route('/meetings/' . $meeting['id'] . '/stop-recurrence') ?>" data-confirm="سيتم حذف كل المواعيد القادمة من هذه السلسلة المتكررة (عدا هذا الموعد). متابعة؟">
+                <?= csrf_field() ?>
+                <button class="btn btn-outline" type="submit">⏹️ إيقاف التكرار</button>
+            </form>
         <?php endif; ?>
         <?php if ($canDelete): ?>
             <form method="post" action="<?= route('/meetings/' . $meeting['id']) ?>" data-confirm="سيتم حذف الاجتماع نهائياً. متابعة؟">

@@ -331,6 +331,28 @@ class ModuleManager
     }
 
     /**
+     * تُستدعى من CronRunner (نقطة الدخول: cron.php بجذر المشروع) لكل الإضافات المفعّلة
+     * التي تملك modules/{key}/cron.php - مخصصة لمهام دورية كتذكير الاجتماعات القريبة.
+     * كل إضافة مسؤولة عن منع تكرار نفس التذكير (عمود "أُرسل بتاريخ" في جدولها الخاص).
+     */
+    public static function runCron(): void
+    {
+        foreach (self::installedRows() as $key => $row) {
+            if ($row['status'] !== 'active') {
+                continue;
+            }
+            $file = self::modulesPath() . '/' . $key . '/cron.php';
+            if (!is_file($file)) {
+                continue;
+            }
+            $provider = require $file;
+            if (is_callable($provider)) {
+                $provider();
+            }
+        }
+    }
+
+    /**
      * أحداث التقويم الموحّد من كل إضافة مفعّلة تملك modules/{key}/calendar.php - ميزة
      * أساسية بالنواة (لا علاقة لها بأي إضافة معيّنة)، لكن الإضافات هي مصدر الأحداث.
      * كل إضافة مسؤولة عن فلترة ما يراه المستخدم الحالي داخل مزوّدها الخاص، وعن كفاءة

@@ -26,6 +26,7 @@ class SettingController
             'pageTitle' => 'الإعدادات',
             'company' => $company,
             'appName' => app_name(),
+            'appUrl' => app_url(),
         ]);
     }
 
@@ -43,6 +44,10 @@ class SettingController
                 Setting::set('app_name', $appName);
                 ActivityLog::log('settings.update', 'setting', 'app_name', 'تحديث اسم النظام');
             }
+
+            $appUrl = rtrim(trim((string) Request::input('app_url', '')), '/');
+            Setting::set('app_url', $appUrl);
+            ActivityLog::log('settings.update', 'setting', 'app_url', 'تحديث عنوان الموقع');
         } else {
             $companyId = Auth::companyId();
             $name = trim((string) Request::input('company_name', ''));
