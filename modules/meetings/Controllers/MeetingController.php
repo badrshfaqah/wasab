@@ -15,7 +15,7 @@ use Modules\Meetings\Models\MeetingNote;
 
 class MeetingController
 {
-    private const TYPES = ['internal', 'external'];
+    private const TYPES = ['in_person', 'online'];
     private const STATUSES = ['scheduled', 'completed', 'cancelled'];
 
     public function index(): void
@@ -184,6 +184,37 @@ class MeetingController
         }
 
         flash_set('success', 'تم تسجيل ردك.');
+        redirect('/meetings/' . $meeting['id']);
+    }
+
+    /** يسمح لمنشئ الاجتماع أو مديره بتأكيد/رفض الحضور نيابةً عن مدعو (خصوصاً الخارجيين الذين لا يملكون حساباً). */
+    public function respondFor(array $params): void
+    {
+        $companyId = $this->requireCompanyContext();
+        $meeting = $this->findVisible((int) $params['id'], $companyId);
+        if (!$this->canEditMeeting($meeting)) {
+            $this->forbidden();
+            return;
+        }
+        $this->verifyCsrf('/meetings/' . $meeting['id']);
+
+        $attendee = MeetingAttendee::find((int) $params['attendeeId']);
+        if (!$attendee || (int) $attendee['meeting_id'] !== $meeting['id']) {
+            flash_set('error', 'المدعو غير موجود.');
+            redirect('/meetings/' . $meeting['id']);
+        }
+
+        $response = Request::input('response');
+        if (!in_array($response, ['accepted', 'declined'], true)) {
+            flash_set('error', 'استجابة غير صحيحة.');
+            redirect('/meetings/' . $meeting['id']);
+        }
+
+        MeetingAttendee::respond($attendee['id'], $response);
+        $name = $attendee['external_name'] ?? ('مستخدم #' . $attendee['user_id']);
+        ActivityLog::log('meetings.respond_for', 'meeting', $meeting['id'], "تسجيل رد نيابة عن {$name}: " . ($response === 'accepted' ? 'قبول' : 'اعتذار'));
+
+        flash_set('success', 'تم تسجيل الرد نيابة عن المدعو.');
         redirect('/meetings/' . $meeting['id']);
     }
 
@@ -404,7 +435,7 @@ class MeetingController
     private function validated(): ?array
     {
         $title = trim((string) Request::input('title', ''));
-        $type = Request::input('type', 'internal');
+        $type = Request::input('type', 'in_person');
         $location = trim((string) Request::input('location', ''));
         $startsAt = Request::input('starts_at');
         $endsAt = Request::input('ends_at') ?: null;
@@ -415,7 +446,7 @@ class MeetingController
             return null;
         }
         if (!in_array($type, self::TYPES, true)) {
-            $type = 'internal';
+            $type = 'in_person';
         }
         if (!$startsAt) {
             flash_set('error', 'يرجى تحديد موعد بداية الاجتماع.');

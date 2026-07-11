@@ -17,7 +17,7 @@ class Meeting
 
     public static function typeLabels(): array
     {
-        return ['internal' => 'داخلي', 'external' => 'خارجي'];
+        return ['in_person' => 'حضوري', 'online' => 'اون لاين'];
     }
 
     public static function find(int $id): ?array

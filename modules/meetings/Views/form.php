@@ -31,17 +31,35 @@ $toLocalDatetime = function (?string $value) {
         <div class="grid-2">
             <div class="field">
                 <label>النوع</label>
-                <select name="type">
+                <select name="type" id="meeting-type">
                     <?php foreach ($typeLabels as $key => $label): ?>
-                        <option value="<?= $key ?>" <?= ($meeting['type'] ?? 'internal') === $key ? 'selected' : '' ?>><?= e($label) ?></option>
+                        <option value="<?= $key ?>" <?= ($meeting['type'] ?? 'in_person') === $key ? 'selected' : '' ?>><?= e($label) ?></option>
                     <?php endforeach; ?>
                 </select>
             </div>
             <div class="field">
-                <label>المكان (قاعة، أو رابط اجتماع افتراضي)</label>
-                <input type="text" name="location" value="<?= e($meeting['location'] ?? '') ?>">
+                <label id="meeting-location-label">المكان</label>
+                <input type="text" name="location" id="meeting-location-input" value="<?= e($meeting['location'] ?? '') ?>">
             </div>
         </div>
+        <script>
+        (function () {
+            var typeSelect = document.getElementById('meeting-type');
+            var label = document.getElementById('meeting-location-label');
+            var input = document.getElementById('meeting-location-input');
+            function sync() {
+                if (typeSelect.value === 'online') {
+                    label.textContent = 'رابط الاجتماع (Zoom أو Google Meet)';
+                    input.placeholder = 'https://zoom.us/j/... أو https://meet.google.com/...';
+                } else {
+                    label.textContent = 'المكان';
+                    input.placeholder = '';
+                }
+            }
+            typeSelect.addEventListener('change', sync);
+            sync();
+        })();
+        </script>
         <div class="grid-2">
             <div class="field">
                 <label>بداية الاجتماع</label>

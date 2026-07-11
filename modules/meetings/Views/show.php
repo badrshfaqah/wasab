@@ -56,7 +56,16 @@ $afterNotes = array_filter($notes, fn ($n) => $n['phase'] === 'after');
     <div class="card">
         <div class="card-title"><span>تفاصيل الاجتماع</span></div>
         <table>
-            <tr><td class="hint">المكان</td><td><?= e($meeting['location'] ?: '—') ?></td></tr>
+            <tr>
+                <td class="hint"><?= $meeting['type'] === 'online' ? 'رابط الاجتماع' : 'المكان' ?></td>
+                <td>
+                    <?php if ($meeting['location'] && $meeting['type'] === 'online'): ?>
+                        <a href="<?= e($meeting['location']) ?>" target="_blank" rel="noopener">الانضمام للاجتماع (Zoom / Google Meet)</a>
+                    <?php else: ?>
+                        <?= e($meeting['location'] ?: '—') ?>
+                    <?php endif; ?>
+                </td>
+            </tr>
             <tr><td class="hint">البداية</td><td><?= format_date($meeting['starts_at'], 'Y-m-d H:i') ?></td></tr>
             <tr><td class="hint">النهاية</td><td><?= $meeting['ends_at'] ? format_date($meeting['ends_at'], 'Y-m-d H:i') : '—' ?></td></tr>
             <tr><td class="hint">المنشئ</td><td><?= e($meeting['creator_name'] ?? '-') ?></td></tr>
@@ -105,8 +114,29 @@ $afterNotes = array_filter($notes, fn ($n) => $n['phase'] === 'after');
             <div class="card-title"><span>الحاضرون (<?= count($attendees) ?>)</span></div>
             <?php foreach ($attendees as $a): ?>
                 <div class="doc-log">
-                    <div><?= e($a['user_name'] ?? $a['external_name']) ?><?= !$a['user_id'] ? ' <span class="hint">(خارجي)</span>' : '' ?></div>
-                    <div class="doc-log-meta"><?= status_badge($a['response']) ?></div>
+                    <div>
+                        <?= e($a['user_name'] ?? $a['external_name']) ?><?= !$a['user_id'] ? ' <span class="hint">(خارجي)</span>' : '' ?>
+                        <?php if (!$a['user_id'] && $a['token'] && $canEdit): ?>
+                            <div class="hint" style="margin-top:4px;word-break:break-all;">
+                                رابط تأكيد الحضور: <a href="<?= route('/meetings/rsvp/' . $a['token']) ?>" target="_blank" rel="noopener"><?= route('/meetings/rsvp/' . $a['token']) ?></a>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                    <div class="doc-log-meta" style="display:flex;align-items:center;gap:8px;">
+                        <?= status_badge($a['response']) ?>
+                        <?php if ($a['response'] === 'pending' && $canEdit): ?>
+                            <form method="post" action="<?= route('/meetings/' . $meeting['id'] . '/attendees/' . $a['id'] . '/respond') ?>" style="display:inline;">
+                                <?= csrf_field() ?>
+                                <input type="hidden" name="response" value="accepted">
+                                <button class="btn btn-sm" type="submit" title="تأكيد نيابة عنه" style="background:var(--success);">✓</button>
+                            </form>
+                            <form method="post" action="<?= route('/meetings/' . $meeting['id'] . '/attendees/' . $a['id'] . '/respond') ?>" style="display:inline;">
+                                <?= csrf_field() ?>
+                                <input type="hidden" name="response" value="declined">
+                                <button class="btn btn-outline btn-sm" type="submit" title="رفض نيابة عنه">✗</button>
+                            </form>
+                        <?php endif; ?>
+                    </div>
                 </div>
             <?php endforeach; ?>
             <?php if (!$attendees): ?><p class="hint">لا يوجد حاضرون مدعوون.</p><?php endif; ?>

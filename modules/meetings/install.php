@@ -10,7 +10,7 @@ return function (PDO $pdo): void {
             `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
             `company_id` INT UNSIGNED NOT NULL,
             `title` VARCHAR(255) NOT NULL,
-            `type` ENUM('internal','external') NOT NULL DEFAULT 'internal',
+            `type` ENUM('in_person','online') NOT NULL DEFAULT 'in_person',
             `location` VARCHAR(255) NULL,
             `starts_at` DATETIME NOT NULL,
             `ends_at` DATETIME NULL,
@@ -33,11 +33,13 @@ return function (PDO $pdo): void {
             `user_id` INT UNSIGNED NULL COMMENT 'حاضر داخلي (مستخدم بالنظام) - فارغ لحاضر خارجي',
             `external_name` VARCHAR(150) NULL COMMENT 'اسم الحاضر الخارجي - فارغ لحاضر داخلي',
             `external_contact` VARCHAR(150) NULL,
+            `token` VARCHAR(48) NULL COMMENT 'رابط تأكيد حضور بلا تسجيل دخول - يُولَّد للمدعوين الخارجيين فقط',
             `response` ENUM('pending','accepted','declined') NOT NULL DEFAULT 'pending',
             `responded_at` DATETIME NULL,
             `created_at` DATETIME NOT NULL,
             KEY `meetings_attendees_meeting_index` (`meeting_id`),
             KEY `meetings_attendees_user_index` (`user_id`),
+            UNIQUE KEY `meetings_attendees_token_unique` (`token`),
             CONSTRAINT `meetings_attendees_meeting_fk` FOREIGN KEY (`meeting_id`) REFERENCES `meetings_meetings`(`id`) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     ");

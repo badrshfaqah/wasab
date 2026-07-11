@@ -31,6 +31,12 @@ class MeetingAttendee
         );
     }
 
+    /** المدعو الخارجي عبر رمز رابط تأكيد الحضور (بلا تسجيل دخول). */
+    public static function findByToken(string $token): ?array
+    {
+        return Database::first('SELECT * FROM meetings_attendees WHERE token = :t', ['t' => $token]);
+    }
+
     public static function addInternal(int $meetingId, int $userId): void
     {
         Database::insert('meetings_attendees', [
@@ -47,6 +53,7 @@ class MeetingAttendee
             'meeting_id' => $meetingId,
             'external_name' => $name,
             'external_contact' => $contact,
+            'token' => bin2hex(random_bytes(24)),
             'response' => 'pending',
             'created_at' => date('Y-m-d H:i:s'),
         ]);
