@@ -17,8 +17,9 @@ $bgUrl = $template && $template['background_image']
 <meta charset="utf-8">
 <title><?= e($document['title']) ?><?= $document['number'] ? ' - ' . e($document['number']) : '' ?></title>
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap');
 *{box-sizing:border-box;}
-body{margin:0;background:#e5e7eb;font-family:'Segoe UI',Tahoma,Arial,sans-serif;color:#1f2937;}
+body{margin:0;background:#e5e7eb;font-family:'Cairo','Segoe UI',Tahoma,Arial,sans-serif;color:#1f2937;}
 .toolbar{position:sticky;top:0;background:#111827;color:#fff;padding:10px 20px;display:flex;justify-content:space-between;align-items:center;z-index:10;}
 .toolbar button, .toolbar a{background:#2563eb;color:#fff;border:0;border-radius:6px;padding:8px 16px;font-size:14px;cursor:pointer;text-decoration:none;}
 .page-wrap{display:flex;justify-content:center;padding:24px 12px;}

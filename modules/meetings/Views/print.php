@@ -12,7 +12,8 @@ $afterNotes = array_filter($notes, fn ($n) => $n['phase'] === 'after');
 <meta charset="utf-8">
 <title>محضر اجتماع - <?= e($meeting['title']) ?></title>
 <style>
-    body { font-family: sans-serif; padding: 24px; color: #111; max-width: 800px; margin: 0 auto; }
+    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap');
+    body { font-family: 'Cairo', sans-serif; padding: 24px; color: #111; max-width: 800px; margin: 0 auto; }
     h1 { margin-bottom: 4px; }
     .meta { color: #555; margin-bottom: 20px; }
     table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }

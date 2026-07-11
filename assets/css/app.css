@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap');
 :root{
   --primary:#2563eb;
   --primary-light:#eff6ff;
@@ -20,7 +21,7 @@
 *{box-sizing:border-box;}
 html,body{margin:0;padding:0;}
 body{
-  font-family:'Segoe UI',Tahoma,Arial,sans-serif;
+  font-family:'Cairo','Segoe UI',Tahoma,Arial,sans-serif;
   background:var(--bg);
   color:var(--text);
   direction:rtl;

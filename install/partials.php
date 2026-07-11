@@ -10,9 +10,10 @@ function install_header(string $title, int $activeStep): void
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?= htmlspecialchars($title, ENT_QUOTES, 'UTF-8') ?> - معالج التثبيت</title>
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap');
 :root{--primary:#2563eb;--bg:#f4f6f9;--card:#ffffff;--text:#1f2937;--muted:#6b7280;--border:#e5e7eb;--danger:#dc2626;--success:#16a34a;}
 *{box-sizing:border-box;}
-body{margin:0;font-family:'Segoe UI',Tahoma,Arial,sans-serif;background:var(--bg);color:var(--text);direction:rtl;}
+body{margin:0;font-family:'Cairo','Segoe UI',Tahoma,Arial,sans-serif;background:var(--bg);color:var(--text);direction:rtl;}
 .wrap{max-width:640px;margin:40px auto;padding:0 16px;}
 .logo{text-align:center;font-size:22px;font-weight:700;color:var(--primary);margin-bottom:18px;}
 .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:28px;box-shadow:0 1px 3px rgba(0,0,0,.05);}
