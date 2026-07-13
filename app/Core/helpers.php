@@ -150,9 +150,22 @@ function render_pagination(int $total, int $perPage, int $page, string $baseUrl)
     return $html . '</div>';
 }
 
+/** خريطة تسميات الحالات نفسها المستخدمة داخل status_badge()، لعرض نص الحالة فقط بلا HTML (مثلاً بنتائج البحث الموحّد). */
+function status_label(string $status): string
+{
+    return status_badge_map()[$status][0] ?? $status;
+}
+
 function status_badge(string $status): string
 {
-    $map = [
+    $map = status_badge_map();
+    [$label, $class] = $map[$status] ?? [$status, 'muted'];
+    return '<span class="badge badge-' . $class . '">' . e($label) . '</span>';
+}
+
+function status_badge_map(): array
+{
+    return [
         'active' => ['نشط', 'success'],
         'inactive' => ['غير نشط', 'muted'],
         'on_leave' => ['إجازة', 'warning'],
@@ -177,10 +190,7 @@ function status_badge(string $status): string
         'closed' => ['مغلق', 'muted'],
         'scheduled' => ['مجدول', 'info'],
         'completed' => ['منتهٍ', 'success'],
-        'cancelled' => ['ملغى', 'danger'],
         'accepted' => ['مقبول', 'success'],
         'declined' => ['معتذر', 'danger'],
     ];
-    [$label, $class] = $map[$status] ?? [$status, 'muted'];
-    return '<span class="badge badge-' . $class . '">' . e($label) . '</span>';
 }

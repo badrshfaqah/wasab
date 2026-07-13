@@ -10,7 +10,9 @@ use App\Controllers\DashboardController;
 use App\Controllers\ModuleController;
 use App\Controllers\NotificationController;
 use App\Controllers\ProfileController;
+use App\Controllers\ReportController;
 use App\Controllers\RoleController;
+use App\Controllers\SearchController;
 use App\Controllers\SettingController;
 use App\Controllers\UserController;
 use App\Controllers\WasabController;
@@ -32,6 +34,12 @@ $router->get('/wasab', [WasabController::class, 'index'], []);
 $router->get('/calendar', [CalendarController::class, 'index'], [[Middleware::class, 'auth']]);
 $router->post('/calendar/events', [CalendarController::class, 'storeEvent'], [[Middleware::class, 'auth']]);
 $router->post('/calendar/events/{id}/delete', [CalendarController::class, 'destroyEvent'], [[Middleware::class, 'auth']]);
+
+// ---------- البحث الموحّد (يجمع نتائج كل الإضافات المفعّلة) ----------
+$router->get('/search', [SearchController::class, 'index'], [[Middleware::class, 'auth']]);
+
+// ---------- التقارير (خاصة بمدير الشركة) ----------
+$router->get('/reports', [ReportController::class, 'index'], [[Middleware::class, 'auth']]);
 
 // ---------- الملف الشخصي ----------
 $router->get('/profile', [ProfileController::class, 'show'], [[Middleware::class, 'auth']]);

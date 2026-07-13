@@ -437,4 +437,69 @@ class ModuleManager
         }
         return $events;
     }
+
+    /**
+     * نتائج البحث الموحّد من كل إضافة مفعّلة تملك modules/{key}/search.php - ميزة نواة
+     * (بحث بشريط واحد بأعلى الصفحة يغطي كل الإضافات دفعة وحدة)، لكن كل إضافة مسؤولة عن
+     * فلترة النتائج حسب صلاحية المستخدم الحالي ونطاق شركته داخل مزوّدها الخاص.
+     * كل نتيجة: ['title'=>string, 'subtitle'=>?string, 'url'=>string, 'icon'=>?string].
+     */
+    public static function collectSearchResults(array $user, string $query): array
+    {
+        $results = [];
+        foreach (self::installedRows() as $key => $row) {
+            if ($row['status'] !== 'active') {
+                continue;
+            }
+            $file = self::modulesPath() . '/' . $key . '/search.php';
+            if (!is_file($file)) {
+                continue;
+            }
+            $provider = require $file;
+            if (is_callable($provider)) {
+                $result = $provider($user, $query);
+                if (is_array($result)) {
+                    foreach ($result as $item) {
+                        $item['module'] = $key;
+                        $item['module_name'] = self::discover()[$key]['name'] ?? $key;
+                        $results[] = $item;
+                    }
+                }
+            }
+        }
+        return $results;
+    }
+
+    /**
+     * أرقام مجمّعة لصفحة "التقارير" (خاصة بمدير الشركة) من كل إضافة مفعّلة تملك
+     * modules/{key}/report.php. بخلاف widgets/dashboard.php (مفلترة حسب صلاحية المستخدم
+     * الحالي)، هذا المزوّد يُستدعى فقط لمن يدير الشركة فعلياً فيعيد أرقاماً على مستوى
+     * الشركة كاملة بلا حاجة لفلترة صلاحيات إضافية.
+     * كل عنصر: ['label'=>string, 'value'=>int|string, 'icon'=>?string, 'color'=>?string, 'url'=>?string].
+     */
+    public static function collectReportStats(array $user): array
+    {
+        $stats = [];
+        foreach (self::installedRows() as $key => $row) {
+            if ($row['status'] !== 'active') {
+                continue;
+            }
+            $file = self::modulesPath() . '/' . $key . '/report.php';
+            if (!is_file($file)) {
+                continue;
+            }
+            $provider = require $file;
+            if (is_callable($provider)) {
+                $result = $provider($user);
+                if (is_array($result)) {
+                    foreach ($result as $item) {
+                        $item['module'] = $key;
+                        $item['module_name'] = self::discover()[$key]['name'] ?? $key;
+                        $stats[] = $item;
+                    }
+                }
+            }
+        }
+        return $stats;
+    }
 }

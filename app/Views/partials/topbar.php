@@ -7,6 +7,10 @@ use App\Core\Csrf;
         <div class="page-title"><?= e($pageTitle ?? '') ?></div>
     </div>
     <div class="topbar-actions">
+        <form method="get" action="<?= route('/search') ?>" class="topbar-search">
+            <input type="text" name="q" placeholder="بحث..." value="<?= e(\App\Core\Request::query('q', '')) ?>">
+        </form>
+        <a class="icon-btn topbar-search-mobile" href="<?= route('/search') ?>" aria-label="بحث">🔎</a>
         <div class="user-menu">
             <button class="icon-btn" type="button" data-dropdown-toggle="notif-dropdown">
                 🔔<?php if ($unread > 0): ?><span class="dot"><?= $unread > 9 ? '9+' : $unread ?></span><?php endif; ?>

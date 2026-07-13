@@ -131,8 +131,10 @@ $isRecurring = ($meeting['recurrence_rule'] ?? 'none') !== 'none';
                     <div>
                         <?= e($a['user_name'] ?? $a['external_name']) ?><?= !$a['user_id'] ? ' <span class="hint">(خارجي)</span>' : '' ?>
                         <?php if (!$a['user_id'] && $a['token'] && $canEdit): ?>
-                            <div class="hint" style="margin-top:4px;word-break:break-all;">
-                                رابط تأكيد الحضور: <a href="<?= route('/meetings/rsvp/' . $a['token']) ?>" target="_blank" rel="noopener"><?= route('/meetings/rsvp/' . $a['token']) ?></a>
+                            <?php $rsvpUrl = route('/meetings/rsvp/' . $a['token']); ?>
+                            <div class="hint" style="margin-top:4px;word-break:break-all;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                                <span>رابط تأكيد الحضور: <a href="<?= $rsvpUrl ?>" target="_blank" rel="noopener"><?= $rsvpUrl ?></a></span>
+                                <button type="button" class="btn btn-outline btn-sm" data-copy="<?= e($rsvpUrl) ?>">نسخ الرابط</button>
                             </div>
                         <?php endif; ?>
                     </div>

@@ -9,6 +9,7 @@ $manageCore = $isSystemAdmin || $isCompanyAdmin;
 $coreItems = [
     ['label' => 'الرئيسية', 'icon' => '🏠', 'url' => route('/'), 'show' => true],
     ['label' => 'التقويم', 'icon' => '📅', 'url' => route('/calendar'), 'show' => true],
+    ['label' => 'التقارير', 'icon' => '📊', 'url' => route('/reports'), 'show' => $isCompanyAdmin],
 ];
 
 $moduleItems = $user ? ModuleManager::collectNavItems($user) : [];
