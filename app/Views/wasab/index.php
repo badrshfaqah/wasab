@@ -3,7 +3,17 @@ $coreFeatures = [
     ['name' => 'الشركات والمستخدمون', 'description' => 'دعم عدة شركات ضمن نفس النظام، كل شركة بمستخدميها وشعارها وألوانها الخاصة.'],
     ['name' => 'الأدوار والصلاحيات', 'description' => 'صلاحيات دقيقة لكل ميزة، وأدوار مخصصة لكل شركة يحدد بها مدير الشركة من يرى ماذا.'],
     ['name' => 'التقويم الموحّد', 'description' => 'يجمع كل المواعيد والمهام والملفات المنتهية من كل الإضافات المفعّلة في تقويم واحد، مع أحداث خاصة بالشركة وتذكير تلقائي قبلها.'],
+    ['name' => 'البحث الموحّد', 'description' => 'شريط بحث واحد بأعلى كل صفحة يجمع النتائج من كل الإضافات المفعّلة دفعة واحدة، كل نتيجة حسب صلاحية المستخدم.'],
+    ['name' => 'التقارير', 'description' => 'صفحة أرقام مجمّعة لمدير الشركة من كل إضافة مفعّلة، لمتابعة أداء الشركة من مكان واحد.'],
     ['name' => 'الإشعارات وسجل العمليات', 'description' => 'إشعارات فورية داخل النظام لكل حدث يخص المستخدم، وسجل كامل قابل للمراجعة لكل عملية تمت.'],
+];
+
+$screenshots = [
+    ['file' => 'dashboard.png', 'label' => 'الرئيسية'],
+    ['file' => 'tasks-board.png', 'label' => 'لوحة المهام (كانبان)'],
+    ['file' => 'employees.png', 'label' => 'الملف الوظيفي'],
+    ['file' => 'reports.png', 'label' => 'التقارير'],
+    ['file' => 'search.png', 'label' => 'البحث الموحّد'],
 ];
 ?>
 <!doctype html>
@@ -25,16 +35,31 @@ body{background:var(--bg);}
 .wasab-feature{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;}
 .wasab-feature h3{margin:0 0 6px;font-size:15px;}
 .wasab-feature p{margin:0;font-size:13px;color:var(--muted);line-height:1.8;}
+.wasab-logo{max-width:180px;margin:0 auto 8px;display:block;}
+.wasab-shots{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;}
+.wasab-shot{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+.wasab-shot img{width:100%;display:block;border-bottom:1px solid var(--border);}
+.wasab-shot span{display:block;padding:10px 14px;font-size:13px;font-weight:600;text-align:center;}
 </style>
 </head>
 <body>
 
 <div class="wasab-hero">
-    <h1>👋 وصاب</h1>
+    <img class="wasab-logo" src="<?= asset('img/wasab-logo.png') ?>" alt="شعار وصاب">
     <p>نظام إداري متكامل وخفيف الوزن لإدارة أعمال الشركات الصغيرة والمتوسطة، يعمل على أي استضافة PHP/MySQL عادية بدون تعقيد تقني، بواجهة عربية كاملة وهيكلة إضافات مرنة تنمو مع احتياج شركتك.</p>
 </div>
 
 <div class="wasab-wrap">
+    <h2 class="wasab-section-title">لمحة عن النظام</h2>
+    <div class="wasab-shots">
+        <?php foreach ($screenshots as $s): ?>
+            <div class="wasab-shot">
+                <img src="<?= asset('img/screenshots/' . $s['file']) ?>" alt="<?= e($s['label']) ?>" loading="lazy">
+                <span><?= e($s['label']) ?></span>
+            </div>
+        <?php endforeach; ?>
+    </div>
+
     <h2 class="wasab-section-title">ميزات النواة</h2>
     <div class="wasab-grid">
         <?php foreach ($coreFeatures as $f): ?>
