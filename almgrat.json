@@ -1,0 +1,18 @@
+{
+    "name": "وصاب",
+    "name_en": "Wasab",
+    "slug": "wasab",
+    "version": "1.3.1",
+    "exclude_from_package": [
+        ".claude"
+    ],
+    "preserve": [
+        "config.php",
+        "storage/uploads",
+        "storage/logs",
+        "storage/install.lock"
+    ],
+    "update": {
+        "entry_url": "/extensions"
+    }
+}
