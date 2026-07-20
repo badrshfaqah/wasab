@@ -35,6 +35,8 @@ $tasksQuery = function (string $scope, array $filters, array $overrides = []): s
 </div>
 
 <div class="card">
+    <details class="filters-collapse" open data-keep-open="<?= $filters ? 1 : 0 ?>">
+    <summary>🔍 البحث والتصفية (عنوان، مسؤول، أولوية، حالة)<?= $filters ? ' <span class="badge badge-info">مفعّلة</span>' : '' ?></summary>
     <form method="get" action="<?= route('/tasks') ?>" class="filters-toolbar" style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin-bottom:16px;">
         <input type="hidden" name="scope" value="<?= e($scope) ?>">
         <div class="field" style="margin:0;flex:1;min-width:180px;">
@@ -73,6 +75,7 @@ $tasksQuery = function (string $scope, array $filters, array $overrides = []): s
             <a class="btn btn-outline btn-sm" href="<?= $tasksQuery($scope, []) ?>">مسح الفلاتر</a>
         <?php endif; ?>
     </form>
+    </details>
 
     <div class="table-wrap">
     <table class="table-cards">

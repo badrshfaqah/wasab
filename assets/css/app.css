@@ -363,6 +363,21 @@ tr:hover td{background:#fafbfc;}
 
 /* ===== تحسينات الجوال (نسخة الجوال / PWA) ===== */
 
+/* فلاتر قابلة للطي: على الجوال تبدأ مطوية (النتائج تظهر مباشرة) وتُفتح بنقرة؛
+   على الحاسوب تُفتح تلقائياً عبر app.js ويختفي زر الطي. */
+.filters-collapse{margin-bottom:16px;}
+.filters-collapse > summary{
+  cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;
+  font-size:13px;font-weight:700;color:var(--muted);
+  padding:9px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);
+}
+.filters-collapse > summary::-webkit-details-marker{display:none;}
+.filters-collapse[open] > summary{margin-bottom:12px;color:var(--primary);border-color:var(--primary);background:var(--primary-light);}
+.filters-collapse .filters-toolbar{margin-bottom:0 !important;}
+@media (min-width: 601px){
+  .filters-collapse > summary{display:none;}
+}
+
 /* بانر تفعيل تنبيهات الجوال بنقرة واحدة */
 .push-banner{
   display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;

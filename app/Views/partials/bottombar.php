@@ -7,10 +7,13 @@
 $bnCurrent = rtrim($currentPath, '/') ?: '/';
 $bnItems = [
     ['label' => 'الرئيسية', 'icon' => '🏠', 'url' => route('/'), 'path' => '/'],
-    ['label' => 'التقويم', 'icon' => '📅', 'url' => route('/calendar'), 'path' => '/calendar'],
-    ['label' => 'بحث', 'icon' => '🔍', 'url' => route('/search'), 'path' => '/search'],
-    ['label' => 'الإشعارات', 'icon' => '🔔', 'url' => route('/notifications'), 'path' => '/notifications', 'badge' => $unread ?? 0],
 ];
+if (module_active('tasks') && can('tasks.view')) {
+    $bnItems[] = ['label' => 'المهام', 'icon' => '📋', 'url' => route('/tasks'), 'path' => '/tasks'];
+}
+$bnItems[] = ['label' => 'التقويم', 'icon' => '📅', 'url' => route('/calendar'), 'path' => '/calendar'];
+$bnItems[] = ['label' => 'بحث', 'icon' => '🔍', 'url' => route('/search'), 'path' => '/search'];
+$bnItems[] = ['label' => 'الإشعارات', 'icon' => '🔔', 'url' => route('/notifications'), 'path' => '/notifications', 'badge' => $unread ?? 0];
 ?>
 <nav class="bottom-nav" aria-label="التنقل السريع">
     <?php foreach ($bnItems as $item): ?>

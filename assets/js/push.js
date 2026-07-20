@@ -17,7 +17,14 @@
 
   var supported = 'PushManager' in window && 'Notification' in window;
   var DISMISS_KEY = 'wasab_push_banner_dismissed_at';
+  var ENABLED_KEY = 'wasab_push_enabled';
   var DISMISS_DAYS = 14;
+
+  function hideBannerForGood() {
+    localStorage.setItem(ENABLED_KEY, '1');
+    var b = document.getElementById('push-banner');
+    if (b) b.hidden = true;
+  }
 
   function urlBase64ToUint8Array(base64String) {
     var padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -80,7 +87,7 @@
   // بانر التفعيل بنقرة واحدة
   // ------------------------------------------------------------------
   var banner = document.getElementById('push-banner');
-  if (banner && supported && Notification.permission === 'default') {
+  if (banner && supported && Notification.permission === 'default' && !localStorage.getItem(ENABLED_KEY)) {
     var dismissedAt = parseInt(localStorage.getItem(DISMISS_KEY) || '0', 10);
     var dismissValid = dismissedAt && (Date.now() - dismissedAt) < DISMISS_DAYS * 86400000;
 
@@ -107,9 +114,12 @@
             return;
           }
           enableFlow(registration).then(function (subscription) {
-            banner.hidden = true;
-            if (!subscription) {
+            if (subscription) {
+              // نجح التفعيل: البانر يختفي نهائياً على هذا الجهاز
+              hideBannerForGood();
+            } else {
               // رفض الإذن: لا نعيد الإلحاح فوراً
+              banner.hidden = true;
               localStorage.setItem(DISMISS_KEY, String(Date.now()));
             }
           }).catch(function () {
@@ -187,7 +197,10 @@
           return;
         }
 
-        enableFlow(registration).then(function () {
+        enableFlow(registration).then(function (subscription) {
+          if (subscription) {
+            hideBannerForGood();
+          }
           toggle.disabled = false;
           refreshButton();
         }).catch(function () {
