@@ -13,11 +13,9 @@ foreach ($widgets as $w) {
 }
 $name = current_user()['name'] ?? '';
 ?>
-<div class="page-head">
-    <div>
-        <h1>مرحباً، <?= e($name) ?> 👋</h1>
-        <p>هذه لوحتك الرئيسية، تعرض ما يخصك حسب صلاحياتك والإضافات المفعلة.</p>
-    </div>
+<div class="dash-greeting">
+    <h1>مرحباً، <?= e($name) ?> 👋</h1>
+    <p>هذه لوحتك الرئيسية، تعرض ما يخصك حسب صلاحياتك والإضافات المفعلة.</p>
 </div>
 
 <?php if ($stats): ?>

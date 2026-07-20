@@ -9,7 +9,7 @@ $typeLabels = ['system_admin' => 'مدير نظام', 'company_admin' => 'مدي
 
 <div class="card">
     <div class="table-wrap">
-    <table>
+    <table class="table-cards">
         <thead><tr><th>الاسم</th><th>البريد الإلكتروني</th><th>النوع</th><th>الشركة</th><th>الحالة</th><th></th></tr></thead>
         <tbody>
         <?php if (!$users): ?>

@@ -61,6 +61,7 @@ if ($impersonating) {
             <?php endif; ?>
             <?= $content ?>
         </div>
+        <?php if ($user) include __DIR__ . '/../partials/bottombar.php'; ?>
         <footer class="app-footer">
             <a href="<?= route('/wasab') ?>">إصدار <?= e(\App\Core\Wasab::currentVersion()) ?></a>
             <span>·</span>

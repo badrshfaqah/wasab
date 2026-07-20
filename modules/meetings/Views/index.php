@@ -39,7 +39,7 @@ $meetingsQuery = function (array $filters, array $overrides = []) {
     </form>
 
     <div class="table-wrap">
-    <table>
+    <table class="table-cards">
         <thead><tr><th>العنوان</th><th>النوع</th><th>الموعد</th><th>المكان</th><th>الحالة</th></tr></thead>
         <tbody>
         <?php if (!$meetings): ?>

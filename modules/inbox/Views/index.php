@@ -49,7 +49,7 @@ $inboxQuery = function (string $scope, array $filters, array $overrides = []): s
     </form>
 
     <div class="table-wrap">
-    <table>
+    <table class="table-cards">
         <thead><tr><th>المرسل</th><th>الرسالة</th><th>الموقع المصدر</th><th>وقت الاستلام</th><th>الحالة</th></tr></thead>
         <tbody>
         <?php if (!$messages): ?>

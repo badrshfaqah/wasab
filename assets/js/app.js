@@ -22,6 +22,12 @@ document.addEventListener('DOMContentLoaded', function () {
       setSidebar(!sidebar.classList.contains('open'));
     });
   }
+  // زر "القائمة" بالشريط السفلي للجوال يفتح نفس القائمة الجانبية
+  document.querySelectorAll('[data-sidebar-toggle]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      setSidebar(!sidebar.classList.contains('open'));
+    });
+  });
   if (backdrop) {
     backdrop.addEventListener('click', function () { setSidebar(false); });
   }

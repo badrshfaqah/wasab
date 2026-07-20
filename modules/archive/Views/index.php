@@ -105,7 +105,7 @@ $formatSize = function (int $bytes) {
         </div>
     <?php else: ?>
         <div class="table-wrap">
-        <table>
+        <table class="table-cards">
             <thead><tr><th></th><th>الاسم</th><th>التصنيف</th><th>الحجم</th><th>الحالة</th><th>رافع الملف</th><th>تاريخ الرفع</th></tr></thead>
             <tbody>
             <?php foreach ($files as $f): ?>

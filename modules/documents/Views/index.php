@@ -54,7 +54,7 @@ $docsQuery = function (array $filters, array $overrides = []): string {
     </form>
 
     <div class="table-wrap">
-    <table>
+    <table class="table-cards">
         <thead><tr><th>الرقم</th><th>العنوان</th><th>النوع</th><th>الحالة</th><?php if ($canManage): ?><th>المُنشئ</th><?php endif; ?><th>التاريخ</th></tr></thead>
         <tbody>
         <?php if (!$documents): ?>

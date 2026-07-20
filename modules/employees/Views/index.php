@@ -38,7 +38,7 @@ $empQuery = function (array $filters, array $overrides = []): string {
     </form>
 
     <div class="table-wrap">
-    <table>
+    <table class="table-cards">
         <thead><tr><th>الاسم</th><th>المسمى الوظيفي</th><th>القسم</th><th>تاريخ الالتحاق</th><th>الحالة</th></tr></thead>
         <tbody>
         <?php if (!$employees): ?>

@@ -75,7 +75,7 @@ $tasksQuery = function (string $scope, array $filters, array $overrides = []): s
     </form>
 
     <div class="table-wrap">
-    <table>
+    <table class="table-cards">
         <thead><tr><th>العنوان</th><th>المسؤول</th><th>الأولوية</th><th>الحالة</th><th>تاريخ الاستحقاق</th></tr></thead>
         <tbody>
         <?php if (!$tasks): ?>

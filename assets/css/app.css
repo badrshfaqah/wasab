@@ -353,6 +353,81 @@ tr:hover td{background:#fafbfc;}
 
 /* ===== تحسينات الجوال (نسخة الجوال / PWA) ===== */
 
+/* جداول تتحول لبطاقات على الجوال: أضف class="table-cards" لأي جدول قوائم
+   (رسائل، مهام...) فتصبح كل صف بطاقة عمودية مريحة بدل جدول معصور بتمرير أفقي. */
+@media (max-width: 700px){
+  table.table-cards{border-collapse:separate;}
+  table.table-cards thead{display:none;}
+  table.table-cards, table.table-cards tbody{display:block;width:100%;}
+  table.table-cards tr{
+    display:block;background:#fff;border:1px solid var(--border);
+    border-radius:12px;margin-bottom:10px;padding:10px 4px;
+    box-shadow:0 1px 4px rgba(0,0,0,.04);
+  }
+  table.table-cards tr:hover td{background:transparent;}
+  table.table-cards td{
+    display:block;width:100%;border:0;padding:3px 12px;
+    max-width:none !important;white-space:normal;
+  }
+  table.table-cards td:first-child{font-weight:700;padding-top:5px;}
+  table.table-cards td:empty{display:none;}
+}
+
+/* بطاقة الترحيب بالرئيسية: تدرج بهوية المجرات (أزرق الشركة ← بنفسجي) */
+.dash-greeting{
+  background:linear-gradient(135deg,var(--primary) 0%,#7c3aed 100%);
+  color:#fff;border-radius:16px;padding:20px 22px;margin-bottom:18px;
+  box-shadow:0 6px 20px rgba(37,99,235,.22);
+}
+.dash-greeting h1{margin:0 0 4px;font-size:20px;}
+.dash-greeting p{margin:0;font-size:13px;opacity:.88;}
+
+/* شريط التنقل السفلي - يظهر على الجوال فقط */
+.bottom-nav{display:none;}
+@media (max-width: 900px){
+  .bottom-nav{
+    position:fixed;bottom:0;right:0;left:0;z-index:60;
+    display:flex;align-items:stretch;
+    background:rgba(255,255,255,.94);
+    backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+    border-top:1px solid var(--border);
+    padding:7px 6px calc(7px + env(safe-area-inset-bottom, 0px));
+    box-shadow:0 -4px 20px rgba(0,0,0,.05);
+  }
+  .bottom-nav-item{
+    flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
+    padding:3px 0;font-size:10.5px;font-weight:600;color:var(--muted);
+    background:none;border:0;font-family:inherit;cursor:pointer;
+    position:relative;border-radius:10px;text-decoration:none;
+  }
+  .bottom-nav-item .bn-ic{
+    font-size:20px;line-height:1;
+    filter:grayscale(1);opacity:.65;
+    transition:filter .15s,opacity .15s,transform .15s;
+  }
+  .bottom-nav-item.active{color:var(--primary);font-weight:800;}
+  .bottom-nav-item.active .bn-ic{filter:none;opacity:1;transform:translateY(-2px) scale(1.08);}
+  .bn-badge{
+    position:absolute;top:-2px;right:calc(50% - 20px);
+    background:var(--danger);color:#fff;font-size:9.5px;font-weight:700;
+    min-width:16px;height:16px;border-radius:99px;
+    display:flex;align-items:center;justify-content:center;padding:0 4px;
+    border:2px solid #fff;
+  }
+
+  /* الشريط العلوي أصبح نظيفاً: كل أدوات التنقل انتقلت للشريط السفلي */
+  .topbar .menu-toggle{display:none;}
+  .topbar-search-mobile{display:none !important;}
+  .notif-menu{display:none;}
+
+  /* الفوتر يزاحم الشريط السفلي بلا فائدة على الجوال */
+  .app-footer{display:none;}
+
+  /* إفساح المجال للشريط السفلي + رفع ودجت الهاتف فوقه */
+  .content{padding-bottom:calc(96px + env(safe-area-inset-bottom, 0px)) !important;}
+  .phone-widget{bottom:calc(78px + env(safe-area-inset-bottom, 0px));}
+}
+
 /* خلفية معتمة خلف القائمة الجانبية المفتوحة على الجوال: توضح أن القائمة طبقة
    فوق المحتوى، والنقر عليها يغلقها (كما يتوقع مستخدم أي تطبيق جوال). */
 .sidebar-backdrop{
