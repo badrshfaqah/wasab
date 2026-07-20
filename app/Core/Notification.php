@@ -14,6 +14,10 @@ class Notification
             'is_read' => 0,
             'created_at' => date('Y-m-d H:i:s'),
         ]);
+
+        // نسخة دفع لجوال/متصفح المستخدم إن كان مفعّلاً التنبيهات - أفضل جهد،
+        // أي فشل يُسجَّل بصمت داخل WebPush ولا يؤثر على العملية الأصلية.
+        WebPush::sendToUser($userId, $title, $message, $url);
     }
 
     public static function unreadCount(int $userId): int

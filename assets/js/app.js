@@ -1,9 +1,36 @@
 document.addEventListener('DOMContentLoaded', function () {
   var menuToggle = document.querySelector('.menu-toggle');
   var sidebar = document.querySelector('.sidebar');
+  var backdrop = document.querySelector('.sidebar-backdrop');
+
+  function setSidebar(open) {
+    if (!sidebar) return;
+    sidebar.classList.toggle('open', open);
+    if (backdrop) {
+      if (open) {
+        backdrop.hidden = false;
+        requestAnimationFrame(function () { backdrop.classList.add('visible'); });
+      } else {
+        backdrop.classList.remove('visible');
+        setTimeout(function () { backdrop.hidden = true; }, 200);
+      }
+    }
+  }
+
   if (menuToggle && sidebar) {
     menuToggle.addEventListener('click', function () {
-      sidebar.classList.toggle('open');
+      setSidebar(!sidebar.classList.contains('open'));
+    });
+  }
+  if (backdrop) {
+    backdrop.addEventListener('click', function () { setSidebar(false); });
+  }
+  // إغلاق القائمة تلقائياً عند اختيار رابط منها على الجوال
+  if (sidebar) {
+    sidebar.addEventListener('click', function (e) {
+      if (e.target.closest('a') && window.matchMedia('(max-width: 900px)').matches) {
+        setSidebar(false);
+      }
     });
   }
 

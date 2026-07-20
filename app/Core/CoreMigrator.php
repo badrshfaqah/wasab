@@ -24,7 +24,7 @@ namespace App\Core;
  */
 class CoreMigrator
 {
-    public const CURRENT_VERSION = 8;
+    public const CURRENT_VERSION = 9;
     private const RETRY_COOLDOWN_SECONDS = 300;
 
     private static function migrations(): array
@@ -69,6 +69,10 @@ class CoreMigrator
             8 => [
                 'label' => 'إضافة عمود ترتيب الإضافات بالقائمة الجانبية',
                 'run' => fn () => self::addModuleSortOrder(),
+            ],
+            9 => [
+                'label' => 'إضافة جدول اشتراكات إشعارات الدفع للجوال (Web Push)',
+                'run' => fn () => self::createPushSubscriptionsTable(),
             ],
         ];
     }
@@ -205,6 +209,28 @@ class CoreMigrator
     {
         self::addColumnIfMissing('modules', 'sort_order', "INT NOT NULL DEFAULT 0 AFTER `status`");
         Database::pdo()->exec('UPDATE `modules` SET `sort_order` = `id` WHERE `sort_order` = 0');
+    }
+
+    /**
+     * جدول اشتراكات إشعارات الدفع (Web Push): كل صف جهاز/متصفح فعّل التنبيهات لمستخدم.
+     * endpoint_hash (sha1) للفهرس الفريد لأن endpoint نفسه أطول من حد مفاتيح MySQL الفريدة.
+     */
+    private static function createPushSubscriptionsTable(): void
+    {
+        Database::pdo()->exec("
+            CREATE TABLE IF NOT EXISTS `push_subscriptions` (
+                `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                `user_id` INT UNSIGNED NOT NULL,
+                `endpoint` VARCHAR(500) NOT NULL,
+                `endpoint_hash` CHAR(40) NOT NULL,
+                `p256dh` VARCHAR(255) NOT NULL,
+                `auth` VARCHAR(255) NOT NULL,
+                `created_at` DATETIME NOT NULL,
+                UNIQUE KEY `push_subscriptions_endpoint_unique` (`endpoint_hash`),
+                KEY `push_subscriptions_user_index` (`user_id`),
+                CONSTRAINT `push_subscriptions_user_fk` FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        ");
     }
 
     /** جدول أحداث التقويم الخاصة بكل شركة (يضيفها مدير النظام/الشركة يدوياً من صفحة التقويم). */

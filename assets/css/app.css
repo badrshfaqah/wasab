@@ -342,11 +342,70 @@ tr:hover td{background:#fafbfc;}
 
 @media (max-width: 900px){
   .sidebar{transform:translateX(100%);}
-  .sidebar.open{transform:translateX(0);}
+  .sidebar.open{transform:translateX(0);box-shadow:0 0 40px rgba(0,0,0,.35);}
   .main{margin-right:0;}
   .menu-toggle{display:block;}
   .grid-2,.grid-3{grid-template-columns:1fr;}
   /* زر الهاتف العائم أسفل يسار الشاشة كان يتراكب فوق آخر عنصر بالصفحة (نص/أيقونة
      حالة فارغة مثلاً) على الصفحات القصيرة - نحجز له مساحة أسفل المحتوى دائماً. */
   .content{padding-bottom:88px;}
+}
+
+/* ===== تحسينات الجوال (نسخة الجوال / PWA) ===== */
+
+/* خلفية معتمة خلف القائمة الجانبية المفتوحة على الجوال: توضح أن القائمة طبقة
+   فوق المحتوى، والنقر عليها يغلقها (كما يتوقع مستخدم أي تطبيق جوال). */
+.sidebar-backdrop{
+  position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:35;
+  opacity:0;transition:opacity .2s ease;
+}
+.sidebar-backdrop.visible{opacity:1;}
+@media (min-width: 901px){.sidebar-backdrop{display:none !important;}}
+
+html{-webkit-text-size-adjust:100%;}
+body{-webkit-tap-highlight-color:transparent;}
+
+@media (max-width: 600px){
+  .content{padding:14px 12px 88px;}
+  .topbar{padding:10px 12px;}
+  .topbar .page-title{font-size:15.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:38vw;}
+  .topbar-actions{gap:8px;}
+  .user-btn > span:last-child{display:none;} /* اسم المستخدم يكفي عنه الحرف بالدائرة */
+  .card{padding:14px;border-radius:10px;}
+  .page-head h1{font-size:18px;}
+  /* أهداف لمس مريحة */
+  .btn{padding:10px 16px;}
+  .btn-sm{padding:8px 12px;}
+  .nav-link{padding:13px 16px;}
+  .dropdown a, .dropdown button{padding:12px 14px;}
+  /* بطاقات الأرقام عمودان بدل التكدس عمودياً الطويل */
+  .cards-row{grid-template-columns:repeat(2,1fr);gap:10px;}
+  .stat-card{padding:13px;}
+  .stat-card .n{font-size:21px;}
+  .stat-card .l{font-size:12px;}
+  /* قائمة الإشعارات المنسدلة كانت أعرض من الشاشة أحياناً */
+  .dropdown{max-width:calc(100vw - 24px);}
+  .user-menu .dropdown#notif-dropdown{position:fixed;left:12px;right:12px;top:56px;width:auto !important;}
+  /* أزرار النماذج بعرض كامل */
+  .form-actions{flex-direction:column;}
+  .form-actions .btn{width:100%;justify-content:center;}
+  .pagination{flex-wrap:wrap;}
+  .tabs a{padding:9px 12px;font-size:13px;}
+  th,td{padding:9px 8px;font-size:13px;}
+  /* أزرار رأس الصفحة تتوزع بعرض مريح بدل التزاحم */
+  .page-head > div:last-child{width:100%;}
+  .page-head > div:last-child .btn{flex:1;justify-content:center;}
+}
+
+/* منطقة الأمان لآيفون بوضع التطبيق المستقل (النوتش وشريط الإيماءات) */
+@supports (padding: env(safe-area-inset-bottom)){
+  @media (max-width: 900px){
+    .content{padding-bottom:calc(88px + env(safe-area-inset-bottom));}
+    .phone-widget{bottom:calc(20px + env(safe-area-inset-bottom));}
+  }
+  .sidebar{padding-bottom:env(safe-area-inset-bottom);}
+  .topbar{padding-top:calc(12px + env(safe-area-inset-top));}
+  @media (min-width: 901px){
+    .topbar{padding-top:12px;}
+  }
 }

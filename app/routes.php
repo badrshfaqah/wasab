@@ -10,6 +10,7 @@ use App\Controllers\DashboardController;
 use App\Controllers\ModuleController;
 use App\Controllers\NotificationController;
 use App\Controllers\ProfileController;
+use App\Controllers\PushController;
 use App\Controllers\ReportController;
 use App\Controllers\RoleController;
 use App\Controllers\SearchController;
@@ -90,6 +91,10 @@ $router->post('/settings', [SettingController::class, 'update'], [[Middleware::c
 $router->get('/notifications', [NotificationController::class, 'index'], [[Middleware::class, 'auth']]);
 $router->post('/notifications/read', [NotificationController::class, 'markRead'], [[Middleware::class, 'auth']]);
 $router->post('/notifications/read-all', [NotificationController::class, 'markAllRead'], [[Middleware::class, 'auth']]);
+
+// ---------- إشعارات الدفع للجوال (Web Push) ----------
+$router->post('/push/subscribe', [PushController::class, 'subscribe'], [[Middleware::class, 'auth']]);
+$router->post('/push/unsubscribe', [PushController::class, 'unsubscribe'], [[Middleware::class, 'auth']]);
 
 // ---------- سجل العمليات ----------
 $router->get('/activity-log', [ActivityLogController::class, 'index'], [[Middleware::class, 'auth']]);

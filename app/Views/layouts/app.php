@@ -29,11 +29,18 @@ if ($impersonating) {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?= isset($pageTitle) ? e($pageTitle) . ' - ' : '' ?><?= e(app_name()) ?></title>
 <link rel="stylesheet" href="<?= asset('css/app.css') ?>">
+<link rel="manifest" href="<?= route('manifest.json') ?>">
+<meta name="theme-color" content="<?= e($primaryColor) ?>">
+<link rel="apple-touch-icon" href="<?= asset('img/icon-192.png') ?>">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="وصاب">
 <style>:root{--primary:<?= e($primaryColor) ?>;--primary-light:<?= e($primaryColor) ?>14;--sidebar-bg:<?= e($sidebarColor) ?>;}</style>
 </head>
 <body>
 <div class="app-shell">
     <?php include __DIR__ . '/../partials/sidebar.php'; ?>
+    <div class="sidebar-backdrop" hidden></div>
     <div class="main">
         <?php if ($impersonating): ?>
             <div class="impersonation-bar">
@@ -62,6 +69,30 @@ if ($impersonating) {
     </div>
 </div>
 <script src="<?= asset('js/app.js') ?>"></script>
+<?php
+// إعدادات إشعارات الدفع للجوال - المفتاح العام يولَّد مرة واحدة عند أول طلب.
+// أي فشل (استضافة بلا openssl EC مثلاً) يعطّل الميزة بصمت دون كسر الصفحة.
+$pushVapidKey = '';
+if ($user) {
+    try {
+        $pushVapidKey = \App\Core\WebPush::publicKey();
+    } catch (\Throwable $e) {
+        log_exception($e);
+    }
+}
+?>
+<?php if ($user && $pushVapidKey !== ''): ?>
+<script>
+window.WASAB_PUSH = {
+    swUrl: <?= json_encode(route('sw.js')) ?>,
+    vapidKey: <?= json_encode($pushVapidKey) ?>,
+    subscribeUrl: <?= json_encode(route('/push/subscribe')) ?>,
+    unsubscribeUrl: <?= json_encode(route('/push/unsubscribe')) ?>,
+    csrf: <?= json_encode(\App\Core\Csrf::token()) ?>
+};
+</script>
+<script src="<?= asset('js/push.js') ?>"></script>
+<?php endif; ?>
 <?php if ($user): ?>
     <?php foreach (\App\Core\ModuleManager::collectGlobalWidgets($user) as $widgetHtml): ?>
         <?= $widgetHtml ?>
