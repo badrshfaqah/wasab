@@ -29,23 +29,8 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
 
-  // الفلاتر القابلة للطي: تأتي من الخادم مفتوحة دائماً (فلو تعطّل JS تبقى متاحة)،
-  // وعلى الجوال نطويها ابتداءً إلا إذا كانت هناك فلاتر نشطة (data-keep-open) حتى
-  // تظهر النتائج مباشرة ويبقى البحث بنقرة. عند الاتساع (تدوير الجهاز) تُفتح من جديد.
-  var filtersMq = window.matchMedia('(min-width: 601px)');
-  function syncFiltersCollapse(initial) {
-    document.querySelectorAll('.filters-collapse').forEach(function (d) {
-      if (filtersMq.matches) {
-        d.open = true;
-      } else if (initial && d.getAttribute('data-keep-open') !== '1') {
-        d.open = false;
-      }
-    });
-  }
-  syncFiltersCollapse(true);
-  if (filtersMq.addEventListener) {
-    filtersMq.addEventListener('change', function () { syncFiltersCollapse(false); });
-  }
+  // الفلاتر القابلة للطي (details/summary أصلية): مقفلة افتراضياً وتفتح بالنقر،
+  // والخادم يفتحها مسبقاً فقط عند وجود فلاتر نشطة - لا حاجة لأي منطق JS هنا.
   if (backdrop) {
     backdrop.addEventListener('click', function () { setSidebar(false); });
   }

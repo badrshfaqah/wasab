@@ -35,7 +35,7 @@ $tasksQuery = function (string $scope, array $filters, array $overrides = []): s
 </div>
 
 <div class="card">
-    <details class="filters-collapse" open data-keep-open="<?= $filters ? 1 : 0 ?>">
+    <details class="filters-collapse"<?= $filters ? ' open' : '' ?>>
     <summary>🔍 البحث والتصفية (عنوان، مسؤول، أولوية، حالة)<?= $filters ? ' <span class="badge badge-info">مفعّلة</span>' : '' ?></summary>
     <form method="get" action="<?= route('/tasks') ?>" class="filters-toolbar" style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin-bottom:16px;">
         <input type="hidden" name="scope" value="<?= e($scope) ?>">
