@@ -59,4 +59,7 @@ $coreItems[] = ['label' => 'سجل العمليات', 'icon' => '📜', 'url' =>
             </a>
         <?php endforeach; ?>
     </nav>
+    <a class="sidebar-version" href="<?= route('/wasab') ?>">
+        وصاب · إصدار <?= e(\App\Core\Wasab::currentVersion()) ?>
+    </a>
 </aside>
