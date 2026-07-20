@@ -5,6 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>تسجيل الدخول - <?= e(app_name()) ?></title>
 <link rel="stylesheet" href="<?= asset('css/app.css') ?>">
+<link rel="manifest" href="<?= route('manifest.json') ?>">
+<meta name="theme-color" content="#2563eb">
+<link rel="apple-touch-icon" href="<?= asset('img/icon-192.png') ?>">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="وصاب">
 <style>
 body{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;gap:14px;}
 .login-card{width:100%;max-width:380px;background:#fff;border:1px solid var(--border);border-radius:14px;padding:32px;box-shadow:0 4px 20px rgba(0,0,0,.06);}
@@ -35,5 +41,12 @@ body{display:flex;flex-direction:column;align-items:center;justify-content:cente
     <span>·</span>
     <a href="https://almgrat.com" target="_blank" rel="noopener">وصاب</a>
 </footer>
+<script>
+// تسجيل عامل الخدمة من صفحة الدخول أيضاً: يجعل تثبيت التطبيق (إضافة للشاشة
+// الرئيسية) مكتمل الأركان قبل تسجيل الدخول، وجاهزاً لاستقبال التنبيهات بعده.
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register(<?= json_encode(route('sw.js')) ?>).catch(function () {});
+}
+</script>
 </body>
 </html>

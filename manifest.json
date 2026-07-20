@@ -4,6 +4,7 @@
     "description": "نظام إداري متكامل وخفيف لإدارة أعمال الشركات",
     "lang": "ar",
     "dir": "rtl",
+    "id": "./",
     "start_url": "./",
     "scope": "./",
     "display": "standalone",
@@ -22,6 +23,12 @@
             "sizes": "512x512",
             "type": "image/png",
             "purpose": "any"
+        },
+        {
+            "src": "assets/img/icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
         }
     ]
 }
