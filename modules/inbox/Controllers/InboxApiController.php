@@ -2,6 +2,8 @@
 
 namespace Modules\Inbox\Controllers;
 
+use App\Core\Database;
+use App\Core\Notification;
 use Modules\Inbox\Models\InboxMessage;
 use Modules\Inbox\Models\InboxSite;
 
@@ -69,8 +71,42 @@ class InboxApiController
         ]);
 
         InboxSite::touchLastMessage((int) $site['id']);
+        $this->notifyRecipients($site, $messageId, (string) $input('name'), $body);
 
         $this->respond(201, ['success' => true, 'id' => $messageId]);
+    }
+
+    /**
+     * تنبيه مستحقي الاطلاع بالشركة برسالة جديدة: مدراء الشركة + كل مستخدم يملك
+     * صلاحية inbox.view عبر أدواره. يمر عبر Notification::send فيصل الإشعار داخل
+     * النظام وعلى الجوال (Web Push) معاً لمن فعّل التنبيهات. أفضل جهد: أي فشل
+     * يُسجَّل بصمت ولا يؤثر على استلام الرسالة (الرد 201 يصدر في كل الأحوال).
+     */
+    private function notifyRecipients(array $site, int $messageId, string $senderName, string $body): void
+    {
+        try {
+            $recipients = Database::select(
+                'SELECT DISTINCT u.id
+                   FROM users u
+                   LEFT JOIN user_roles ur ON ur.user_id = u.id
+                   LEFT JOIN role_permissions rp ON rp.role_id = ur.role_id
+                   LEFT JOIN permissions p ON p.id = rp.permission_id
+                  WHERE u.company_id = :c AND u.status = "active"
+                    AND (u.membership_type = "company_admin" OR p.permission_key = "inbox.view")',
+                ['c' => (int) $site['company_id']]
+            );
+
+            $excerpt = mb_substr($body, 0, 80) . (mb_strlen($body) > 80 ? '...' : '');
+            $title = '📨 رسالة جديدة من ' . $site['name'];
+            $message = ($senderName !== '' ? $senderName . ': ' : '') . $excerpt;
+            $url = route('/inbox/' . $messageId);
+
+            foreach ($recipients as $r) {
+                Notification::send((int) $r['id'], $title, $message, $url);
+            }
+        } catch (\Throwable $e) {
+            log_exception($e);
+        }
     }
 
     private function respond(int $code, array $data): void

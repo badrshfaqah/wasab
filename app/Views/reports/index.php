@@ -1,41 +1,49 @@
-<div class="page-head">
-    <div><h1>التقارير</h1><p>أرقام مجمّعة على مستوى الشركة من كل الإضافات المفعّلة.</p></div>
-</div>
-
-<?php if ($coreStats): ?>
-<div class="cards-row" style="margin-bottom:20px;">
-    <?php foreach ($coreStats as $s): ?>
-        <div class="stat-card c-<?= e($s['color'] ?? 'primary') ?>"><div class="n"><?= e((string) $s['value']) ?> <?= e($s['icon'] ?? '') ?></div><div class="l"><?= e($s['label']) ?></div></div>
-    <?php endforeach; ?>
-</div>
-<?php endif; ?>
-
 <?php
-    $grouped = [];
-    foreach ($moduleStats as $s) {
-        $grouped[$s['module_name']][] = $s;
+/**
+ * كل الأرقام في بطاقة واحدة موحّدة: صف لكل قسم (النواة ثم كل إضافة) وأرقامه
+ * كحبوب مضغوطة بجانبه - بدل صناديق متفرقة لكل إضافة كانت تشتت النظر.
+ */
+$grouped = [];
+foreach ($moduleStats as $s) {
+    $grouped[$s['module_name']][] = $s;
+}
+
+$renderStat = function (array $s): string {
+    $classColor = 'c-' . e($s['color'] ?? 'primary');
+    $inner = '<b>' . e((string) $s['value']) . '</b> ' . e($s['label']);
+    if (!empty($s['url'])) {
+        return '<a class="report-stat ' . $classColor . '" href="' . e($s['url']) . '">' . e($s['icon'] ?? '') . ' ' . $inner . '</a>';
     }
+    return '<span class="report-stat ' . $classColor . '">' . e($s['icon'] ?? '') . ' ' . $inner . '</span>';
+};
 ?>
+<div class="page-head">
+    <div><h1>التقارير</h1><p>أرقام الشركة من كل الإضافات المفعّلة في مكان واحد.</p></div>
+</div>
+
 <?php if (!$grouped && !$coreStats): ?>
     <div class="empty-state">
         <div class="ic">📊</div>
         <h3>لا توجد أرقام لعرضها بعد</h3>
         <p>فعّل إضافات، أو ارجع لاحقاً بعد إضافة بيانات.</p>
     </div>
-<?php endif; ?>
-
-<?php foreach ($grouped as $moduleName => $items): ?>
-    <div class="card" style="margin-bottom:16px;">
-        <div class="card-title"><span>🧩 <?= e($moduleName) ?></span></div>
-        <div class="cards-row">
-            <?php foreach ($items as $s): ?>
-                <?php $card = '<div class="stat-card c-' . e($s['color'] ?? 'primary') . '"><div class="n">' . e((string) $s['value']) . ' ' . e($s['icon'] ?? '') . '</div><div class="l">' . e($s['label']) . '</div></div>'; ?>
-                <?php if (!empty($s['url'])): ?>
-                    <a href="<?= e($s['url']) ?>"><?= $card ?></a>
-                <?php else: ?>
-                    <?= $card ?>
-                <?php endif; ?>
-            <?php endforeach; ?>
+<?php else: ?>
+<div class="card report-card">
+    <?php if ($coreStats): ?>
+        <div class="report-row">
+            <div class="report-module">🏢 النظام</div>
+            <div class="report-stats">
+                <?php foreach ($coreStats as $s) echo $renderStat($s); ?>
+            </div>
         </div>
-    </div>
-<?php endforeach; ?>
+    <?php endif; ?>
+    <?php foreach ($grouped as $moduleName => $items): ?>
+        <div class="report-row">
+            <div class="report-module">🧩 <?= e($moduleName) ?></div>
+            <div class="report-stats">
+                <?php foreach ($items as $s) echo $renderStat($s); ?>
+            </div>
+        </div>
+    <?php endforeach; ?>
+</div>
+<?php endif; ?>
