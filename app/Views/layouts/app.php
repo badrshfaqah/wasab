@@ -53,6 +53,15 @@ if ($impersonating) {
         <?php endif; ?>
         <?php include __DIR__ . '/../partials/topbar.php'; ?>
         <div class="content">
+            <?php if ($user): ?>
+                <div class="push-banner" id="push-banner" hidden>
+                    <span>🔔 فعّل التنبيهات ليصلك الجديد فور حدوثه: رسائل مركز المراسلات، المهام، والاجتماعات.</span>
+                    <span class="push-banner-actions">
+                        <button class="btn btn-sm" id="push-banner-enable" type="button">تفعيل الآن</button>
+                        <button class="push-banner-close" id="push-banner-dismiss" type="button" aria-label="إغلاق">✕</button>
+                    </span>
+                </div>
+            <?php endif; ?>
             <?php if ($msg = flash_get('success')): ?>
                 <div class="alert alert-success" data-autohide><span>✓ <?= e($msg) ?></span></div>
             <?php endif; ?>

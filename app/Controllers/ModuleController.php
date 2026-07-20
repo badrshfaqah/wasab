@@ -12,10 +12,19 @@ class ModuleController
 {
     public function index(): void
     {
+        // توكن مهام الجدولة عبر الويب: يولَّد مرة واحدة ويُعرض لمدير النظام فقط.
+        $cronToken = (string) \App\Core\Setting::get('cron_web_token', null, '');
+        if ($cronToken === '') {
+            $cronToken = bin2hex(random_bytes(24));
+            \App\Core\Setting::set('cron_web_token', $cronToken);
+        }
+
         View::render('modules.index', [
             'pageTitle' => 'إدارة الإضافات',
             'modules' => ModuleManager::list(),
             'coreSchemaUpToDate' => CoreMigrator::isUpToDate(),
+            'cronCliCommand' => 'php ' . BASE_PATH . '/cron.php',
+            'cronWebUrl' => route('/cron/' . $cronToken),
         ]);
     }
 

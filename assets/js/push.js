@@ -5,8 +5,9 @@
  * السلوك:
  * - عند كل تحميل صفحة: تسجيل عامل الخدمة، وإن كان الإذن ممنوحاً مسبقاً تُجدَّد
  *   بيانات الاشتراك بصمت (المتصفح قد يغيّر endpoint).
- * - زر التفعيل/الإيقاف (id="push-toggle") في الملف الشخصي يطلب الإذن ويشترك،
- *   أو يلغي اشتراك هذا الجهاز.
+ * - بانر "فعّل التنبيهات" (id=push-banner) يظهر لمن لم يفعّل بعد ولم يرفض الإذن،
+ *   بزر تفعيل بنقرة واحدة وزر إغلاق يخفيه ١٤ يوماً.
+ * - زر التفعيل/الإيقاف (id=push-toggle) في الملف الشخصي كما هو.
  */
 (function () {
   var cfg = window.WASAB_PUSH;
@@ -15,6 +16,8 @@
   }
 
   var supported = 'PushManager' in window && 'Notification' in window;
+  var DISMISS_KEY = 'wasab_push_banner_dismissed_at';
+  var DISMISS_DAYS = 14;
 
   function urlBase64ToUint8Array(base64String) {
     var padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -48,6 +51,16 @@
     });
   }
 
+  /** طلب الإذن ثم الاشتراك - المسار المشترك بين البانر وزر الملف الشخصي. */
+  function enableFlow(registration) {
+    return Notification.requestPermission().then(function (permission) {
+      if (permission !== 'granted') {
+        return null;
+      }
+      return subscribe(registration);
+    });
+  }
+
   var ready = navigator.serviceWorker.register(cfg.swUrl).catch(function () { return null; });
 
   // تجديد صامت للاشتراك إن كان الإذن ممنوحاً أصلاً
@@ -63,7 +76,59 @@
     });
   }
 
+  // ------------------------------------------------------------------
+  // بانر التفعيل بنقرة واحدة
+  // ------------------------------------------------------------------
+  var banner = document.getElementById('push-banner');
+  if (banner && supported && Notification.permission === 'default') {
+    var dismissedAt = parseInt(localStorage.getItem(DISMISS_KEY) || '0', 10);
+    var dismissValid = dismissedAt && (Date.now() - dismissedAt) < DISMISS_DAYS * 86400000;
+
+    if (!dismissValid) {
+      ready.then(function (registration) {
+        if (!registration) return;
+        registration.pushManager.getSubscription().then(function (existing) {
+          if (!existing) {
+            banner.hidden = false;
+          }
+        });
+      });
+    }
+
+    var enableBtn = document.getElementById('push-banner-enable');
+    var dismissBtn = document.getElementById('push-banner-dismiss');
+
+    if (enableBtn) {
+      enableBtn.addEventListener('click', function () {
+        enableBtn.disabled = true;
+        ready.then(function (registration) {
+          if (!registration) {
+            banner.hidden = true;
+            return;
+          }
+          enableFlow(registration).then(function (subscription) {
+            banner.hidden = true;
+            if (!subscription) {
+              // رفض الإذن: لا نعيد الإلحاح فوراً
+              localStorage.setItem(DISMISS_KEY, String(Date.now()));
+            }
+          }).catch(function () {
+            banner.hidden = true;
+          });
+        });
+      });
+    }
+    if (dismissBtn) {
+      dismissBtn.addEventListener('click', function () {
+        localStorage.setItem(DISMISS_KEY, String(Date.now()));
+        banner.hidden = true;
+      });
+    }
+  }
+
+  // ------------------------------------------------------------------
   // زر التفعيل بالملف الشخصي
+  // ------------------------------------------------------------------
   var toggle = document.getElementById('push-toggle');
   if (!toggle) {
     return;
@@ -91,11 +156,11 @@
         if (existing) {
           toggle.textContent = 'إيقاف التنبيهات على هذا الجهاز';
           toggle.classList.add('btn-outline');
-          setStatus('التنبيهات مفعّلة على هذا الجهاز ✓');
+          setStatus('التنبيهات مفعّلة على هذا الجهاز ✓ ستصلك إشعارات الرسائل والمهام والاجتماعات فور حدوثها.');
         } else {
           toggle.textContent = 'تفعيل التنبيهات على هذا الجهاز';
           toggle.classList.remove('btn-outline');
-          setStatus('عند التفعيل ستصلك إشعارات النظام (مهام، اجتماعات، رسائل...) على هذا الجهاز حتى والمتصفح مغلق.');
+          setStatus('عند التفعيل ستصلك إشعارات النظام (رسائل مركز المراسلات، المهام، الاجتماعات...) على هذا الجهاز حتى والمتصفح مغلق.');
         }
       });
     });
@@ -122,19 +187,12 @@
           return;
         }
 
-        Notification.requestPermission().then(function (permission) {
-          if (permission !== 'granted') {
-            toggle.disabled = false;
-            refreshButton();
-            return;
-          }
-          subscribe(registration).then(function () {
-            toggle.disabled = false;
-            refreshButton();
-          }).catch(function () {
-            toggle.disabled = false;
-            setStatus('تعذر إتمام الاشتراك - أعد المحاولة.');
-          });
+        enableFlow(registration).then(function () {
+          toggle.disabled = false;
+          refreshButton();
+        }).catch(function () {
+          toggle.disabled = false;
+          setStatus('تعذر إتمام الاشتراك - أعد المحاولة.');
         });
       });
     });

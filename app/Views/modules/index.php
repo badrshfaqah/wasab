@@ -22,6 +22,29 @@
     </form>
 </div>
 
+<div class="card">
+    <div class="card-title"><span>⏰ مهام الجدولة الدورية (Cron)</span></div>
+    <p class="hint" style="margin:0 0 12px;">
+        تذكيرات الاجتماعات القريبة وأحداث التقويم تعتمد على مهمة جدولة تعمل كل ٥ دقائق.
+        فعّلها من لوحة تحكم الاستضافة بإحدى الطريقتين (أيهما أسهل لك):
+    </p>
+    <div class="field" style="margin-bottom:10px;">
+        <label>الطريقة الأولى - أمر PHP (خيار "Cron Jobs" بلوحة الاستضافة):</label>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <code dir="ltr" style="padding:6px 10px;background:var(--bg);border:1px solid var(--border);border-radius:8px;overflow-x:auto;max-width:100%;"><?= e($cronCliCommand) ?></code>
+            <button type="button" class="btn btn-outline btn-sm" data-copy="<?= e($cronCliCommand) ?>">نسخ</button>
+        </div>
+    </div>
+    <div class="field" style="margin:0;">
+        <label>الطريقة الثانية - زيارة رابط (لجدولة URL أو خدمة مراقبة خارجية):</label>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <code dir="ltr" style="padding:6px 10px;background:var(--bg);border:1px solid var(--border);border-radius:8px;overflow-x:auto;max-width:100%;"><?= e($cronWebUrl) ?></code>
+            <button type="button" class="btn btn-outline btn-sm" data-copy="<?= e($cronWebUrl) ?>">نسخ</button>
+        </div>
+        <p class="hint" style="margin-top:6px;">الرابط محمي بتوكن سري - لا تنشره خارج إعدادات الجدولة.</p>
+    </div>
+</div>
+
 <?php $installedKeys = array_column(array_filter($modules, fn ($m) => $m['installed']), 'key'); ?>
 <div class="card">
     <p class="hint" style="margin:0;">رتّب ظهور الإضافات بالقائمة الجانبية بأسهم التحريك ⬆️⬇️ (تظهر فقط على الإضافات المثبَّتة).</p>

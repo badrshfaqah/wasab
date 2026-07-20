@@ -362,6 +362,19 @@ tr:hover td{background:#fafbfc;}
 
 /* ===== تحسينات الجوال (نسخة الجوال / PWA) ===== */
 
+/* بانر تفعيل تنبيهات الجوال بنقرة واحدة */
+.push-banner{
+  display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;
+  background:var(--primary-light);border:1px solid var(--primary);
+  border-radius:10px;padding:10px 14px;margin-bottom:16px;font-size:13px;
+}
+.push-banner-actions{display:flex;align-items:center;gap:6px;}
+.push-banner-close{
+  background:none;border:0;cursor:pointer;color:var(--muted);
+  font-size:15px;padding:4px 8px;line-height:1;
+}
+.push-banner-close:hover{color:var(--text);}
+
 /* صفحة التقارير الموحّدة: صف لكل قسم وأرقامه كحبوب مضغوطة بجانبه */
 .report-card{padding:6px 20px;}
 .report-row{

@@ -6,6 +6,7 @@ use App\Controllers\ActivityLogController;
 use App\Controllers\AuthController;
 use App\Controllers\CalendarController;
 use App\Controllers\CompanyController;
+use App\Controllers\CronController;
 use App\Controllers\DashboardController;
 use App\Controllers\ModuleController;
 use App\Controllers\NotificationController;
@@ -91,6 +92,9 @@ $router->post('/settings', [SettingController::class, 'update'], [[Middleware::c
 $router->get('/notifications', [NotificationController::class, 'index'], [[Middleware::class, 'auth']]);
 $router->post('/notifications/read', [NotificationController::class, 'markRead'], [[Middleware::class, 'auth']]);
 $router->post('/notifications/read-all', [NotificationController::class, 'markAllRead'], [[Middleware::class, 'auth']]);
+
+// ---------- تشغيل مهام الجدولة عبر الويب (بتوكن، بديل cron CLI) ----------
+$router->get('/cron/{token}', [CronController::class, 'run'], []);
 
 // ---------- إشعارات الدفع للجوال (Web Push) ----------
 $router->post('/push/subscribe', [PushController::class, 'subscribe'], [[Middleware::class, 'auth']]);

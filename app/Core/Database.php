@@ -32,6 +32,16 @@ class Database
             PDO::ATTR_EMULATE_PREPARES => false,
         ]);
 
+        // مزامنة منطقة MySQL الزمنية للجلسة مع منطقة PHP (المضبوطة من config.php):
+        // بدونها تكون NOW()/CURDATE() بتوقيت خادم قاعدة البيانات (غالباً UTC على
+        // الاستضافات) بينما التواريخ المخزنة تُكتب بتوقيت PHP، فتنطلق تذكيرات
+        // الاجتماعات وأحداث التقويم متأخرة أو لا تنطلق إطلاقاً.
+        try {
+            self::$connection->exec("SET time_zone = '" . date('P') . "'");
+        } catch (\Throwable $e) {
+            // بعض الاستضافات تمنع تغيير time_zone - نكمل بلا كسر (السلوك السابق نفسه).
+        }
+
         return self::$connection;
     }
 
