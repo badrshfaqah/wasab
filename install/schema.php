@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS `users` (
     `password` VARCHAR(255) NOT NULL,
     `membership_type` ENUM('system_admin','company_admin','user') NOT NULL DEFAULT 'user',
     `avatar` VARCHAR(255) NULL,
+    `timezone` VARCHAR(50) NULL COMMENT 'منطقة زمنية للعرض فقط - NULL تعني توقيت النظام الافتراضي',
     `status` ENUM('active','inactive') NOT NULL DEFAULT 'active',
     `last_login_at` DATETIME NULL,
     `failed_login_attempts` TINYINT UNSIGNED NOT NULL DEFAULT 0,

@@ -120,13 +120,42 @@ function module_active(string $key): bool
     return \App\Core\ModuleManager::isActive($key);
 }
 
+/**
+ * المنطقة الزمنية المفضلة للمستخدم الحالي (من ملفه الشخصي) إن اختلفت عن توقيت
+ * النظام الافتراضي، وإلا null. تُستخدم للعرض فقط - التخزين دائماً بتوقيت النظام.
+ */
+function user_timezone(): ?string
+{
+    static $resolved = false, $tz = null;
+    if (!$resolved) {
+        $resolved = true;
+        try {
+            $candidate = current_user()['timezone'] ?? null;
+            if ($candidate
+                && $candidate !== date_default_timezone_get()
+                && in_array($candidate, timezone_identifiers_list(), true)) {
+                $tz = $candidate;
+            }
+        } catch (\Throwable $e) {
+            $tz = null;
+        }
+    }
+    return $tz;
+}
+
 function format_date(?string $date, string $format = 'Y-m-d'): string
 {
     if (!$date) {
         return '-';
     }
     try {
-        return (new DateTime($date))->format($format);
+        $dt = new DateTime($date);
+        // تحويل العرض لمنطقة المستخدم الزمنية - فقط للقيم التي تحمل وقتاً فعلياً؛
+        // التواريخ المجردة (استحقاق مهمة مثلاً) لا تُحوَّل حتى لا ينزاح اليوم نفسه.
+        if (str_contains($date, ':') && ($tz = user_timezone())) {
+            $dt->setTimezone(new DateTimeZone($tz));
+        }
+        return $dt->format($format);
     } catch (Exception $e) {
         return '-';
     }

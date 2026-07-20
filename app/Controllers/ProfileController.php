@@ -34,7 +34,19 @@ class ProfileController
             redirect('/profile');
         }
 
-        $update = ['name' => $name, 'updated_at' => date('Y-m-d H:i:s')];
+        // منطقة زمنية للعرض فقط: قيمة فارغة = توقيت النظام الافتراضي، وأي قيمة
+        // تُقبل فقط إن كانت معرّف منطقة زمنية صحيحاً (منع إدخال قيم حرة).
+        $timezone = trim((string) Request::input('timezone', ''));
+        if ($timezone !== '' && !in_array($timezone, timezone_identifiers_list(), true)) {
+            flash_set('error', 'منطقة زمنية غير صحيحة.');
+            redirect('/profile');
+        }
+
+        $update = [
+            'name' => $name,
+            'timezone' => $timezone !== '' ? $timezone : null,
+            'updated_at' => date('Y-m-d H:i:s'),
+        ];
         if ($password !== '') {
             if (strlen($password) < 8) {
                 flash_set('error', 'كلمة المرور الجديدة يجب ألا تقل عن 8 أحرف.');

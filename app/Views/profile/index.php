@@ -1,4 +1,31 @@
-<?php $u = current_user(); ?>
+<?php
+$u = current_user();
+
+/** مناطق زمنية شائعة بأسماء عربية - القيمة الفارغة تعني توقيت النظام الافتراضي (الرياض). */
+$timezones = [
+    'Asia/Riyadh' => 'الرياض (+03)',
+    'Asia/Kuwait' => 'الكويت (+03)',
+    'Asia/Qatar' => 'الدوحة (+03)',
+    'Asia/Bahrain' => 'المنامة (+03)',
+    'Asia/Baghdad' => 'بغداد (+03)',
+    'Asia/Amman' => 'عمّان (+03)',
+    'Asia/Aden' => 'صنعاء (+03)',
+    'Europe/Istanbul' => 'إسطنبول (+03)',
+    'Asia/Dubai' => 'دبي (+04)',
+    'Asia/Muscat' => 'مسقط (+04)',
+    'Africa/Cairo' => 'القاهرة (+02/+03)',
+    'Asia/Beirut' => 'بيروت (+02/+03)',
+    'Asia/Damascus' => 'دمشق (+03)',
+    'Africa/Khartoum' => 'الخرطوم (+02)',
+    'Africa/Tripoli' => 'طرابلس (+02)',
+    'Africa/Tunis' => 'تونس (+01)',
+    'Africa/Algiers' => 'الجزائر (+01)',
+    'Africa/Casablanca' => 'الدار البيضاء (+01)',
+    'Europe/London' => 'لندن',
+    'Europe/Paris' => 'باريس',
+    'America/New_York' => 'نيويورك',
+];
+?>
 <div class="page-head"><div><h1>الملف الشخصي</h1></div></div>
 
 <div class="card" style="max-width:480px;">
@@ -15,6 +42,16 @@
         <div class="field">
             <label>كلمة مرور جديدة (اتركها فارغة لعدم التغيير)</label>
             <input type="password" name="password">
+        </div>
+        <div class="field">
+            <label>المنطقة الزمنية لعرض التواريخ والأوقات</label>
+            <select name="timezone">
+                <option value="">التوقيت الافتراضي للنظام (الرياض +03)</option>
+                <?php foreach ($timezones as $tzKey => $tzLabel): ?>
+                    <option value="<?= e($tzKey) ?>" <?= ($u['timezone'] ?? '') === $tzKey ? 'selected' : '' ?>><?= e($tzLabel) ?></option>
+                <?php endforeach; ?>
+            </select>
+            <p class="hint">تؤثر على عرض أوقات الرسائل والاجتماعات والإشعارات لك فقط - بقية المستخدمين يرون توقيتهم.</p>
         </div>
         <div class="form-actions"><button class="btn" type="submit">حفظ</button></div>
     </form>

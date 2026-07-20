@@ -24,7 +24,7 @@ namespace App\Core;
  */
 class CoreMigrator
 {
-    public const CURRENT_VERSION = 9;
+    public const CURRENT_VERSION = 10;
     private const RETRY_COOLDOWN_SECONDS = 300;
 
     private static function migrations(): array
@@ -73,6 +73,14 @@ class CoreMigrator
             9 => [
                 'label' => 'إضافة جدول اشتراكات إشعارات الدفع للجوال (Web Push)',
                 'run' => fn () => self::createPushSubscriptionsTable(),
+            ],
+            10 => [
+                'label' => 'إضافة خيار المنطقة الزمنية المفضلة لكل مستخدم',
+                'run' => fn () => self::addColumnIfMissing(
+                    'users',
+                    'timezone',
+                    "VARCHAR(50) NULL COMMENT 'منطقة زمنية للعرض فقط - NULL تعني توقيت النظام الافتراضي' AFTER `avatar`"
+                ),
             ],
         ];
     }
