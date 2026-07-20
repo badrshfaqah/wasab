@@ -99,6 +99,7 @@ $router->get('/cron/{token}', [CronController::class, 'run'], []);
 // ---------- إشعارات الدفع للجوال (Web Push) ----------
 $router->post('/push/subscribe', [PushController::class, 'subscribe'], [[Middleware::class, 'auth']]);
 $router->post('/push/unsubscribe', [PushController::class, 'unsubscribe'], [[Middleware::class, 'auth']]);
+$router->post('/push/test', [PushController::class, 'test'], [[Middleware::class, 'auth']]);
 
 // ---------- سجل العمليات ----------
 $router->get('/activity-log', [ActivityLogController::class, 'index'], [[Middleware::class, 'auth']]);

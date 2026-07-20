@@ -32,6 +32,33 @@ class PushController
         $this->respond(200, ['success' => true]);
     }
 
+    /**
+     * إرسال تنبيه تجريبي للمستخدم الحالي على كل أجهزته المفعّلة - أداة تحقق ذاتي:
+     * إن وصل الإشعار للجوال فالسلسلة كاملة تعمل (اشتراك، تشفير، خدمة الدفع).
+     */
+    public function test(): void
+    {
+        if (!\App\Core\Csrf::verify((string) \App\Core\Request::input('_csrf'))) {
+            flash_set('error', 'انتهت صلاحية الجلسة، حاول مرة أخرى.');
+            redirect('/profile');
+        }
+
+        if (!WebPush::userHasSubscriptions(Auth::id())) {
+            flash_set('error', 'لا يوجد أي جهاز مفعّل للتنبيهات على حسابك بعد - فعّل التنبيهات أولاً من الزر بالأسفل.');
+            redirect('/profile');
+        }
+
+        \App\Core\Notification::send(
+            Auth::id(),
+            '🔔 تنبيه تجريبي من وصاب',
+            'ممتاز! التنبيهات تصل لجهازك بنجاح.',
+            route('/profile')
+        );
+
+        flash_set('success', 'أُرسل التنبيه التجريبي - يجب أن يظهر على جهازك خلال ثوانٍ (تأكد أن التطبيق مغلق أو بالخلفية لرؤيته كإشعار).');
+        redirect('/profile');
+    }
+
     public function unsubscribe(): void
     {
         $data = $this->jsonInput();

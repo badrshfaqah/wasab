@@ -60,7 +60,13 @@ $timezones = [
 <div class="card" style="max-width:480px;">
     <div class="card-title"><span>📱 تنبيهات الجوال</span></div>
     <p class="hint" id="push-status" style="margin:0 0 12px;">جارٍ التحقق من حالة التنبيهات على هذا الجهاز...</p>
-    <button class="btn" type="button" id="push-toggle">تفعيل التنبيهات على هذا الجهاز</button>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn" type="button" id="push-toggle">تفعيل التنبيهات على هذا الجهاز</button>
+        <form method="post" action="<?= route('/push/test') ?>">
+            <?= csrf_field() ?>
+            <button class="btn btn-outline" type="submit">📤 إرسال تنبيه تجريبي</button>
+        </form>
+    </div>
     <p class="hint" style="margin-top:12px;">
         لأفضل تجربة على الجوال: افتح النظام من متصفح الجوال ثم اختر "إضافة إلى الشاشة الرئيسية"
         ليتحول لتطبيق مستقل. على آيفون التفعيل يعمل فقط بعد الإضافة للشاشة الرئيسية (iOS 16.4+).
