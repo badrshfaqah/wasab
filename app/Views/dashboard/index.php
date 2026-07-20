@@ -21,7 +21,7 @@ $name = current_user()['name'] ?? '';
 <?php if ($stats): ?>
 <div class="cards-row">
     <?php foreach ($stats as $s): ?>
-        <?php $card = '<div class="stat-card c-' . e($s['color'] ?? 'primary') . '"><div class="n">' . e((string)$s['value']) . ' ' . e($s['icon'] ?? '') . '</div><div class="l">' . e($s['label']) . '</div></div>'; ?>
+        <?php $card = '<div class="stat-card c-' . e($s['color'] ?? 'primary') . '"><div class="n">' . e((string)$s['value']) . ' <span class="stat-ic">' . e($s['icon'] ?? '') . '</span></div><div class="l">' . e($s['label']) . '</div></div>'; ?>
         <?php if (!empty($s['url'])): ?>
             <a href="<?= e($s['url']) ?>"><?= $card ?></a>
         <?php else: ?>

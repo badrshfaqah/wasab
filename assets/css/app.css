@@ -143,7 +143,8 @@ a{color:inherit;text-decoration:none;}
 /* بطاقات */
 .cards-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:20px;}
 .stat-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;}
-.stat-card .n{font-size:26px;font-weight:800;}
+.stat-card .n{font-size:26px;font-weight:800;display:flex;align-items:center;gap:8px;}
+.stat-card .stat-ic{font-size:19px;}
 .stat-card .l{color:var(--muted);font-size:13px;margin-top:4px;}
 .stat-card.c-primary{border-right:4px solid var(--primary);}
 .stat-card.c-success{border-right:4px solid var(--success);}
@@ -489,23 +490,40 @@ html{-webkit-text-size-adjust:100%;}
 body{-webkit-tap-highlight-color:transparent;}
 
 @media (max-width: 600px){
-  .content{padding:14px 12px 88px;}
+  .content{padding:12px 10px 88px;}
   .topbar{padding:10px 12px;}
   .topbar .page-title{font-size:15.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:38vw;}
   .topbar-actions{gap:8px;}
   .user-btn > span:last-child{display:none;} /* اسم المستخدم يكفي عنه الحرف بالدائرة */
-  .card{padding:14px;border-radius:10px;}
-  .page-head h1{font-size:18px;}
+  .card{padding:12px;border-radius:10px;margin-bottom:12px;}
+  .card-title{font-size:13.5px;margin-bottom:10px;}
+  .page-head{margin-bottom:12px;gap:8px;}
+  .page-head h1{font-size:17px;}
+  .page-head p{font-size:12px;}
+  .tabs{margin-bottom:12px;}
   /* أهداف لمس مريحة */
   .btn{padding:10px 16px;}
   .btn-sm{padding:8px 12px;}
   .nav-link{padding:13px 16px;}
   .dropdown a, .dropdown button{padding:12px 14px;}
-  /* بطاقات الأرقام عمودان بدل التكدس عمودياً الطويل */
-  .cards-row{grid-template-columns:repeat(2,1fr);gap:10px;}
-  .stat-card{padding:13px;}
-  .stat-card .n{font-size:21px;}
-  .stat-card .l{font-size:12px;}
+  /* بطاقات الأرقام: شبكة مكثفة بإحساس تطبيق - أرقام واضحة وأيقونات صغيرة
+     ومسافات مشدودة بدل الفراغات المتعبة */
+  .cards-row{grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px;}
+  /* عدد فردي من البطاقات: الأخيرة تمتد على العمودين بدل ترك خلية فارغة متعبة للنظر */
+  .cards-row > *:last-child:nth-child(odd){grid-column:1 / -1;}
+  .stat-card{padding:10px 12px;border-radius:10px;}
+  .stat-card .n{font-size:18px;gap:6px;}
+  .stat-card .stat-ic{font-size:14px;}
+  .stat-card .l{font-size:11px;margin-top:2px;}
+  /* بطاقة الترحيب أصغر وأخف على الجوال */
+  .dash-greeting{padding:13px 16px;border-radius:12px;margin-bottom:12px;}
+  .dash-greeting h1{font-size:16px;}
+  .dash-greeting p{font-size:11.5px;}
+  /* عناصر القوائم (آخر الرسائل، مهامي القادمة...) أكثف */
+  .notif-item{padding:9px 10px;font-size:12.5px;}
+  /* بانر تفعيل التنبيهات أكثف على الجوال */
+  .push-banner{padding:8px 12px;font-size:12px;gap:6px;margin-bottom:12px;}
+  .push-banner .btn-sm{padding:6px 12px;font-size:12px;}
   /* قائمة الإشعارات المنسدلة كانت أعرض من الشاشة أحياناً */
   .dropdown{max-width:calc(100vw - 24px);}
   .user-menu .dropdown#notif-dropdown{position:fixed;left:12px;right:12px;top:56px;width:auto !important;}
