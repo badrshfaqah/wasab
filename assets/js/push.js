@@ -58,9 +58,26 @@
     });
   }
 
+  /**
+   * طلب إذن الإشعارات بشكل آمن: بعض المتصفحات القديمة تستخدم صيغة callback بدل
+   * Promise، وأي استثناء غير متوقع يُعامل كرفض بدل أن يكسر السلسلة بصمت.
+   */
+  function requestPermissionSafe() {
+    return new Promise(function (resolve) {
+      try {
+        var maybe = Notification.requestPermission(function (result) { resolve(result); });
+        if (maybe && typeof maybe.then === 'function') {
+          maybe.then(resolve, function () { resolve('denied'); });
+        }
+      } catch (e) {
+        resolve('denied');
+      }
+    });
+  }
+
   /** طلب الإذن ثم الاشتراك - المسار المشترك بين البانر وزر الملف الشخصي. */
   function enableFlow(registration) {
-    return Notification.requestPermission().then(function (permission) {
+    return requestPermissionSafe().then(function (permission) {
       if (permission !== 'granted') {
         return null;
       }
@@ -76,6 +93,7 @@
       if (!registration) return;
       registration.pushManager.getSubscription().then(function (existing) {
         if (existing) {
+          localStorage.setItem(ENABLED_KEY, '1');
           var json = existing.toJSON();
           postJson(cfg.subscribeUrl, { endpoint: json.endpoint, keys: json.keys }).catch(function () {});
         }
@@ -107,24 +125,19 @@
 
     if (enableBtn) {
       enableBtn.addEventListener('click', function () {
-        enableBtn.disabled = true;
+        // البانر يختفي فوراً بمجرد الضغط - مهما كانت نتيجة ما بعده (نجاح، رفض،
+        // فشل صامت بمتصفح غريب). لو نجح التفعيل يُثبَّت الإخفاء نهائياً، ولو لم
+        // ينجح فلن يعود البانر قبل أسبوعين.
+        banner.hidden = true;
+        localStorage.setItem(DISMISS_KEY, String(Date.now()));
+
         ready.then(function (registration) {
-          if (!registration) {
-            banner.hidden = true;
-            return;
-          }
+          if (!registration) return;
           enableFlow(registration).then(function (subscription) {
             if (subscription) {
-              // نجح التفعيل: البانر يختفي نهائياً على هذا الجهاز
               hideBannerForGood();
-            } else {
-              // رفض الإذن: لا نعيد الإلحاح فوراً
-              banner.hidden = true;
-              localStorage.setItem(DISMISS_KEY, String(Date.now()));
             }
-          }).catch(function () {
-            banner.hidden = true;
-          });
+          }).catch(function () {});
         });
       });
     }

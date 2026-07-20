@@ -33,7 +33,9 @@ if (!is_file(BASE_PATH . '/config.php')) {
 }
 
 define('APP_CONFIG', require BASE_PATH . '/config.php');
-define('APP_ASSET_VERSION', '1');
+// نسخة الأصول مربوطة برقم إصدار النظام: كل تحديث يجدد روابط CSS/JS تلقائياً
+// فلا يعلق أي جهاز (خصوصاً الجوال) على ملفات قديمة من ذاكرة التخزين المؤقت.
+define('APP_ASSET_VERSION', \App\Core\Wasab::currentVersion());
 
 date_default_timezone_set(config_get('timezone', 'Asia/Riyadh'));
 
