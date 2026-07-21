@@ -1,6 +1,112 @@
 <?php
 $platformLabels = ['wordpress' => 'ووردبريس', 'custom' => 'مخصص'];
 
+/**
+ * شرح تكامل متكامل قائم بذاته لكل موقع (بمفتاحه الحقيقي): يُنسخ ويُلصق كما هو
+ * لأي أداة برمجة بالذكاء الاصطناعي أو فريق تطوير، فلا يحتاج مدير النظام شرح
+ * الخدمة من جديد مع كل عملية ربط.
+ */
+$buildBrief = function (array $site) use ($endpointUrl): string {
+    return <<<TEXT
+# مهمة: ربط نموذج التواصل بمركز المراسلات في نظام "وصاب"
+
+## ما هي هذه الخدمة؟
+"مركز المراسلات" ميزة في نظام وصاب الإداري تجمع رسائل نماذج التواصل من كل مواقع
+الشركة في شاشة واحدة، بدل مراجعة كل موقع على حدة. كل موقع يرسل نسخة من أي رسالة
+جديدة تصله إلى نقطة استقبال مركزية عبر طلب HTTP بسيط، ويظهر فوراً بشاشة موحدة
+مع تنبيهات لجوال الموظفين المختصين.
+
+## المطلوب منك (كمطوّر أو أداة برمجة)
+هذا الموقع ({$site['name']}) فيه نموذج تواصل مبرمج مسبقاً. المطلوب فقط: بعد نجاح
+حفظ/إرسال رسالة النموذج بطريقته الحالية، أرسل نسخة من الرسالة للنقطة أدناه.
+لا تغيّر أي شيء في سلوك النموذج الحالي - الإرسال إضافة جانبية بحتة.
+
+## بيانات الاتصال
+- Endpoint: {$endpointUrl}
+- Method: POST
+- التوثيق: ترويسة X-Api-Key بالمفتاح الخاص بهذا الموقع:
+  {$site['api_key']}
+- الصيغة: JSON أو Form-Data (كلاهما مقبول)
+
+## حقول الطلب
+- message (إلزامي): نص الرسالة - حتى 10000 حرف
+- name (اختياري): اسم المرسل
+- email (اختياري): بريد المرسل
+- phone (اختياري): جوال المرسل
+- subject (اختياري): الموضوع
+- extra (اختياري): كائن JSON بأي حقول إضافية يجمعها النموذج (المدينة، نوع
+  الخدمة، رابط الصفحة...) وستظهر تلقائياً بشاشة وصاب
+
+## الردود المتوقعة
+- 201 مع {"success":true,"id":123} => تم الاستلام
+- 401 => مفتاح خاطئ أو الموقع معطّل في وصاب
+- 422 => حقل message فارغ
+
+## شرط إلزامي: الإرسال غير معطِّل (Non-blocking)
+تجربة زائر الموقع مقدّمة على كل شيء:
+1. استدعِ الإرسال بعد نجاح المعالجة الأصلية للنموذج، وليس قبلها.
+2. مهلة اتصال قصوى 1.5 ثانية ومهلة كلية ثانيتان.
+3. تجاهل تام لأي فشل: لو كان وصاب متوقفاً بالكامل يكمل النموذج عمله الطبيعي 100%.
+4. لا تجعل رد النموذج للزائر ينتظر نتيجة وصاب أو يتأثر بها بأي شكل.
+
+## قواعد أمان
+- المفتاح سرّي وخاص بهذا الموقع وحده: يبقى في كود الخادم فقط. ممنوع وضعه في
+  JavaScript أو HTML أو أي كود يصل للمتصفح، وممنوع رفعه لمستودع عام.
+- الإرسال من خادم الموقع فقط، وليس من متصفح الزائر (لا fetch/AJAX مباشر).
+
+## كود جاهز (PHP - يصلح لووردبريس والمواقع المخصصة)
+function wasab_inbox_notify(array \$fields): void
+{
+    if (!function_exists('curl_init')) { return; }
+    try {
+        \$ch = curl_init('{$endpointUrl}');
+        curl_setopt_array(\$ch, [
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => json_encode([
+                'name'    => \$fields['name'] ?? '',
+                'email'   => \$fields['email'] ?? '',
+                'phone'   => \$fields['phone'] ?? '',
+                'subject' => \$fields['subject'] ?? '',
+                'message' => \$fields['message'] ?? '',
+                'extra'   => \$fields['extra'] ?? null,
+            ], JSON_UNESCAPED_UNICODE),
+            CURLOPT_HTTPHEADER => [
+                'Content-Type: application/json',
+                'X-Api-Key: {$site['api_key']}',
+            ],
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_CONNECTTIMEOUT_MS => 1500,
+            CURLOPT_TIMEOUT_MS => 2000,
+        ]);
+        curl_exec(\$ch);
+        curl_close(\$ch);
+    } catch (\\Throwable \$e) {
+        // تجاهل تام - لا يجوز أن يتأثر الموقع بأي خلل هنا.
+    }
+}
+
+// الاستدعاء بعد نجاح حفظ رسالة النموذج (واءم أسماء المتغيرات مع كود النموذج الفعلي):
+// wasab_inbox_notify(['name' => \$name, 'email' => \$email, 'phone' => \$phone, 'message' => \$messageText]);
+
+(لو كان الموقع بلغة أخرى غير PHP - Node/Python/غيرها - طبّق نفس الطلب بنفس
+الترويسة والحقول والمُهل بنفس شرط عدم التعطيل.)
+
+## اختبار التحقق
+curl -X POST {$endpointUrl} \\
+  -H "Content-Type: application/json" \\
+  -H "X-Api-Key: {$site['api_key']}" \\
+  -d '{"name":"اختبار","message":"رسالة تجريبية من الموقع"}'
+
+الرد المتوقع: {"success":true,"id":...} - وستظهر الرسالة فوراً في وصاب.
+
+## خطوات التنفيذ المطلوبة
+1. حدّد مكان معالجة نموذج التواصل الحالي (نقطة نجاح الحفظ/الإرسال).
+2. أضف الدالة والاستدعاء أعلاه مع مواءمة أسماء المتغيرات الفعلية.
+3. لا تغيّر أي سلوك موجود ولا تضف رسائل جديدة للزائر.
+4. اختبر بإرسال رسالة من النموذج وتأكد أنه يعمل كالسابق تماماً.
+TEXT;
+};
+
 /** كود ربط جاهز للنسخ لكل موقع: إرسال غير معطِّل بمهلة قصيرة وكل الأخطاء متجاهَلة. */
 $buildSnippet = function (array $site) use ($endpointUrl): string {
     return <<<PHP
@@ -139,6 +245,27 @@ PHP;
                 <button type="button" class="btn btn-outline btn-sm" data-copy="<?= e($snippet) ?>" onclick="event.preventDefault();">نسخ الكود</button>
             </summary>
             <pre dir="ltr" style="margin:10px 0 0;padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;overflow-x:auto;font-size:12px;line-height:1.7;"><code><?= e($snippet) ?></code></pre>
+        </details>
+    <?php endforeach; ?>
+</div>
+<?php endif; ?>
+
+<?php if ($sites): ?>
+<div class="card">
+    <div class="card-title"><span>📄 شرح الخدمة الجاهز (للمطورين وأدوات البرمجة)</span></div>
+    <p class="hint" style="margin:0 0 12px;">
+        بدل ما تشرح الخدمة من جديد مع كل عملية ربط: انسخ شرح الموقع المطلوب والصقه كما هو
+        في أي أداة برمجة بالذكاء الاصطناعي (كلاود وغيره) أو أرسله لفريق التطوير - شرح متكامل
+        قائم بذاته فيه تعريف الخدمة، بيانات الاتصال بمفتاح الموقع، الشروط، الكود، وخطوات الاختبار.
+    </p>
+    <?php foreach ($sites as $s): ?>
+        <?php $brief = $buildBrief($s); ?>
+        <details style="margin-bottom:10px;border:1px solid var(--border);border-radius:8px;padding:10px 14px;">
+            <summary style="cursor:pointer;font-weight:700;">
+                <?= e($s['name']) ?>
+                <button type="button" class="btn btn-outline btn-sm" data-copy="<?= e($brief) ?>" onclick="event.preventDefault();">نسخ الشرح</button>
+            </summary>
+            <pre dir="rtl" style="margin:10px 0 0;padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;overflow-x:auto;font-size:12px;line-height:1.8;white-space:pre-wrap;font-family:inherit;"><?= e($brief) ?></pre>
         </details>
     <?php endforeach; ?>
 </div>
