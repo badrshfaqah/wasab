@@ -24,7 +24,7 @@ namespace App\Core;
  */
 class CoreMigrator
 {
-    public const CURRENT_VERSION = 10;
+    public const CURRENT_VERSION = 11;
     private const RETRY_COOLDOWN_SECONDS = 300;
 
     private static function migrations(): array
@@ -80,6 +80,14 @@ class CoreMigrator
                     'users',
                     'timezone',
                     "VARCHAR(50) NULL COMMENT 'منطقة زمنية للعرض فقط - NULL تعني توقيت النظام الافتراضي' AFTER `avatar`"
+                ),
+            ],
+            11 => [
+                'label' => 'إضافة عمود آخر نشاط لكل مستخدم',
+                'run' => fn () => self::addColumnIfMissing(
+                    'users',
+                    'last_activity_at',
+                    "DATETIME NULL COMMENT 'آخر طلب مصادق للمستخدم - يُحدَّث بتهدئة دقيقة من Auth::user()' AFTER `last_login_at`"
                 ),
             ],
         ];

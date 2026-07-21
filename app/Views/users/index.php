@@ -10,10 +10,10 @@ $typeLabels = ['system_admin' => 'مدير نظام', 'company_admin' => 'مدي
 <div class="card">
     <div class="table-wrap">
     <table class="table-cards">
-        <thead><tr><th>الاسم</th><th>البريد الإلكتروني</th><th>النوع</th><th>الشركة</th><th>الحالة</th><th></th></tr></thead>
+        <thead><tr><th>الاسم</th><th>البريد الإلكتروني</th><th>النوع</th><th>الشركة</th><th>آخر تسجيل دخول</th><th>آخر نشاط</th><th>الحالة</th><th></th></tr></thead>
         <tbody>
         <?php if (!$users): ?>
-            <tr><td colspan="6"><div class="empty-state"><div class="ic">👥</div>لا يوجد مستخدمون بعد</div></td></tr>
+            <tr><td colspan="8"><div class="empty-state"><div class="ic">👥</div>لا يوجد مستخدمون بعد</div></td></tr>
         <?php endif; ?>
         <?php foreach ($users as $u): ?>
             <tr>
@@ -21,6 +21,12 @@ $typeLabels = ['system_admin' => 'مدير نظام', 'company_admin' => 'مدي
                 <td><?= e($u['email']) ?></td>
                 <td><?= e($typeLabels[$u['membership_type']] ?? $u['membership_type']) ?></td>
                 <td><?= e($u['company_name'] ?? '-') ?></td>
+                <td title="<?= $u['last_login_at'] ? format_date($u['last_login_at'], 'Y-m-d H:i') : '' ?>">
+                    <?= $u['last_login_at'] ? time_ago($u['last_login_at']) : '<span class="hint">لم يدخل بعد</span>' ?>
+                </td>
+                <td title="<?= !empty($u['last_activity_at']) ? format_date($u['last_activity_at'], 'Y-m-d H:i') : '' ?>">
+                    <?= !empty($u['last_activity_at']) ? time_ago($u['last_activity_at']) : '<span class="hint">-</span>' ?>
+                </td>
                 <td><?= status_badge($u['status']) ?></td>
                 <td style="white-space:nowrap;">
                     <a class="btn btn-outline btn-sm" href="<?= route('/users/' . $u['id'] . '/edit') ?>">تعديل</a>

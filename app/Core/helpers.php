@@ -143,6 +143,40 @@ function user_timezone(): ?string
     return $tz;
 }
 
+/** وقت نسبي عربي مختصر: "قبل ٥ دقائق"، "قبل ساعتين"... وللأقدم من أسبوع يعرض التاريخ. */
+function time_ago(?string $date): string
+{
+    if (!$date) {
+        return '-';
+    }
+    $timestamp = strtotime($date);
+    if ($timestamp === false) {
+        return '-';
+    }
+
+    $diff = time() - $timestamp;
+    if ($diff < 0) {
+        $diff = 0;
+    }
+
+    if ($diff < 60) {
+        return 'قبل لحظات';
+    }
+    if ($diff < 3600) {
+        $m = (int) floor($diff / 60);
+        return $m === 1 ? 'قبل دقيقة' : ($m === 2 ? 'قبل دقيقتين' : "قبل {$m} دقائق");
+    }
+    if ($diff < 86400) {
+        $h = (int) floor($diff / 3600);
+        return $h === 1 ? 'قبل ساعة' : ($h === 2 ? 'قبل ساعتين' : "قبل {$h} ساعات");
+    }
+    if ($diff < 604800) {
+        $d = (int) floor($diff / 86400);
+        return $d === 1 ? 'أمس' : ($d === 2 ? 'قبل يومين' : "قبل {$d} أيام");
+    }
+    return format_date($date, 'Y-m-d');
+}
+
 function format_date(?string $date, string $format = 'Y-m-d'): string
 {
     if (!$date) {

@@ -2,7 +2,7 @@
     "name": "وصاب",
     "name_en": "Wasab",
     "slug": "wasab",
-    "version": "1.8.6",
+    "version": "1.9.0",
     "exclude_from_package": [
         ".claude"
     ],

@@ -135,6 +135,21 @@ class Auth
         }
 
         $user = Database::first('SELECT * FROM users WHERE id = :id AND status = "active" LIMIT 1', ['id' => $id]);
+
+        // تتبع "آخر نشاط": يُحدَّث مع أول تحميل للمستخدم في الطلب، بتهدئة دقيقة
+        // كاملة حتى لا نكتب على القاعدة مع كل نقرة. لا يفشل الطلب لو تعذر التحديث
+        // (عمود ناقص قبل تطبيق ترقية النواة 11 مثلاً).
+        if ($user && array_key_exists('last_activity_at', $user)
+            && (empty($user['last_activity_at']) || strtotime($user['last_activity_at']) < time() - 60)) {
+            try {
+                $now = date('Y-m-d H:i:s');
+                Database::update('users', ['last_activity_at' => $now], 'id = :id', ['id' => $user['id']]);
+                $user['last_activity_at'] = $now;
+            } catch (\Throwable $e) {
+                // تجاهل - التتبع تحسيني وليس أساسياً
+            }
+        }
+
         self::$userCache = $user ?: null;
         return self::$userCache;
     }

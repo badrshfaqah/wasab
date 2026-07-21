@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS `users` (
     `timezone` VARCHAR(50) NULL COMMENT 'منطقة زمنية للعرض فقط - NULL تعني توقيت النظام الافتراضي',
     `status` ENUM('active','inactive') NOT NULL DEFAULT 'active',
     `last_login_at` DATETIME NULL,
+    `last_activity_at` DATETIME NULL COMMENT 'آخر طلب مصادق للمستخدم - يُحدَّث بتهدئة دقيقة من Auth::user()',
     `failed_login_attempts` TINYINT UNSIGNED NOT NULL DEFAULT 0,
     `locked_until` DATETIME NULL,
     `created_at` DATETIME NOT NULL,
