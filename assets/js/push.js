@@ -75,10 +75,14 @@
     });
   }
 
-  /** طلب الإذن ثم الاشتراك - المسار المشترك بين البانر وزر الملف الشخصي. */
-  function enableFlow(registration) {
-    return requestPermissionSafe().then(function (permission) {
-      if (permission !== 'granted') {
+  /**
+   * الاشتراك بعد منح الإذن. تنبيه مهم: طلب الإذن نفسه يجب أن يُستدعى مباشرة
+   * داخل معالج النقرة (متزامناً) وليس هنا - iOS يتجاهل الطلب بصمت إن جاء داخل
+   * سلسلة وعود متأخرة عن إيماءة المستخدم.
+   */
+  function subscribeAfterGrant() {
+    return ready.then(function (registration) {
+      if (!registration) {
         return null;
       }
       return subscribe(registration);
@@ -125,15 +129,14 @@
 
     if (enableBtn) {
       enableBtn.addEventListener('click', function () {
-        // البانر يختفي فوراً بمجرد الضغط - مهما كانت نتيجة ما بعده (نجاح، رفض،
-        // فشل صامت بمتصفح غريب). لو نجح التفعيل يُثبَّت الإخفاء نهائياً، ولو لم
-        // ينجح فلن يعود البانر قبل أسبوعين.
+        // البانر يختفي فوراً بمجرد الضغط - مهما كانت نتيجة ما بعده.
         banner.hidden = true;
         localStorage.setItem(DISMISS_KEY, String(Date.now()));
 
-        ready.then(function (registration) {
-          if (!registration) return;
-          enableFlow(registration).then(function (subscription) {
+        // طلب الإذن أول شيء وبشكل متزامن داخل النقرة (شرط iOS)
+        requestPermissionSafe().then(function (permission) {
+          if (permission !== 'granted') return;
+          subscribeAfterGrant().then(function (subscription) {
             if (subscription) {
               hideBannerForGood();
             }
@@ -157,6 +160,9 @@
     return;
   }
   var statusEl = document.getElementById('push-status');
+  // حالة الاشتراك الحالية تُتتبع مسبقاً حتى يقرر معالج النقرة فوراً (اشتراك أم
+  // إلغاء) دون استعلام متأخر يُفقد iOS إيماءة المستخدم.
+  var currentSub = null;
 
   function setStatus(text) {
     if (statusEl) statusEl.textContent = text;
@@ -176,6 +182,7 @@
     ready.then(function (registration) {
       if (!registration) return;
       registration.pushManager.getSubscription().then(function (existing) {
+        currentSub = existing || null;
         if (existing) {
           toggle.textContent = 'إيقاف التنبيهات على هذا الجهاز';
           toggle.classList.add('btn-outline');
@@ -193,33 +200,34 @@
     if (!supported) return;
     toggle.disabled = true;
 
-    ready.then(function (registration) {
-      if (!registration) {
+    if (currentSub) {
+      // إيقاف: لا يحتاج إذناً ولا إيماءة
+      var json = currentSub.toJSON();
+      currentSub.unsubscribe().then(function () {
+        postJson(cfg.unsubscribeUrl, { endpoint: json.endpoint }).catch(function () {});
+        currentSub = null;
         toggle.disabled = false;
-        setStatus('تعذر تسجيل عامل الخدمة - تأكد أن الموقع يعمل عبر HTTPS.');
+        refreshButton();
+      });
+      return;
+    }
+
+    // تفعيل: طلب الإذن أول شيء وبشكل متزامن داخل النقرة (شرط iOS)
+    requestPermissionSafe().then(function (permission) {
+      if (permission !== 'granted') {
+        toggle.disabled = false;
+        refreshButton();
         return;
       }
-      registration.pushManager.getSubscription().then(function (existing) {
-        if (existing) {
-          var json = existing.toJSON();
-          existing.unsubscribe().then(function () {
-            postJson(cfg.unsubscribeUrl, { endpoint: json.endpoint }).catch(function () {});
-            toggle.disabled = false;
-            refreshButton();
-          });
-          return;
+      subscribeAfterGrant().then(function (subscription) {
+        if (subscription) {
+          hideBannerForGood();
         }
-
-        enableFlow(registration).then(function (subscription) {
-          if (subscription) {
-            hideBannerForGood();
-          }
-          toggle.disabled = false;
-          refreshButton();
-        }).catch(function () {
-          toggle.disabled = false;
-          setStatus('تعذر إتمام الاشتراك - أعد المحاولة.');
-        });
+        toggle.disabled = false;
+        refreshButton();
+      }).catch(function () {
+        toggle.disabled = false;
+        setStatus('تعذر إتمام الاشتراك - أعد المحاولة.');
       });
     });
   });
