@@ -24,7 +24,7 @@ namespace App\Core;
  */
 class CoreMigrator
 {
-    public const CURRENT_VERSION = 11;
+    public const CURRENT_VERSION = 12;
     private const RETRY_COOLDOWN_SECONDS = 300;
 
     private static function migrations(): array
@@ -90,7 +90,46 @@ class CoreMigrator
                     "DATETIME NULL COMMENT 'آخر طلب مصادق للمستخدم - يُحدَّث بتهدئة دقيقة من Auth::user()' AFTER `last_login_at`"
                 ),
             ],
+            12 => [
+                'label' => 'نقل شعارات الشركات لمجلد محمي يُخدم للمسجلين دخولاً فقط',
+                'run' => fn () => self::moveCompanyLogosToProtectedDir(),
+            ],
         ];
+    }
+
+    /**
+     * شعارات الشركات كانت في storage/uploads/core المفتوح للعموم (لأن شعار النظام
+     * وأيقونات الجوال تظهر قبل تسجيل الدخول)، لكنها خاصة بالشركات ولا تظهر إلا
+     * داخل النظام - تُنقل لمجلد companies المحجوب وتُخدم عبر /media بمصادقة.
+     * شعار النظام وأيقوناته يبقيان في core عمداً.
+     */
+    private static function moveCompanyLogosToProtectedDir(): void
+    {
+        $source = BASE_PATH . '/storage/uploads/core';
+        $target = BASE_PATH . '/storage/uploads/companies';
+
+        $logos = array_column(
+            Database::select("SELECT logo FROM companies WHERE logo IS NOT NULL AND logo != ''"),
+            'logo'
+        );
+        if (!$logos) {
+            return;
+        }
+
+        if (!is_dir($target) && !@mkdir($target, 0755, true) && !is_dir($target)) {
+            throw new \RuntimeException("تعذر إنشاء المجلد {$target}");
+        }
+
+        foreach (array_unique($logos) as $file) {
+            if (!preg_match('/^[A-Za-z0-9_.-]+$/', $file)) {
+                continue;
+            }
+            $from = $source . '/' . $file;
+            $to = $target . '/' . $file;
+            if (is_file($from) && !is_file($to) && !@rename($from, $to)) {
+                throw new \RuntimeException("تعذر نقل الشعار {$file} إلى storage/uploads/companies/");
+            }
+        }
     }
 
     /** يُستدعى تلقائياً في كل طلب - صامت وسريع، مع تهدئة بين محاولات الترقيات الفاشلة. */

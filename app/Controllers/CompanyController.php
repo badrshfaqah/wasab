@@ -47,7 +47,7 @@ class CompanyController
             redirect('/companies/create');
         }
 
-        $upload = Uploads::handleImage('logo', BASE_PATH . '/storage/uploads/core');
+        $upload = Uploads::handleImage('logo', BASE_PATH . '/storage/uploads/companies');
 
         try {
             Database::insert('companies', [
@@ -97,7 +97,7 @@ class CompanyController
             redirect('/companies/' . $params['id'] . '/edit');
         }
 
-        $upload = Uploads::handleImage('logo', BASE_PATH . '/storage/uploads/core');
+        $upload = Uploads::handleImage('logo', BASE_PATH . '/storage/uploads/companies');
         $logo = $upload['filename'] ?: $company['logo'];
 
         try {

@@ -40,7 +40,7 @@ $coreItems[] = ['label' => 'سجل العمليات', 'icon' => '📜', 'url' =>
 <aside class="sidebar">
     <div class="brand">
         <?php if (!empty($company['logo'])): ?>
-            <img src="<?= e(base_url('storage/uploads/core/' . $company['logo'])) ?>" alt="">
+            <img src="<?= e(route('/media/companies/' . $company['logo'])) ?>" alt="">
         <?php elseif ($appLogoUrl = app_logo_url()): ?>
             <img src="<?= e($appLogoUrl) ?>" alt="">
         <?php else: ?>
