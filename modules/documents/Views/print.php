@@ -22,10 +22,11 @@ $bgUrl = $template && $template['background_image']
 body{margin:0;background:#e5e7eb;font-family:'Cairo','Segoe UI',Tahoma,Arial,sans-serif;color:#1f2937;}
 .toolbar{position:sticky;top:0;background:#111827;color:#fff;padding:10px 20px;display:flex;justify-content:space-between;align-items:center;z-index:10;}
 .toolbar button, .toolbar a{background:#2563eb;color:#fff;border:0;border-radius:6px;padding:8px 16px;font-size:14px;cursor:pointer;text-decoration:none;}
-.page-wrap{display:flex;justify-content:center;padding:24px 12px;}
+.page-wrap{display:flex;justify-content:center;padding:24px 12px;overflow-x:auto;}
 .doc-page{
   position:relative;width:210mm;min-height:297mm;background:#fff <?= $bgUrl ? 'url(' . e($bgUrl) . ') center/cover no-repeat' : '' ?>;
   box-shadow:0 2px 16px rgba(0,0,0,.15);padding:30mm 22mm;
+  -webkit-print-color-adjust:exact;print-color-adjust:exact;
 }
 .doc-badge{position:absolute;font-size:11px;color:#374151;background:rgba(255,255,255,.85);padding:4px 10px;border-radius:6px;}
 .doc-badge.top-right{top:10mm;right:14mm;text-align:left;}
@@ -39,11 +40,18 @@ body{margin:0;background:#e5e7eb;font-family:'Cairo','Segoe UI',Tahoma,Arial,san
 .doc-content :is(ul,ol){padding-inline-start:24px;}
 .doc-signature{margin-top:40px;display:flex;justify-content:flex-end;gap:20px;text-align:center;}
 .doc-signature img{max-height:70px;display:block;margin:0 auto 6px;}
+/*
+  بدون @page بهوامش صفرية: المتصفح يضيف هوامشه الافتراضية (~13مم لكل جهة) فوق
+  هوامش المستند الداخلية (30/22مم)، فيضيق عمود النص وتُطبع الصفحة "صغيرة".
+  الحل: تصفير هوامش الطابعة وجعل عنصر الصفحة بمقاس A4 الفعلي - فتُطبع مطابقة
+  تماماً لما يظهر بالشاشة، والخلفية تغطي الورقة كاملة من الحافة للحافة.
+*/
+@page{size:A4;margin:0;}
 @media print{
   body{background:#fff;}
   .toolbar{display:none;}
-  .page-wrap{padding:0;}
-  .doc-page{box-shadow:none;width:auto;min-height:auto;margin:0;}
+  .page-wrap{padding:0;display:block;overflow:visible;}
+  .doc-page{box-shadow:none;width:210mm;min-height:297mm;margin:0;}
 }
 </style>
 </head>

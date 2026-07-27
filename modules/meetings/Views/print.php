@@ -22,9 +22,12 @@ $afterNotes = array_filter($notes, fn ($n) => $n['phase'] === 'after');
     .note { border-bottom: 1px solid #eee; padding: 6px 0; }
     .note-meta { color: #777; font-size: 12px; }
     .no-print { margin-bottom: 20px; }
+    /* بدون هذا كان عرض الصفحة (800px) أعرض من مساحة الطباعة الفعلية فيقلّص
+       المتصفح المحتوى كله ليُدخله - فيُطبع المحضر صغيراً. */
+    @page { size: A4; margin: 15mm; }
     @media print {
         .no-print { display: none; }
-        body { padding: 0; }
+        body { padding: 0; max-width: none; }
     }
 </style>
 </head>
