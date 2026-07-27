@@ -41,10 +41,12 @@ $coreItems[] = ['label' => 'سجل العمليات', 'icon' => '📜', 'url' =>
     <div class="brand">
         <?php if (!empty($company['logo'])): ?>
             <img src="<?= e(base_url('storage/uploads/core/' . $company['logo'])) ?>" alt="">
+        <?php elseif ($appLogoUrl = app_logo_url()): ?>
+            <img src="<?= e($appLogoUrl) ?>" alt="">
         <?php else: ?>
             <span>🗂️</span>
         <?php endif; ?>
-        <span><?= e(app_name()) ?></span>
+        <span><?= e($company['name'] ?? app_name()) ?></span>
     </div>
     <nav>
         <?php foreach ($coreItems as $item): ?>

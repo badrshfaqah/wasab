@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>تسجيل الدخول - <?= e(app_name()) ?></title>
 <link rel="stylesheet" href="<?= asset('css/app.css') ?>">
-<link rel="manifest" href="<?= route('manifest.json') ?>">
+<link rel="manifest" href="<?= route('manifest') ?>">
 <meta name="theme-color" content="#2563eb">
-<link rel="apple-touch-icon" href="<?= asset('img/icon-192.png') ?>">
+<link rel="apple-touch-icon" href="<?= app_icon_url(192) ?>">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="وصاب">
@@ -19,7 +19,14 @@ body{display:flex;flex-direction:column;align-items:center;justify-content:cente
 </head>
 <body>
 <div class="login-card">
-    <div class="login-logo">🗂️ <?= e(app_name()) ?></div>
+    <div class="login-logo">
+        <?php if ($appLogo = app_logo_url()): ?>
+            <img src="<?= e($appLogo) ?>" alt="<?= e(app_name()) ?>" style="max-height:64px;max-width:220px;display:block;margin:0 auto 10px;">
+            <?= e(app_name()) ?>
+        <?php else: ?>
+            🗂️ <?= e(app_name()) ?>
+        <?php endif; ?>
+    </div>
     <?php if ($msg = flash_get('error')): ?>
         <div class="alert alert-danger"><?= e($msg) ?></div>
     <?php endif; ?>

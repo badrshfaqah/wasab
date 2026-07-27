@@ -5,11 +5,23 @@
 
 <div class="card" style="max-width:560px;">
 <?php if (Auth::isSystemAdmin()): ?>
-    <form method="post" action="<?= route('/settings') ?>">
+    <form method="post" action="<?= route('/settings') ?>" enctype="multipart/form-data">
         <?= csrf_field() ?>
         <div class="field">
             <label>اسم النظام</label>
             <input type="text" name="app_name" value="<?= e($appName) ?>" required>
+            <p class="hint">يظهر ببوابة الدخول والقائمة الجانبية واسم تطبيق الجوال. (هوية "وصاب" ورقم الإصدار يبقيان أسفل النظام).</p>
+        </div>
+        <div class="field">
+            <label>شعار النظام</label>
+            <input type="file" name="app_logo" accept="image/png,image/jpeg,image/webp">
+            <p class="hint">يظهر ببوابة تسجيل الدخول، وبالقائمة الجانبية للشركات التي لم ترفع شعارها الخاص، وتتولد منه أيقونة تطبيق الجوال تلقائياً. يُفضَّل صورة مربعة بخلفية فاتحة.</p>
+            <?php if ($appLogoUrl): ?>
+                <div style="margin-top:8px;display:flex;align-items:center;gap:10px;">
+                    <img src="<?= e($appLogoUrl) ?>" alt="شعار النظام الحالي" style="height:40px;border-radius:6px;border:1px solid var(--border);">
+                    <img src="<?= e(app_icon_url(192)) ?>" alt="أيقونة الجوال" style="height:40px;border-radius:10px;border:1px solid var(--border);" title="أيقونة الجوال المولَّدة">
+                </div>
+            <?php endif; ?>
         </div>
         <div class="field">
             <label>عنوان الموقع (اختياري)</label>

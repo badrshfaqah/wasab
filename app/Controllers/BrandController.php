@@ -1,0 +1,38 @@
+<?php
+
+namespace App\Controllers;
+
+/**
+ * ملف تعريف تطبيق الجوال (Web App Manifest) ديناميكياً: يعكس اسم النظام وشعاره
+ * المخصصين من الإعدادات (علامة بيضاء) بدل ملف manifest.json الثابت. عام بلا
+ * مصادقة - المتصفح يجلبه أثناء التثبيت للشاشة الرئيسية.
+ */
+class BrandController
+{
+    public function manifest(): void
+    {
+        header('Content-Type: application/manifest+json; charset=utf-8');
+
+        $icons = [
+            ['src' => app_icon_url(192), 'sizes' => '192x192', 'type' => 'image/png', 'purpose' => 'any'],
+            ['src' => app_icon_url(512), 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'any'],
+            ['src' => app_icon_url(512), 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'maskable'],
+        ];
+
+        echo json_encode([
+            'name' => app_name(),
+            'short_name' => mb_substr(app_name(), 0, 12),
+            'description' => 'نظام إداري متكامل وخفيف لإدارة أعمال الشركات',
+            'lang' => 'ar',
+            'dir' => 'rtl',
+            'id' => './',
+            'start_url' => './',
+            'scope' => './',
+            'display' => 'standalone',
+            'orientation' => 'portrait-primary',
+            'background_color' => '#f4f6f9',
+            'theme_color' => '#2563eb',
+            'icons' => $icons,
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    }
+}

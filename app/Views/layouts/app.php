@@ -29,9 +29,9 @@ if ($impersonating) {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?= isset($pageTitle) ? e($pageTitle) . ' - ' : '' ?><?= e(app_name()) ?></title>
 <link rel="stylesheet" href="<?= asset('css/app.css') ?>">
-<link rel="manifest" href="<?= route('manifest.json') ?>">
+<link rel="manifest" href="<?= route('manifest') ?>">
 <meta name="theme-color" content="<?= e($primaryColor) ?>">
-<link rel="apple-touch-icon" href="<?= asset('img/icon-192.png') ?>">
+<link rel="apple-touch-icon" href="<?= app_icon_url(192) ?>">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="وصاب">

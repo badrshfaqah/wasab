@@ -93,6 +93,9 @@ $router->get('/notifications', [NotificationController::class, 'index'], [[Middl
 $router->post('/notifications/read', [NotificationController::class, 'markRead'], [[Middleware::class, 'auth']]);
 $router->post('/notifications/read-all', [NotificationController::class, 'markAllRead'], [[Middleware::class, 'auth']]);
 
+// ---------- ملف تعريف تطبيق الجوال (ديناميكي ليعكس الاسم والشعار المخصصين) ----------
+$router->get('/manifest', [\App\Controllers\BrandController::class, 'manifest'], []);
+
 // ---------- تشغيل مهام الجدولة عبر الويب (بتوكن، بديل cron CLI) ----------
 $router->get('/cron/{token}', [CronController::class, 'run'], []);
 

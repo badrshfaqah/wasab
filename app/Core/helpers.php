@@ -143,6 +143,29 @@ function user_timezone(): ?string
     return $tz;
 }
 
+/**
+ * شعار النظام المخصص (يرفعه مدير النظام من الإعدادات) - يظهر ببوابة الدخول
+ * والقائمة الجانبية (لمن لا شعار لشركته) وأيقونة الجوال. null إن لم يُرفع.
+ */
+function app_logo_url(): ?string
+{
+    $file = \App\Core\Setting::get('app_logo', null, '');
+    if ($file === '' || !is_file(BASE_PATH . '/storage/uploads/core/' . $file)) {
+        return null;
+    }
+    return base_url('storage/uploads/core/' . $file);
+}
+
+/** أيقونة الجوال (PWA): المولَّدة من شعار النظام المخصص إن وُجدت، وإلا الافتراضية. */
+function app_icon_url(int $size): string
+{
+    $path = BASE_PATH . "/storage/uploads/core/app-icon-{$size}.png";
+    if (is_file($path)) {
+        return base_url("storage/uploads/core/app-icon-{$size}.png") . '?v=' . filemtime($path);
+    }
+    return asset("img/icon-{$size}.png");
+}
+
 /** وقت نسبي عربي مختصر: "قبل ٥ دقائق"، "قبل ساعتين"... وللأقدم من أسبوع يعرض التاريخ. */
 function time_ago(?string $date): string
 {

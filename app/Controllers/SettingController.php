@@ -27,6 +27,7 @@ class SettingController
             'company' => $company,
             'appName' => app_name(),
             'appUrl' => app_url(),
+            'appLogoUrl' => app_logo_url(),
         ]);
     }
 
@@ -48,6 +49,22 @@ class SettingController
             $appUrl = rtrim(trim((string) Request::input('app_url', '')), '/');
             Setting::set('app_url', $appUrl);
             ActivityLog::log('settings.update', 'setting', 'app_url', 'تحديث عنوان الموقع');
+
+            // شعار النظام (علامة بيضاء): يظهر ببوابة الدخول والقائمة الجانبية
+            // (لمن لا شعار لشركته) ويتولد منه أيقونتا الجوال 192/512 تلقائياً.
+            $logoUpload = Uploads::handleImage('app_logo', BASE_PATH . '/storage/uploads/core');
+            if ($logoUpload['filename']) {
+                Setting::set('app_logo', $logoUpload['filename']);
+                $iconsOk = $this->generateAppIcons(BASE_PATH . '/storage/uploads/core/' . $logoUpload['filename']);
+                ActivityLog::log('settings.update', 'setting', 'app_logo', 'تحديث شعار النظام');
+                if (!$iconsOk) {
+                    flash_set('error', 'تم حفظ الشعار، لكن تعذر توليد أيقونات الجوال تلقائياً (امتداد GD غير متاح) - ستبقى الأيقونة الافتراضية.');
+                    redirect('/settings');
+                }
+            } elseif ($logoUpload['error']) {
+                flash_set('error', 'تم حفظ باقي الإعدادات، لكن فشل رفع شعار النظام: ' . $logoUpload['error']);
+                redirect('/settings');
+            }
         } else {
             $companyId = Auth::companyId();
             $name = trim((string) Request::input('company_name', ''));
@@ -88,6 +105,57 @@ class SettingController
 
         flash_set('success', 'تم حفظ الإعدادات.');
         redirect('/settings');
+    }
+
+    /**
+     * توليد أيقونتي الجوال (192/512) من شعار النظام: مربع بخلفية بيضاء والشعار
+     * بمنتصفه بهامش مريح (آمن لقصّ maskable الدائري بأندرويد). يتطلب امتداد GD.
+     */
+    private function generateAppIcons(string $sourcePath): bool
+    {
+        if (!extension_loaded('gd')) {
+            return false;
+        }
+
+        try {
+            $info = getimagesize($sourcePath);
+            if (!$info) {
+                return false;
+            }
+            $source = match ($info['mime']) {
+                'image/png' => imagecreatefrompng($sourcePath),
+                'image/jpeg' => imagecreatefromjpeg($sourcePath),
+                'image/webp' => imagecreatefromwebp($sourcePath),
+                default => false,
+            };
+            if ($source === false) {
+                return false;
+            }
+
+            $srcW = imagesx($source);
+            $srcH = imagesy($source);
+
+            foreach ([192, 512] as $size) {
+                $canvas = imagecreatetruecolor($size, $size);
+                imagefill($canvas, 0, 0, imagecolorallocate($canvas, 255, 255, 255));
+
+                $scale = min(($size * 0.84) / $srcW, ($size * 0.84) / $srcH);
+                $newW = max(1, (int) round($srcW * $scale));
+                $newH = max(1, (int) round($srcH * $scale));
+                imagecopyresampled(
+                    $canvas, $source,
+                    (int) (($size - $newW) / 2), (int) (($size - $newH) / 2),
+                    0, 0, $newW, $newH, $srcW, $srcH
+                );
+                imagepng($canvas, BASE_PATH . "/storage/uploads/core/app-icon-{$size}.png");
+                imagedestroy($canvas);
+            }
+            imagedestroy($source);
+            return true;
+        } catch (\Throwable $e) {
+            log_exception($e);
+            return false;
+        }
     }
 
     private function guardAccess(): void
