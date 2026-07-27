@@ -94,8 +94,9 @@ $router->get('/notifications', [NotificationController::class, 'index'], [[Middl
 $router->post('/notifications/read', [NotificationController::class, 'markRead'], [[Middleware::class, 'auth']]);
 $router->post('/notifications/read-all', [NotificationController::class, 'markAllRead'], [[Middleware::class, 'auth']]);
 
-// ---------- صور الوحدات الحساسة (مستندات/موظفون) - للمسجلين دخولاً فقط ----------
-$router->get('/media/{area}/{file}', [\App\Controllers\MediaController::class, 'serve'], [[Middleware::class, 'auth']]);
+// ---------- صور الوحدات الحساسة - شعارات الشركات لأي مسجل، والبقية لأعضاء الشركة فقط ----------
+$router->get('/media/companies/{file}', [\App\Controllers\MediaController::class, 'serveCompanyLogo'], [[Middleware::class, 'auth']]);
+$router->get('/media/{area}/{cid}/{file}', [\App\Controllers\MediaController::class, 'serve'], [[Middleware::class, 'auth']]);
 
 // ---------- ملف تعريف تطبيق الجوال (ديناميكي ليعكس الاسم والشعار المخصصين) ----------
 $router->get('/manifest', [\App\Controllers\BrandController::class, 'manifest'], []);

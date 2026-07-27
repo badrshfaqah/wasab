@@ -33,7 +33,7 @@ class ArchiveShareController
             return;
         }
 
-        $path = BASE_PATH . self::STORAGE_DIR . '/' . $file['stored_name'];
+        $path = BASE_PATH . self::STORAGE_DIR . '/' . $file['company_id'] . '/' . $file['stored_name'];
         if (!is_file($path)) {
             http_response_code(404);
             return;

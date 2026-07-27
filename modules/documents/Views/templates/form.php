@@ -26,7 +26,7 @@ $positionLabels = [
             <input type="file" name="background_image" accept="image/png,image/jpeg,image/webp">
             <?php if (!empty($template['background_image'])): ?>
                 <div style="margin-top:8px;">
-                    <img src="<?= e(route('/media/documents/' . $template['background_image'])) ?>" alt="" style="max-height:80px;border-radius:6px;border:1px solid var(--border);">
+                    <img src="<?= e(route('/media/documents/' . $template['company_id'] . '/' . $template['background_image'])) ?>" alt="" style="max-height:80px;border-radius:6px;border:1px solid var(--border);">
                 </div>
             <?php endif; ?>
             <p class="hint">PNG أو JPG أو WEBP، بحد أقصى 2 ميجابايت. يُفضّل مقاس ورقة A4.</p>

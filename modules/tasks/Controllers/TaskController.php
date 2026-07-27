@@ -217,7 +217,7 @@ class TaskController
         $this->verifyCsrf('/tasks/' . $task['id']);
 
         foreach (TaskAttachment::forTask($task['id']) as $att) {
-            @unlink(BASE_PATH . '/storage/uploads/tasks/' . $att['stored_name']);
+            @unlink(BASE_PATH . '/storage/uploads/tasks/' . $companyId . '/' . $att['stored_name']);
         }
 
         Task::delete($task['id']);
@@ -417,7 +417,7 @@ class TaskController
         }
         $this->verifyCsrf('/tasks/' . $task['id']);
 
-        $upload = Uploads::handleFile('file', BASE_PATH . '/storage/uploads/tasks', self::ATTACHMENT_EXTENSIONS, self::ATTACHMENT_MAX_BYTES);
+        $upload = Uploads::handleFile('file', BASE_PATH . '/storage/uploads/tasks/' . $companyId, self::ATTACHMENT_EXTENSIONS, self::ATTACHMENT_MAX_BYTES);
         if ($upload['error']) {
             flash_set('error', $upload['error']);
             redirect('/tasks/' . $task['id']);
@@ -445,7 +445,7 @@ class TaskController
             exit;
         }
 
-        $path = BASE_PATH . '/storage/uploads/tasks/' . $attachment['stored_name'];
+        $path = BASE_PATH . '/storage/uploads/tasks/' . $companyId . '/' . $attachment['stored_name'];
         if (!is_file($path)) {
             http_response_code(404);
             exit;

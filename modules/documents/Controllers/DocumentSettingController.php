@@ -45,7 +45,7 @@ class DocumentSettingController
 
         $current = DocumentSetting::getOrCreate($companyId);
 
-        $signature = Uploads::handleImage('signature_image', BASE_PATH . '/storage/uploads/documents');
+        $signature = Uploads::handleImage('signature_image', BASE_PATH . '/storage/uploads/documents/' . $companyId);
         if ($signature['error']) {
             flash_set('error', 'فشل رفع صورة التوقيع: ' . $signature['error']);
             redirect('/documents/settings');
@@ -53,11 +53,11 @@ class DocumentSettingController
         if ($signature['filename']) {
             $data['signature_image'] = $signature['filename'];
             if ($current['signature_image']) {
-                @unlink(BASE_PATH . '/storage/uploads/documents/' . $current['signature_image']);
+                @unlink(BASE_PATH . '/storage/uploads/documents/' . $companyId . '/' . $current['signature_image']);
             }
         }
 
-        $stamp = Uploads::handleImage('stamp_image', BASE_PATH . '/storage/uploads/documents');
+        $stamp = Uploads::handleImage('stamp_image', BASE_PATH . '/storage/uploads/documents/' . $companyId);
         if ($stamp['error']) {
             flash_set('error', 'فشل رفع صورة الختم: ' . $stamp['error']);
             redirect('/documents/settings');
@@ -65,7 +65,7 @@ class DocumentSettingController
         if ($stamp['filename']) {
             $data['stamp_image'] = $stamp['filename'];
             if ($current['stamp_image']) {
-                @unlink(BASE_PATH . '/storage/uploads/documents/' . $current['stamp_image']);
+                @unlink(BASE_PATH . '/storage/uploads/documents/' . $companyId . '/' . $current['stamp_image']);
             }
         }
 

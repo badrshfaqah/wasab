@@ -33,7 +33,7 @@ $today = date('Y-m-d');
             <div class="card-title"><span>نظرة عامة</span></div>
             <div style="display:flex;gap:14px;align-items:center;margin-bottom:10px;">
                 <?php if ($employee['photo']): ?>
-                    <img src="<?= e(route('/media/employees/' . $employee['photo'])) ?>" alt="" style="width:64px;height:64px;border-radius:50%;object-fit:cover;">
+                    <img src="<?= e(route('/media/employees/' . $employee['company_id'] . '/' . $employee['photo'])) ?>" alt="" style="width:64px;height:64px;border-radius:50%;object-fit:cover;">
                 <?php else: ?>
                     <div style="width:64px;height:64px;border-radius:50%;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:26px;">🪪</div>
                 <?php endif; ?>

@@ -12,7 +12,7 @@ namespace App\Controllers;
  */
 class MediaController
 {
-    private const AREAS = ['documents', 'employees', 'companies'];
+    private const COMPANY_AREAS = ['documents', 'employees'];
 
     private const MIME_TYPES = [
         'png' => 'image/png',
@@ -21,21 +21,43 @@ class MediaController
         'webp' => 'image/webp',
     ];
 
+    /**
+     * صور الوحدات المفصولة لكل شركة: /media/{area}/{cid}/{file} - لا يخدمها إلا
+     * لأعضاء الشركة نفسها (عزل كامل بين الشركات على مستوى الرابط أيضاً).
+     */
     public function serve(array $params): void
     {
         $area = (string) ($params['area'] ?? '');
+        $companyId = (int) ($params['cid'] ?? 0);
         $file = (string) ($params['file'] ?? '');
 
+        if (!in_array($area, self::COMPANY_AREAS, true)
+            || $companyId < 1
+            || (int) \App\Core\Auth::companyId() !== $companyId) {
+            http_response_code(404);
+            exit;
+        }
+
+        $this->stream(BASE_PATH . '/storage/uploads/' . $area . '/' . $companyId, $file);
+    }
+
+    /** شعارات الشركات (تُعرض بقوائم مدير النظام أيضاً): أي مستخدم مسجل دخولاً. */
+    public function serveCompanyLogo(array $params): void
+    {
+        $this->stream(BASE_PATH . '/storage/uploads/companies', (string) ($params['file'] ?? ''));
+    }
+
+    private function stream(string $dir, string $file): void
+    {
         $extension = strtolower(pathinfo($file, PATHINFO_EXTENSION));
-        if (!in_array($area, self::AREAS, true)
-            || !preg_match('/^[A-Za-z0-9_.-]+$/', $file)
+        if (!preg_match('/^[A-Za-z0-9_.-]+$/', $file)
             || str_contains($file, '..')
             || !isset(self::MIME_TYPES[$extension])) {
             http_response_code(404);
             exit;
         }
 
-        $path = BASE_PATH . '/storage/uploads/' . $area . '/' . $file;
+        $path = $dir . '/' . $file;
         if (!is_file($path)) {
             http_response_code(404);
             exit;

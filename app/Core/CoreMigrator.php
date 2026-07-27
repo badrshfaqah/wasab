@@ -24,7 +24,7 @@ namespace App\Core;
  */
 class CoreMigrator
 {
-    public const CURRENT_VERSION = 12;
+    public const CURRENT_VERSION = 13;
     private const RETRY_COOLDOWN_SECONDS = 300;
 
     private static function migrations(): array
@@ -94,7 +94,63 @@ class CoreMigrator
                 'label' => 'نقل شعارات الشركات لمجلد محمي يُخدم للمسجلين دخولاً فقط',
                 'run' => fn () => self::moveCompanyLogosToProtectedDir(),
             ],
+            13 => [
+                'label' => 'فصل مرفقات كل شركة في مجلد خاص بها داخل كل إضافة',
+                'run' => fn () => self::moveUploadsIntoCompanyDirs(),
+            ],
         ];
+    }
+
+    /**
+     * إعادة تنظيم الرفوعات: من مجلد مشترك لكل إضافة إلى مجلد فرعي لكل شركة
+     * (storage/uploads/tasks/{company_id}/... إلخ) - لتسهيل النسخ الاحتياطي
+     * وتصدير/حذف بيانات شركة بعينها. أسماء الملفات تُجلب من جداول كل إضافة،
+     * والإضافات غير المثبتة (جداولها غائبة) تُتجاوز بهدوء. العملية آمنة للإعادة.
+     */
+    private static function moveUploadsIntoCompanyDirs(): void
+    {
+        $groups = [
+            'tasks' => 'SELECT t.company_id AS cid, a.stored_name AS f
+                          FROM tasks_attachments a JOIN tasks_tasks t ON t.id = a.task_id',
+            'employees' => 'SELECT company_id AS cid, photo AS f FROM employees_profiles WHERE photo IS NOT NULL
+                            UNION SELECT p.company_id, d.stored_name
+                              FROM employees_documents d JOIN employees_profiles p ON p.id = d.employee_id',
+            'documents' => 'SELECT company_id AS cid, background_image AS f FROM documents_templates WHERE background_image IS NOT NULL
+                            UNION SELECT company_id, signature_image FROM documents_settings WHERE signature_image IS NOT NULL
+                            UNION SELECT company_id, stamp_image FROM documents_settings WHERE stamp_image IS NOT NULL',
+            'archive' => 'SELECT company_id AS cid, stored_name AS f FROM archive_files
+                          UNION SELECT af.company_id, v.stored_name
+                            FROM archive_file_versions v JOIN archive_files af ON af.id = v.file_id',
+        ];
+
+        foreach ($groups as $area => $sql) {
+            try {
+                $rows = Database::select($sql);
+            } catch (\Throwable $e) {
+                continue; // الإضافة غير مثبتة - لا جداول لها
+            }
+
+            $base = BASE_PATH . '/storage/uploads/' . $area;
+            foreach ($rows as $row) {
+                $file = (string) $row['f'];
+                $companyId = (int) $row['cid'];
+                if ($companyId < 1 || !preg_match('/^[A-Za-z0-9_.-]+$/', $file)) {
+                    continue;
+                }
+
+                $from = $base . '/' . $file;
+                $toDir = $base . '/' . $companyId;
+                if (!is_file($from) || is_file($toDir . '/' . $file)) {
+                    continue;
+                }
+                if (!is_dir($toDir) && !@mkdir($toDir, 0755, true) && !is_dir($toDir)) {
+                    throw new \RuntimeException("تعذر إنشاء المجلد {$toDir}");
+                }
+                if (!@rename($from, $toDir . '/' . $file)) {
+                    throw new \RuntimeException("تعذر نقل الملف {$file} إلى مجلد الشركة {$companyId}");
+                }
+            }
+        }
     }
 
     /**

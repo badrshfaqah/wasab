@@ -86,7 +86,7 @@ class ArchiveFileController
             redirect('/archive/upload');
         }
 
-        $upload = Uploads::handleFile('file', BASE_PATH . self::STORAGE_DIR, ArchiveFile::allowedExtensions(), ArchiveFile::MAX_BYTES);
+        $upload = Uploads::handleFile('file', BASE_PATH . self::STORAGE_DIR . '/' . $companyId, ArchiveFile::allowedExtensions(), ArchiveFile::MAX_BYTES);
         if ($upload['error']) {
             flash_set('error', $upload['error']);
             redirect('/archive/upload');
@@ -232,7 +232,7 @@ class ArchiveFileController
         }
         $this->verifyCsrf('/archive/' . $file['id']);
 
-        $upload = Uploads::handleFile('file', BASE_PATH . self::STORAGE_DIR, ArchiveFile::allowedExtensions(), ArchiveFile::MAX_BYTES);
+        $upload = Uploads::handleFile('file', BASE_PATH . self::STORAGE_DIR . '/' . $companyId, ArchiveFile::allowedExtensions(), ArchiveFile::MAX_BYTES);
         if ($upload['error']) {
             flash_set('error', $upload['error']);
             redirect('/archive/' . $file['id']);
@@ -364,9 +364,9 @@ class ArchiveFileController
         $this->verifyCsrf('/archive/trash');
 
         foreach (ArchiveFileVersion::forFile($file['id']) as $v) {
-            @unlink(BASE_PATH . self::STORAGE_DIR . '/' . $v['stored_name']);
+            @unlink(BASE_PATH . self::STORAGE_DIR . '/' . $file['company_id'] . '/' . $v['stored_name']);
         }
-        @unlink(BASE_PATH . self::STORAGE_DIR . '/' . $file['stored_name']);
+        @unlink(BASE_PATH . self::STORAGE_DIR . '/' . $file['company_id'] . '/' . $file['stored_name']);
 
         ArchiveFile::delete($file['id']);
         ActivityLog::log('archive.delete', 'archive_file', $file['id'], "حذف نهائي لملف: {$file['original_name']}");
@@ -427,7 +427,7 @@ class ArchiveFileController
             return;
         }
 
-        $path = BASE_PATH . self::STORAGE_DIR . '/' . $file['stored_name'];
+        $path = BASE_PATH . self::STORAGE_DIR . '/' . $file['company_id'] . '/' . $file['stored_name'];
         if (!is_file($path)) {
             http_response_code(404);
             exit;
@@ -451,7 +451,7 @@ class ArchiveFileController
         $companyId = $this->requireCompanyContext();
         [$file] = $this->findVisible((int) $params['id'], $companyId);
 
-        $path = BASE_PATH . self::STORAGE_DIR . '/' . $file['stored_name'];
+        $path = BASE_PATH . self::STORAGE_DIR . '/' . $file['company_id'] . '/' . $file['stored_name'];
         if (!is_file($path) || (!ArchiveFile::isPdf($file['extension']) && !ArchiveFile::isImage($file['extension']))) {
             http_response_code(404);
             exit;

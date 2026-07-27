@@ -32,14 +32,14 @@ use App\Core\View;
                 <label>صورة التوقيع</label>
                 <input type="file" name="signature_image" accept="image/png,image/jpeg,image/webp">
                 <?php if (!empty($settings['signature_image'])): ?>
-                    <div style="margin-top:8px;"><img src="<?= e(route('/media/documents/' . $settings['signature_image'])) ?>" alt="" style="max-height:60px;"></div>
+                    <div style="margin-top:8px;"><img src="<?= e(route('/media/documents/' . $settings['company_id'] . '/' . $settings['signature_image'])) ?>" alt="" style="max-height:60px;"></div>
                 <?php endif; ?>
             </div>
             <div class="field">
                 <label>صورة الختم</label>
                 <input type="file" name="stamp_image" accept="image/png,image/jpeg,image/webp">
                 <?php if (!empty($settings['stamp_image'])): ?>
-                    <div style="margin-top:8px;"><img src="<?= e(route('/media/documents/' . $settings['stamp_image'])) ?>" alt="" style="max-height:60px;"></div>
+                    <div style="margin-top:8px;"><img src="<?= e(route('/media/documents/' . $settings['company_id'] . '/' . $settings['stamp_image'])) ?>" alt="" style="max-height:60px;"></div>
                 <?php endif; ?>
             </div>
         </div>

@@ -81,7 +81,7 @@ class EmployeeController
             redirect('/employees/create');
         }
 
-        $photo = Uploads::handleImage('photo', BASE_PATH . '/storage/uploads/employees');
+        $photo = Uploads::handleImage('photo', BASE_PATH . '/storage/uploads/employees/' . $companyId);
         if ($photo['error']) {
             flash_set('error', $photo['error']);
             redirect('/employees/create');
@@ -155,7 +155,7 @@ class EmployeeController
             redirect('/employees/' . $employee['id'] . '/edit');
         }
 
-        $photo = Uploads::handleImage('photo', BASE_PATH . '/storage/uploads/employees');
+        $photo = Uploads::handleImage('photo', BASE_PATH . '/storage/uploads/employees/' . $companyId);
         if ($photo['error']) {
             flash_set('error', $photo['error']);
             redirect('/employees/' . $employee['id'] . '/edit');
@@ -194,13 +194,13 @@ class EmployeeController
         $this->verifyCsrf('/employees/' . $employee['id']);
 
         foreach (EmployeeDocument::forEmployee($employee['id']) as $doc) {
-            $path = BASE_PATH . '/storage/uploads/employees/' . $doc['stored_name'];
+            $path = BASE_PATH . '/storage/uploads/employees/' . $companyId . '/' . $doc['stored_name'];
             if (is_file($path)) {
                 @unlink($path);
             }
         }
         if ($employee['photo']) {
-            $path = BASE_PATH . '/storage/uploads/employees/' . $employee['photo'];
+            $path = BASE_PATH . '/storage/uploads/employees/' . $companyId . '/' . $employee['photo'];
             if (is_file($path)) {
                 @unlink($path);
             }
@@ -329,7 +329,7 @@ class EmployeeController
         $this->verifyCsrf('/employees/' . $employee['id']);
 
         $title = trim((string) Request::input('title', ''));
-        $upload = Uploads::handleFile('file', BASE_PATH . '/storage/uploads/employees', self::DOC_EXTENSIONS, self::DOC_MAX_BYTES);
+        $upload = Uploads::handleFile('file', BASE_PATH . '/storage/uploads/employees/' . $companyId, self::DOC_EXTENSIONS, self::DOC_MAX_BYTES);
 
         if ($upload['error']) {
             flash_set('error', $upload['error']);
@@ -365,7 +365,7 @@ class EmployeeController
             exit;
         }
 
-        $path = BASE_PATH . '/storage/uploads/employees/' . $doc['stored_name'];
+        $path = BASE_PATH . '/storage/uploads/employees/' . $companyId . '/' . $doc['stored_name'];
         if (!is_file($path)) {
             http_response_code(404);
             exit;
@@ -390,7 +390,7 @@ class EmployeeController
 
         $doc = EmployeeDocument::find((int) $params['docId']);
         if ($doc && (int) $doc['employee_id'] === $employee['id']) {
-            $path = BASE_PATH . '/storage/uploads/employees/' . $doc['stored_name'];
+            $path = BASE_PATH . '/storage/uploads/employees/' . $companyId . '/' . $doc['stored_name'];
             if (is_file($path)) {
                 @unlink($path);
             }

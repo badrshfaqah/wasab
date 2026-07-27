@@ -51,7 +51,7 @@ class DocumentTemplateController
         }
         $data['company_id'] = $companyId;
 
-        $upload = Uploads::handleImage('background_image', BASE_PATH . '/storage/uploads/documents');
+        $upload = Uploads::handleImage('background_image', BASE_PATH . '/storage/uploads/documents/' . $companyId);
         if ($upload['error']) {
             flash_set('error', $upload['error']);
             redirect('/documents/templates/create');
@@ -91,7 +91,7 @@ class DocumentTemplateController
             redirect('/documents/templates/' . $template['id'] . '/edit');
         }
 
-        $upload = Uploads::handleImage('background_image', BASE_PATH . '/storage/uploads/documents');
+        $upload = Uploads::handleImage('background_image', BASE_PATH . '/storage/uploads/documents/' . $companyId);
         if ($upload['error']) {
             flash_set('error', $upload['error']);
             redirect('/documents/templates/' . $template['id'] . '/edit');
@@ -99,7 +99,7 @@ class DocumentTemplateController
         if ($upload['filename']) {
             $data['background_image'] = $upload['filename'];
             if ($template['background_image']) {
-                @unlink(BASE_PATH . '/storage/uploads/documents/' . $template['background_image']);
+                @unlink(BASE_PATH . '/storage/uploads/documents/' . $companyId . '/' . $template['background_image']);
             }
         }
 
@@ -120,7 +120,7 @@ class DocumentTemplateController
         Database::update('documents_documents', ['template_id' => null], 'template_id = :id', ['id' => $template['id']]);
 
         if ($template['background_image']) {
-            @unlink(BASE_PATH . '/storage/uploads/documents/' . $template['background_image']);
+            @unlink(BASE_PATH . '/storage/uploads/documents/' . $companyId . '/' . $template['background_image']);
         }
 
         DocumentTemplate::delete($template['id']);
