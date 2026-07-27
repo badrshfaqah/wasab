@@ -98,6 +98,8 @@ $router->get('/media/{area}/{file}', [\App\Controllers\MediaController::class, '
 
 // ---------- ملف تعريف تطبيق الجوال (ديناميكي ليعكس الاسم والشعار المخصصين) ----------
 $router->get('/manifest', [\App\Controllers\BrandController::class, 'manifest'], []);
+// صور هوية النظام العامة (شعار + أيقونات) عبر PHP - بلا اعتماد على .htaccess
+$router->get('/brand/{file}', [\App\Controllers\BrandController::class, 'asset'], []);
 
 // ---------- تشغيل مهام الجدولة عبر الويب (بتوكن، بديل cron CLI) ----------
 $router->get('/cron/{token}', [CronController::class, 'run'], []);

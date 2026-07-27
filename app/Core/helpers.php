@@ -150,10 +150,13 @@ function user_timezone(): ?string
 function app_logo_url(): ?string
 {
     $file = \App\Core\Setting::get('app_logo', null, '');
-    if ($file === '' || !is_file(BASE_PATH . '/storage/uploads/core/' . $file)) {
+    $path = BASE_PATH . '/storage/uploads/core/' . $file;
+    if ($file === '' || !is_file($path)) {
         return null;
     }
-    return base_url('storage/uploads/core/' . $file);
+    // تُخدم عبر PHP (مسار /brand) لا برابط ملف مباشر - حتى لا تتأثر باستضافات
+    // تتجاهل ملفات .htaccess فتحجب storage/ كاملاً.
+    return route('/brand/' . $file) . '?v=' . filemtime($path);
 }
 
 /** أيقونة الجوال (PWA): المولَّدة من شعار النظام المخصص إن وُجدت، وإلا الافتراضية. */
@@ -161,7 +164,7 @@ function app_icon_url(int $size): string
 {
     $path = BASE_PATH . "/storage/uploads/core/app-icon-{$size}.png";
     if (is_file($path)) {
-        return base_url("storage/uploads/core/app-icon-{$size}.png") . '?v=' . filemtime($path);
+        return route("/brand/app-icon-{$size}.png") . '?v=' . filemtime($path);
     }
     return asset("img/icon-{$size}.png");
 }
