@@ -39,7 +39,13 @@ class ArchiveShareController
             return;
         }
 
-        ArchiveFileShare::incrementDownload($share['id']);
+        // حجز تحميل ذرّياً قبل البثّ - إن فشل الحجز (سبق طلب متزامن آخر أن بلغ
+        // الحدّ في اللحظة نفسها) نرفض بدل تجاوز الحدّ.
+        if (!ArchiveFileShare::tryConsumeDownload($share['id'])) {
+            http_response_code(404);
+            View::render('errors/404', [], '');
+            return;
+        }
 
         header('Content-Type: application/octet-stream');
         header('Content-Disposition: attachment; filename="' . rawurlencode($file['original_name']) . '"');

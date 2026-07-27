@@ -17,6 +17,7 @@ class InboxApiController
 {
     private const MAX_BODY = 10000;
     private const MAX_EXTRA = 5000;
+    private const MAX_PER_MINUTE = 30;
 
     public function receive(): void
     {
@@ -40,6 +41,18 @@ class InboxApiController
         $site = InboxSite::findByApiKey($apiKey);
         if (!$site) {
             $this->respond(401, ['success' => false, 'error' => 'مفتاح API غير صحيح أو الموقع معطّل.']);
+            return;
+        }
+
+        // حدّ معدّل بسيط لكل موقع: يمنع إغراق صندوق الشركة بالرسائل والإشعارات حتى
+        // بمفتاح صالح (يعتمد على received_at المفهرس، بلا تخزين إضافي).
+        $recent = Database::count(
+            'inbox_messages',
+            'site_id = :s AND received_at >= DATE_SUB(NOW(), INTERVAL 1 MINUTE)',
+            ['s' => (int) $site['id']]
+        );
+        if ($recent >= self::MAX_PER_MINUTE) {
+            $this->respond(429, ['success' => false, 'error' => 'تجاوزت الحدّ المسموح من الرسائل، حاول بعد قليل.']);
             return;
         }
 

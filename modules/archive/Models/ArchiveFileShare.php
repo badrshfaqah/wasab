@@ -52,6 +52,25 @@ class ArchiveFileShare
         Database::pdo()->prepare('UPDATE archive_file_shares SET download_count = download_count + 1 WHERE id = :id')->execute(['id' => $id]);
     }
 
+    /**
+     * استهلاك تحميل واحد ذرّياً: يزيد العدّاد فقط إن كان الرابط صالحاً (غير ملغى،
+     * غير منتهٍ، ولم يبلغ حدّه) - كل ذلك في جملة UPDATE واحدة يحكمها قفل الصف، فلا
+     * يمكن لطلبين متزامنين تجاوز حدّ التحميلات معاً. يعيد true إن تم الحجز فعلاً.
+     */
+    public static function tryConsumeDownload(int $id): bool
+    {
+        $stmt = Database::pdo()->prepare(
+            'UPDATE archive_file_shares
+                SET download_count = download_count + 1
+              WHERE id = :id
+                AND revoked_at IS NULL
+                AND expires_at >= NOW()
+                AND (max_downloads IS NULL OR download_count < max_downloads)'
+        );
+        $stmt->execute(['id' => $id]);
+        return $stmt->rowCount() === 1;
+    }
+
     public static function isUsable(array $share): bool
     {
         if ($share['revoked_at'] !== null) {
