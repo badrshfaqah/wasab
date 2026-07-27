@@ -79,7 +79,9 @@ class Document
         $params = ['company_id' => $companyId];
 
         if (!$seeAll) {
-            $where .= ' AND d.created_by = :creator';
+            // الموظف (بصلاحية المشاهدة) يرى: ما أنشأه هو + المستندات العامة بعد
+            // خروجها من المسودة. الخاصة تبقى لمنشئها والمدراء فقط.
+            $where .= " AND (d.created_by = :creator OR (d.visibility = 'public' AND d.status != 'draft'))";
             $params['creator'] = $userId;
         }
 

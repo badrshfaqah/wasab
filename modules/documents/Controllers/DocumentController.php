@@ -372,7 +372,9 @@ class DocumentController
             exit;
         }
 
-        $visible = $this->canManage() || (int) $document['created_by'] === Auth::id();
+        $visible = $this->canManage()
+            || (int) $document['created_by'] === Auth::id()
+            || ($document['visibility'] === 'public' && $document['status'] !== 'draft');
         if (!$visible) {
             $this->forbidden();
             exit;
