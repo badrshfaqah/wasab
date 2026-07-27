@@ -13,7 +13,7 @@
 <?php foreach ($templates as $t): ?>
     <div class="card doc-template-card" style="margin-bottom:0;">
         <?php if ($t['background_image']): ?>
-            <div class="doc-template-preview" style="background-image:url('<?= e(base_url('storage/uploads/documents/' . $t['background_image'])) ?>');"></div>
+            <div class="doc-template-preview" style="background-image:url('<?= e(route('/media/documents/' . $t['background_image'])) ?>');"></div>
         <?php else: ?>
             <div class="doc-template-preview">بدون صورة خلفية</div>
         <?php endif; ?>

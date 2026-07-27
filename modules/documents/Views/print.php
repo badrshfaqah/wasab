@@ -8,7 +8,7 @@ $numberPosition = $template['number_position'] ?? 'top-right';
 $showNumber = $template ? (bool) $template['show_number'] : true;
 $showDate = $template ? (bool) $template['show_date'] : true;
 $bgUrl = $template && $template['background_image']
-    ? base_url('storage/uploads/documents/' . $template['background_image'])
+    ? route('/media/documents/' . $template['background_image'])
     : null;
 ?>
 <!doctype html>
@@ -75,11 +75,11 @@ body{margin:0;background:#e5e7eb;font-family:'Cairo','Segoe UI',Tahoma,Arial,san
         <?php if ($document['status'] === 'signed' && (!empty($settings['signature_image']) || !empty($settings['stamp_image']) || !empty($settings['signer_name']))): ?>
             <div class="doc-signature">
                 <?php if (!empty($settings['stamp_image'])): ?>
-                    <div><img src="<?= e(base_url('storage/uploads/documents/' . $settings['stamp_image'])) ?>" alt=""></div>
+                    <div><img src="<?= e(route('/media/documents/' . $settings['stamp_image'])) ?>" alt=""></div>
                 <?php endif; ?>
                 <div>
                     <?php if (!empty($settings['signature_image'])): ?>
-                        <img src="<?= e(base_url('storage/uploads/documents/' . $settings['signature_image'])) ?>" alt="">
+                        <img src="<?= e(route('/media/documents/' . $settings['signature_image'])) ?>" alt="">
                     <?php endif; ?>
                     <?php if (!empty($settings['signer_name'])): ?><div><strong><?= e($settings['signer_name']) ?></strong></div><?php endif; ?>
                     <?php if (!empty($settings['signer_title'])): ?><div style="font-size:12px;color:#6b7280;"><?= e($settings['signer_title']) ?></div><?php endif; ?>

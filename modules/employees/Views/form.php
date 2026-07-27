@@ -26,7 +26,7 @@ $e = $employee ?? [];
                 <label>الصورة الشخصية (اختياري)</label>
                 <input type="file" name="photo" accept="image/png,image/jpeg,image/webp">
                 <?php if (!empty($e['photo'])): ?>
-                    <div style="margin-top:8px;"><img src="<?= e(base_url('storage/uploads/employees/' . $e['photo'])) ?>" alt="" style="height:48px;border-radius:8px;"></div>
+                    <div style="margin-top:8px;"><img src="<?= e(route('/media/employees/' . $e['photo'])) ?>" alt="" style="height:48px;border-radius:8px;"></div>
                 <?php endif; ?>
             </div>
         </div>
