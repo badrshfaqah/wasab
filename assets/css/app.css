@@ -382,6 +382,9 @@ tr:hover td{background:#fafbfc;}
   background:var(--primary-light);border:1px solid var(--primary);
   border-radius:10px;padding:10px 14px;margin-bottom:16px;font-size:13px;
 }
+/* نفس فخ phone-incoming-toast الموثق أعلاه: display:flex يتغلب على خاصية hidden
+   فيبقى البانر ظاهراً دائماً حتى لمن فعّل التنبيهات - قاعدة صريحة تحسم الإخفاء. */
+.push-banner[hidden]{display:none;}
 .push-banner-actions{display:flex;align-items:center;gap:6px;}
 .push-banner-close{
   background:none;border:0;cursor:pointer;color:var(--muted);

@@ -109,6 +109,36 @@
   // بانر التفعيل بنقرة واحدة
   // ------------------------------------------------------------------
   var banner = document.getElementById('push-banner');
+  var enableBtn = document.getElementById('push-banner-enable');
+  var dismissBtn = document.getElementById('push-banner-dismiss');
+
+  // الزران يُربطان دائماً (وليس فقط عند استيفاء شروط العرض) - ضمانة بأن أي بانر
+  // ظاهر لأي سبب يستجيب للتفعيل والإغلاق مهما كانت حالة الإذن.
+  if (enableBtn && banner) {
+    enableBtn.addEventListener('click', function () {
+      // البانر يختفي فوراً بمجرد الضغط - مهما كانت نتيجة ما بعده.
+      banner.hidden = true;
+      localStorage.setItem(DISMISS_KEY, String(Date.now()));
+
+      if (!supported) return;
+      // طلب الإذن أول شيء وبشكل متزامن داخل النقرة (شرط iOS)
+      requestPermissionSafe().then(function (permission) {
+        if (permission !== 'granted') return;
+        subscribeAfterGrant().then(function (subscription) {
+          if (subscription) {
+            hideBannerForGood();
+          }
+        }).catch(function () {});
+      });
+    });
+  }
+  if (dismissBtn && banner) {
+    dismissBtn.addEventListener('click', function () {
+      localStorage.setItem(DISMISS_KEY, String(Date.now()));
+      banner.hidden = true;
+    });
+  }
+
   if (banner && supported && Notification.permission === 'default' && !localStorage.getItem(ENABLED_KEY)) {
     var dismissedAt = parseInt(localStorage.getItem(DISMISS_KEY) || '0', 10);
     var dismissValid = dismissedAt && (Date.now() - dismissedAt) < DISMISS_DAYS * 86400000;
@@ -121,33 +151,6 @@
             banner.hidden = false;
           }
         });
-      });
-    }
-
-    var enableBtn = document.getElementById('push-banner-enable');
-    var dismissBtn = document.getElementById('push-banner-dismiss');
-
-    if (enableBtn) {
-      enableBtn.addEventListener('click', function () {
-        // البانر يختفي فوراً بمجرد الضغط - مهما كانت نتيجة ما بعده.
-        banner.hidden = true;
-        localStorage.setItem(DISMISS_KEY, String(Date.now()));
-
-        // طلب الإذن أول شيء وبشكل متزامن داخل النقرة (شرط iOS)
-        requestPermissionSafe().then(function (permission) {
-          if (permission !== 'granted') return;
-          subscribeAfterGrant().then(function (subscription) {
-            if (subscription) {
-              hideBannerForGood();
-            }
-          }).catch(function () {});
-        });
-      });
-    }
-    if (dismissBtn) {
-      dismissBtn.addEventListener('click', function () {
-        localStorage.setItem(DISMISS_KEY, String(Date.now()));
-        banner.hidden = true;
       });
     }
   }
