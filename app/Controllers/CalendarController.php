@@ -40,13 +40,14 @@ class CalendarController
 
         $companyEvents = [];
         if ($companyId) {
-            $companyEvents = CalendarEvent::forRange((int) $companyId, $monthStart, $monthEnd);
+            $companyEvents = CalendarEvent::forRange((int) $companyId, $monthStart, $monthEnd, Auth::id());
             foreach ($companyEvents as $ce) {
+                $isPersonal = !empty($ce['user_id']);
                 $events[] = [
                     'date' => $ce['event_date'],
-                    'title' => '🏢 ' . $ce['title'],
+                    'title' => ($isPersonal ? '👤 ' : '🏢 ') . $ce['title'],
                     'url' => route('/calendar?month=' . $month . '#event-' . $ce['id']),
-                    'module' => 'company',
+                    'module' => $isPersonal ? 'personal' : 'company',
                     'id' => $ce['id'],
                 ];
             }
@@ -73,13 +74,16 @@ class CalendarController
             'nextMonth' => $nextMonth,
             'today' => date('Y-m-d'),
             'canManageEvents' => Auth::isSystemAdmin() || Auth::isCompanyAdmin(),
+            'canAddEvents' => (bool) $companyId,
         ]);
     }
 
-    /** إضافة حدث خاص بالشركة - محصور بمدير النظام/الشركة (نفس تصنيف باقي صفحات الإدارة الأساسية بالنواة). */
+    /**
+     * إضافة حدث تقويم: أي موظف يضيف حدثاً "شخصياً" يخصه وحده، بينما الحدث "العام
+     * للشركة" (يظهر لكل الموظفين) محصور بمدير النظام/الشركة.
+     */
     public function storeEvent(): void
     {
-        $this->guardManageEvents();
         if (!Csrf::verify(Request::input('_csrf'))) {
             flash_set('error', 'انتهت صلاحية الجلسة، حاول مرة أخرى.');
             redirect('/calendar');
@@ -89,6 +93,14 @@ class CalendarController
         if (!$companyId) {
             flash_set('error', 'حساب مدير النظام غير تابع لأي شركة، اختر شركة أولاً من صفحة الشركات.');
             redirect('/calendar');
+        }
+
+        $scope = Request::input('scope', 'personal');
+        $isCompanyScope = $scope === 'company';
+        if ($isCompanyScope && !Auth::isSystemAdmin() && !Auth::isCompanyAdmin()) {
+            http_response_code(403);
+            View::render('errors/403', [], '');
+            exit;
         }
 
         $title = trim((string) Request::input('title', ''));
@@ -102,6 +114,7 @@ class CalendarController
 
         $eventId = CalendarEvent::create([
             'company_id' => $companyId,
+            'user_id' => $isCompanyScope ? null : Auth::id(),
             'title' => $title,
             'description' => $description ?: null,
             'event_date' => $eventDate,
@@ -109,21 +122,25 @@ class CalendarController
             'send_reminder' => Request::input('send_reminder') ? 1 : 0,
         ]);
 
-        ActivityLog::log('calendar.event_create', 'calendar_event', $eventId, "إضافة حدث تقويم: {$title}");
-        flash_set('success', 'تمت إضافة الحدث.');
+        ActivityLog::log('calendar.event_create', 'calendar_event', $eventId, ($isCompanyScope ? 'إضافة حدث شركة: ' : 'إضافة حدث شخصي: ') . $title);
+        flash_set('success', $isCompanyScope ? 'تمت إضافة حدث الشركة - سيظهر لجميع الموظفين.' : 'تمت إضافة حدثك الشخصي.');
         redirect('/calendar?month=' . substr($eventDate, 0, 7));
     }
 
     public function destroyEvent(array $params): void
     {
-        $this->guardManageEvents();
         if (!Csrf::verify(Request::input('_csrf'))) {
             flash_set('error', 'انتهت صلاحية الجلسة، حاول مرة أخرى.');
             redirect('/calendar');
         }
 
         $event = CalendarEvent::find((int) $params['id']);
-        if (!$event || (!Auth::isSystemAdmin() && (int) $event['company_id'] !== Auth::companyId())) {
+        $isManager = Auth::isSystemAdmin() || Auth::isCompanyAdmin();
+        $isOwnPersonal = $event && !empty($event['user_id']) && (int) $event['user_id'] === (int) Auth::id();
+
+        // حدث الشركة يحذفه المدراء، والحدث الشخصي يحذفه صاحبه (أو مدير شركته)
+        $sameCompany = $event && (Auth::isSystemAdmin() || (int) $event['company_id'] === (int) Auth::companyId());
+        if (!$event || !$sameCompany || (!$isManager && !$isOwnPersonal)) {
             flash_set('error', 'الحدث غير موجود.');
             redirect('/calendar');
         }
@@ -132,15 +149,6 @@ class CalendarController
         ActivityLog::log('calendar.event_delete', 'calendar_event', $event['id'], "حذف حدث تقويم: {$event['title']}");
         flash_set('success', 'تم حذف الحدث.');
         redirect('/calendar?month=' . substr($event['event_date'], 0, 7));
-    }
-
-    private function guardManageEvents(): void
-    {
-        if (!Auth::isSystemAdmin() && !Auth::isCompanyAdmin()) {
-            http_response_code(403);
-            View::render('errors/403', [], '');
-            exit;
-        }
     }
 
     private function monthLabel(string $monthStart): string

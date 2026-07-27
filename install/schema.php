@@ -146,6 +146,7 @@ CREATE TABLE IF NOT EXISTS `activity_log` (
 CREATE TABLE IF NOT EXISTS `calendar_events` (
     `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     `company_id` INT UNSIGNED NOT NULL,
+    `user_id` INT UNSIGNED NULL COMMENT 'حدث شخصي لهذا المستخدم فقط - NULL يعني حدثاً عاماً للشركة',
     `title` VARCHAR(200) NOT NULL,
     `description` VARCHAR(500) NULL,
     `event_date` DATE NOT NULL,

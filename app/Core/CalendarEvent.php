@@ -9,15 +9,20 @@ namespace App\Core;
  */
 class CalendarEvent
 {
-    public static function forRange(int $companyId, string $fromDate, string $toDate): array
+    /**
+     * أحداث الشركة العامة (user_id NULL) + الأحداث الشخصية للمستخدم الحالي فقط -
+     * الأحداث الشخصية لبقية الموظفين لا تظهر لغير أصحابها.
+     */
+    public static function forRange(int $companyId, string $fromDate, string $toDate, ?int $userId = null): array
     {
         return Database::select(
             'SELECT e.*, u.name AS creator_name
                FROM calendar_events e
                LEFT JOIN users u ON u.id = e.created_by
               WHERE e.company_id = :c AND e.event_date BETWEEN :from AND :to
+                AND (e.user_id IS NULL OR e.user_id = :uid)
               ORDER BY e.event_date',
-            ['c' => $companyId, 'from' => $fromDate, 'to' => $toDate]
+            ['c' => $companyId, 'from' => $fromDate, 'to' => $toDate, 'uid' => $userId]
         );
     }
 

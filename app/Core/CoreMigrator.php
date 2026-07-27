@@ -24,7 +24,7 @@ namespace App\Core;
  */
 class CoreMigrator
 {
-    public const CURRENT_VERSION = 13;
+    public const CURRENT_VERSION = 14;
     private const RETRY_COOLDOWN_SECONDS = 300;
 
     private static function migrations(): array
@@ -97,6 +97,14 @@ class CoreMigrator
             13 => [
                 'label' => 'فصل مرفقات كل شركة في مجلد خاص بها داخل كل إضافة',
                 'run' => fn () => self::moveUploadsIntoCompanyDirs(),
+            ],
+            14 => [
+                'label' => 'دعم الأحداث الشخصية بالتقويم (حدث خاص بالموظف بجانب أحداث الشركة)',
+                'run' => fn () => self::addColumnIfMissing(
+                    'calendar_events',
+                    'user_id',
+                    "INT UNSIGNED NULL COMMENT 'حدث شخصي لهذا المستخدم فقط - NULL يعني حدثاً عاماً للشركة' AFTER `company_id`"
+                ),
             ],
         ];
     }

@@ -297,7 +297,20 @@ tr:hover td{background:#fafbfc;}
 .doc-log:last-child{border-bottom:0;}
 .doc-log-meta{color:var(--muted);font-size:12px;}
 
+/* حقول التاريخ والوقت: فرض اتجاه LTR - بدونها تتداخل أجزاء التاريخ مع النص
+   العربي RTL في بعض المتصفحات فتظهر حروف وأرقام متراكبة غير مقروءة. */
+input[type="date"],input[type="datetime-local"],input[type="time"],input[type="month"]{
+  direction:ltr;text-align:right;
+}
+
 /* التقويم الموحّد */
+.cal-layout{display:flex;gap:14px;align-items:flex-start;}
+.cal-main{flex:1;min-width:0;}
+.cal-side{width:300px;flex-shrink:0;position:sticky;top:70px;}
+@media (max-width: 1000px){
+  .cal-layout{flex-direction:column;}
+  .cal-side{width:100%;position:static;}
+}
 .cal-grid-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;}
 .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;max-width:1000px;margin:0 auto;}
 .cal-weekday{text-align:center;font-size:11.5px;font-weight:700;color:var(--muted);padding:4px 0;}
@@ -318,6 +331,7 @@ tr:hover td{background:#fafbfc;}
 .cal-event-meetings{background:#d97706;}
 .cal-event-documents{background:#7c3aed;}
 .cal-event-company{background:#db2777;}
+.cal-event-personal{background:#0d9488;}
 .cal-event-employees{background:#0891b2;}
 .cal-more{font-size:11px;color:var(--muted);}
 .cal-legend-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-inline-end:4px;vertical-align:middle;}
@@ -326,6 +340,7 @@ tr:hover td{background:#fafbfc;}
 .cal-legend-dot.cal-event-meetings{background:#d97706;}
 .cal-legend-dot.cal-event-documents{background:#7c3aed;}
 .cal-legend-dot.cal-event-company{background:#db2777;}
+.cal-legend-dot.cal-event-personal{background:#0d9488;}
 .cal-legend-dot.cal-event-employees{background:#0891b2;}
 /*
   دون هذا: على شاشات الجوال الضيقة كانت الخلايا تُضغط لعرض 36px فقط، فيصبح نص

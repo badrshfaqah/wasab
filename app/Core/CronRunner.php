@@ -25,10 +25,15 @@ class CronRunner
         );
 
         foreach ($events as $event) {
-            $users = Database::select(
-                'SELECT id FROM users WHERE company_id = :c AND status = "active"',
-                ['c' => $event['company_id']]
-            );
+            // الحدث الشخصي يُذكَّر به صاحبه وحده، وحدث الشركة كل أعضائها
+            if (!empty($event['user_id'])) {
+                $users = [['id' => (int) $event['user_id']]];
+            } else {
+                $users = Database::select(
+                    'SELECT id FROM users WHERE company_id = :c AND status = "active"',
+                    ['c' => $event['company_id']]
+                );
+            }
             foreach ($users as $user) {
                 Notification::send(
                     (int) $user['id'],
