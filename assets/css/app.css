@@ -349,9 +349,14 @@ input[type="date"],input[type="datetime-local"],input[type="time"],input[type="m
   بتمرير أفقي للشبكة نفسها بدل ضغط محتواها.
 */
 @media (max-width:900px){
-  .cal-grid{grid-template-columns:repeat(7,minmax(72px,1fr));min-width:560px;}
-  .cal-cell{min-height:64px;padding:4px;font-size:11px;}
-  .cal-event{font-size:10px;padding:1px 4px;}
+  /* التقويم يطابق عرض شاشة الجوال تماماً (بلا تمرير أفقي يزيح الصفحة ويربك
+     الشريط السفلي الثابت): الخلايا تنكمش والأحداث تظهر شرائط ملونة رفيعة،
+     وتفاصيلها الكاملة بقائمة "أحداث هذا الشهر" أسفل التقويم. */
+  .cal-grid{grid-template-columns:repeat(7,1fr);min-width:0;gap:3px;}
+  .cal-cell{min-height:46px;padding:3px 4px;border-radius:5px;}
+  .cal-day-num{font-size:10px;}
+  .cal-event{height:6px;font-size:0;padding:0;border-radius:3px;margin:0 0 2px;}
+  .cal-more{font-size:9px;}
 }
 
 /* أرشيف الملفات */
@@ -366,6 +371,7 @@ input[type="date"],input[type="datetime-local"],input[type="time"],input[type="m
 .doc-content-preview :is(ul,ol){padding-inline-start:24px;}
 
 @media (max-width: 900px){
+  body{overflow-x:hidden;}
   .sidebar{transform:translateX(100%);}
   .sidebar.open{transform:translateX(0);box-shadow:0 0 40px rgba(0,0,0,.35);}
   .main{margin-right:0;}
@@ -540,8 +546,6 @@ body{-webkit-tap-highlight-color:transparent;}
   /* بطاقات الأرقام: شبكة مكثفة بإحساس تطبيق - أرقام واضحة وأيقونات صغيرة
      ومسافات مشدودة بدل الفراغات المتعبة */
   .cards-row{grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px;}
-  /* عدد فردي من البطاقات: الأخيرة تمتد على العمودين بدل ترك خلية فارغة متعبة للنظر */
-  .cards-row > *:last-child:nth-child(odd){grid-column:1 / -1;}
   .stat-card{padding:10px 12px;border-radius:10px;}
   .stat-card .n{font-size:18px;gap:6px;}
   .stat-card .stat-ic{font-size:14px;}
