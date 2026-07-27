@@ -161,6 +161,15 @@ class MeetingController
         $meeting = $this->findVisible((int) $params['id'], $companyId);
         $myAttendee = MeetingAttendee::findForUser($meeting['id'], Auth::id());
 
+        // معالجة بأثر رجعي لاجتماعات أُنشئت قبل اعتماد حضور المنشئ تلقائياً:
+        // منشئ الاجتماع لا يُطالب بتأكيد حضور اجتماعه - يُعتمد فور فتحه الصفحة.
+        if ($myAttendee
+            && $myAttendee['response'] === 'pending'
+            && (int) $meeting['created_by'] === (int) Auth::id()) {
+            MeetingAttendee::respond((int) $myAttendee['id'], 'accepted');
+            $myAttendee = MeetingAttendee::findForUser($meeting['id'], Auth::id());
+        }
+
         View::render('meetings::show', [
             'pageTitle' => $meeting['title'],
             'meeting' => $meeting,

@@ -39,10 +39,15 @@ class MeetingAttendee
 
     public static function addInternal(int $meetingId, int $userId): void
     {
+        // منشئ الاجتماع لا يُسأل عن تأكيد حضور اجتماعه - يُعتمد حضوره تلقائياً
+        $meeting = Database::first('SELECT created_by FROM meetings_meetings WHERE id = :id', ['id' => $meetingId]);
+        $isCreator = $meeting && (int) $meeting['created_by'] === $userId;
+
         Database::insert('meetings_attendees', [
             'meeting_id' => $meetingId,
             'user_id' => $userId,
-            'response' => 'pending',
+            'response' => $isCreator ? 'accepted' : 'pending',
+            'responded_at' => $isCreator ? date('Y-m-d H:i:s') : null,
             'created_at' => date('Y-m-d H:i:s'),
         ]);
     }
