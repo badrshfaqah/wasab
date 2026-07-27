@@ -28,6 +28,16 @@ class ModuleController
         ]);
     }
 
+    /** التحديث الذاتي: سحب آخر نسخة من GitHub وتطبيقها (مدير النظام، بضغطة زر). */
+    public function selfUpdate(): void
+    {
+        $this->verifyCsrf();
+
+        $result = \App\Core\SelfUpdater::run();
+        flash_set($result['success'] ? 'success' : 'error', $result['message']);
+        redirect('/extensions');
+    }
+
     /** زر يدوي لمدير النظام: يعيد فحص وتطبيق أي ترقيات ناقصة على جداول النواة، كأنها ترقية إضافة. */
     public function updateDatabase(): void
     {

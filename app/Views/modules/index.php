@@ -4,6 +4,22 @@
 
 <div class="card">
     <div class="card-title">
+        <span>⬇️ تحديث النظام من GitHub</span>
+        <span class="badge badge-info">الإصدار الحالي: <?= e(\App\Core\Wasab::currentVersion()) ?></span>
+    </div>
+    <p class="hint" style="margin:0 0 12px;">
+        يسحب آخر نسخة من مستودع النظام على GitHub ويطبّقها مباشرة بضغطة واحدة - دون FTP أو Terminal.
+        لا يمس بيانات الاتصال (config.php) ولا الملفات المرفوعة، وترقيات قاعدة البيانات تعمل تلقائياً بعده.
+        قد يستغرق حتى دقيقة حسب سرعة الاستضافة.
+    </p>
+    <form method="post" action="<?= route('/extensions/self-update') ?>" data-confirm="سيتم استبدال ملفات النظام بآخر نسخة من GitHub. متابعة؟">
+        <?= csrf_field() ?>
+        <button class="btn btn-sm" type="submit">⬇️ سحب آخر تحديث وتطبيقه الآن</button>
+    </form>
+</div>
+
+<div class="card">
+    <div class="card-title">
         <span>🗄️ ترقيات النواة (قاعدة البيانات والملفات)</span>
         <?= $coreSchemaUpToDate ? status_badge('active') : status_badge('pending') ?>
     </div>
