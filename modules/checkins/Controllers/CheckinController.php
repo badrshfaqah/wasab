@@ -106,6 +106,10 @@ class CheckinController
         );
 
         if (ModuleManager::isActive('tasks')) {
+            // تصفية المعرّفات إلى مهام هذا المستخدم فعلاً داخل شركته - يمنع حقن
+            // معرّفات مهام شركة أخرى (IDOR) أو نسب مهمة زميل لنفسه.
+            $doneTasks = $this->filterOwnTaskIds($doneTasks, $companyId);
+            $planTasks = $this->filterOwnTaskIds($planTasks, $companyId);
             CheckinEntry::setTasks($entryId, 'done', $doneTasks);
             CheckinEntry::setTasks($entryId, 'planned', $planTasks);
         }
@@ -305,6 +309,25 @@ class CheckinController
     private function canSubmit(): bool
     {
         return Auth::isSystemAdmin() || Auth::isCompanyAdmin() || Permission::check('checkins.submit');
+    }
+
+    /**
+     * تصفية معرّفات المهام الواردة من الطلب إلى ما هو مسند فعلاً للمستخدم الحالي
+     * داخل شركته - حماية من حقن معرّفات مهام لا يملكها (IDOR / نسب مهمة الغير).
+     */
+    private function filterOwnTaskIds(array $taskIds, int $companyId): array
+    {
+        $ids = array_values(array_unique(array_filter(array_map('intval', $taskIds), fn ($id) => $id > 0)));
+        if (!$ids) {
+            return [];
+        }
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $rows = Database::select(
+            "SELECT id FROM tasks_tasks
+              WHERE id IN ({$placeholders}) AND company_id = ? AND assignee_id = ?",
+            array_merge($ids, [$companyId, Auth::id()])
+        );
+        return array_column($rows, 'id');
     }
 
     private function canViewTeam(): bool

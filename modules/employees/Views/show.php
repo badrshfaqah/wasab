@@ -69,7 +69,9 @@ $today = date('Y-m-d');
             <table>
                 <tr><td class="hint">المهارات</td><td><?= $employee['skills'] ? nl2br(e($employee['skills'])) : '—' ?></td></tr>
                 <tr><td class="hint">اللغات</td><td><?= e($employee['languages'] ?: '—') ?></td></tr>
+                <?php if ($canViewSensitive): ?>
                 <tr><td class="hint">رخصة القيادة</td><td><?= e($employee['driving_license_number'] ?: '—') ?><?= $employee['driving_license_expiry'] ? ' (تنتهي ' . format_date($employee['driving_license_expiry']) . ')' : '' ?></td></tr>
+                <?php endif; ?>
             </table>
 
             <div class="card-title" style="margin-top:16px;"><span>الدورات والشهادات</span></div>

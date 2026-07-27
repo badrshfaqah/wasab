@@ -498,7 +498,8 @@ class TaskController
 
     private function canApproveTask(array $task): bool
     {
-        if (!$task['requires_approval'] || $task['approved_at']) {
+        // لا يُعتمد إلا ما يتطلب اعتماداً ولم يُعتمد بعد وليس ملغى (اعتماد مهمة ملغاة غير منطقي)
+        if (!$task['requires_approval'] || $task['approved_at'] || $task['status'] === 'cancelled') {
             return false;
         }
         return $this->canManage() || ($this->can('tasks.approve') && (int) $task['approver_id'] === Auth::id());

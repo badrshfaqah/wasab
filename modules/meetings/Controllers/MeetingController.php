@@ -415,6 +415,18 @@ class MeetingController
             redirect('/meetings/' . $meeting['id']);
         }
 
+        // حارس انتقالات منطقي: لا يُكمَّل أو يُلغى إلا اجتماع مجدول، ولا يُعاد فتح
+        // إلا اجتماع مكتمل/ملغى - يمنع "إكمال اجتماع ملغى" أو "إلغاء اجتماع منتهٍ".
+        $allowed = [
+            'complete' => ['scheduled'],
+            'cancel' => ['scheduled'],
+            'reopen' => ['completed', 'cancelled'],
+        ];
+        if (!in_array($meeting['status'], $allowed[$action], true)) {
+            flash_set('error', 'لا يمكن تنفيذ هذا الإجراء على اجتماع حالته الحالية.');
+            redirect('/meetings/' . $meeting['id']);
+        }
+
         Meeting::update($meeting['id'], ['status' => $map[$action]]);
         ActivityLog::log('meetings.status', 'meeting', $meeting['id'], "تغيير حالة اجتماع: {$meeting['title']}");
         flash_set('success', 'تم تحديث حالة الاجتماع.');
@@ -541,22 +553,37 @@ class MeetingController
      * يوفّق قائمة الحاضرين المطلوبة (داخليين مختارين + خارجيين من النص) مع القائمة
      * الحالية بالقاعدة: يحافظ على رد من هو باقٍ (لا يُصفّر قبوله/رفضه لمجرد حفظ
      * تعديل بسيط على عنوان الاجتماع مثلاً)، يحذف من أُزيل، ويضيف الجديد كـ pending.
-     * لموعد جديد بالكامل (لا حاضرين سابقين) تُختزل هذه الموفَقة لإضافة الجميع كجدد.
+     *
+     * الداخليون يُطابَقون بـ user_id، والخارجيون بمفتاح (الاسم + التواصل) - وهو
+     * مستقر عملياً - للحفاظ على ردّهم المسجّل وتوكن RSVP الخاص بهم بدل حذفهم
+     * وإعادة إنشائهم من الصفر (الذي كان يصفّر ردودهم ويُبطل روابطهم مع كل تعديل).
      */
     private function applyAttendees(int $meetingId, array $requestedUserIds, array $requestedExternal): void
     {
         $existing = MeetingAttendee::forMeeting($meetingId);
         $existingUserIds = [];
+        $existingExternalKeys = [];
+        $extKey = fn (?string $name, ?string $contact): string => mb_strtolower(trim((string) $name)) . '|' . mb_strtolower(trim((string) $contact));
+
         foreach ($existing as $row) {
             if ($row['user_id']) {
                 $existingUserIds[(int) $row['user_id']] = $row['id'];
+            } else {
+                $existingExternalKeys[$extKey($row['external_name'], $row['external_contact'])] = $row['id'];
             }
         }
 
+        $requestedExternalKeys = [];
+        foreach ($requestedExternal as $ext) {
+            $requestedExternalKeys[$extKey($ext['name'], $ext['contact'])] = true;
+        }
+
         foreach ($existing as $row) {
-            $stillWanted = $row['user_id']
-                ? in_array((int) $row['user_id'], $requestedUserIds, true)
-                : false; // الخارجيون يُعاد إدخالهم من الصفر كل مرة (لا معرّف ثابت لمطابقتهم بالاسم بأمان)
+            if ($row['user_id']) {
+                $stillWanted = in_array((int) $row['user_id'], $requestedUserIds, true);
+            } else {
+                $stillWanted = isset($requestedExternalKeys[$extKey($row['external_name'], $row['external_contact'])]);
+            }
             if (!$stillWanted) {
                 Database::delete('meetings_attendees', 'id = :id', ['id' => $row['id']]);
             }
@@ -569,7 +596,9 @@ class MeetingController
         }
 
         foreach ($requestedExternal as $ext) {
-            MeetingAttendee::addExternal($meetingId, $ext['name'], $ext['contact']);
+            if (!isset($existingExternalKeys[$extKey($ext['name'], $ext['contact'])])) {
+                MeetingAttendee::addExternal($meetingId, $ext['name'], $ext['contact']);
+            }
         }
     }
 

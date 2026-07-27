@@ -449,6 +449,12 @@ class ArchiveFileController
     public function preview(array $params): void
     {
         $companyId = $this->requireCompanyContext();
+        // المعاينة تبثّ الملف الخام كاملاً، فتخضع لصلاحية التحميل نفسها - وإلا
+        // لأمكن حفظ الملف عبر المعاينة لمن يملك المشاهدة فقط دون التحميل.
+        if (!$this->can('archive.download')) {
+            $this->forbidden();
+            return;
+        }
         [$file] = $this->findVisible((int) $params['id'], $companyId);
 
         $path = BASE_PATH . self::STORAGE_DIR . '/' . $file['company_id'] . '/' . $file['stored_name'];

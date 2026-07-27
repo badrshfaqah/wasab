@@ -165,6 +165,8 @@ $e = $employee ?? [];
             <label>اللغات</label>
             <input type="text" name="languages" value="<?= e($e['languages'] ?? '') ?>" placeholder="مثال: العربية، الإنجليزية">
         </div>
+        <?php if ($canViewSensitive): ?>
+        <div class="card-title" style="margin-top:20px;"><span>🔒 العقد والراتب (بيانات مقيّدة)</span></div>
         <div class="grid-2">
             <div class="field">
                 <label>رقم رخصة القيادة</label>
@@ -176,8 +178,6 @@ $e = $employee ?? [];
             </div>
         </div>
 
-        <?php if ($canViewSensitive): ?>
-        <div class="card-title" style="margin-top:20px;"><span>🔒 العقد والراتب (بيانات مقيّدة)</span></div>
         <div class="grid-2">
             <div class="field">
                 <label>نوع العقد</label>

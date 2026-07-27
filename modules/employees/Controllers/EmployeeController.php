@@ -578,6 +578,14 @@ class EmployeeController
         if ($managerEmployeeId && $currentId && $managerEmployeeId === $currentId) {
             $managerEmployeeId = null;
         }
+        // المدير المباشر يجب أن يكون ملفاً وظيفياً في نفس الشركة (منع تمرير معرّف
+        // من شركة أخرى مباشرة يتجاوز قائمة الاختيار المقيّدة بالشركة).
+        if ($managerEmployeeId) {
+            $mgr = Employee::find($managerEmployeeId);
+            if (!$mgr || (int) $mgr['company_id'] !== (int) $companyId) {
+                $managerEmployeeId = null;
+            }
+        }
 
         $data = [
             'full_name' => $fullName,
