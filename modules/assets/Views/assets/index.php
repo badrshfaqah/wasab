@@ -2,23 +2,23 @@
 $badgeColor = ['available' => 'success', 'assigned' => 'info', 'maintenance' => 'warning', 'retired' => 'muted', 'lost' => 'danger'];
 $assetsQuery = function (array $filters, array $ov = []) {
     $p = array_filter(array_merge($filters, $ov), fn ($v) => $v !== null && $v !== '');
-    return route('/assets' . ($p ? '?' . http_build_query($p) : ''));
+    return route('/custody' . ($p ? '?' . http_build_query($p) : ''));
 };
 ?>
 <div class="page-head">
     <div><h1>العهد والأصول</h1><p>سجل أصول الشركة والعهد المسندة لحامليها.</p></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        <?php if ($canManage): ?><a class="btn btn-outline" href="<?= route('/assets/categories') ?>">🏷️ التصنيفات</a><?php endif; ?>
-        <a class="btn btn-outline" href="<?= route('/assets/handovers') ?>">📋 محاضر التسليم</a>
-        <?php if ($canAssign): ?><a class="btn btn-outline" href="<?= route('/assets/handovers/create') ?>">🤝 تسليم عهدة</a><?php endif; ?>
-        <?php if ($canCreate): ?><a class="btn" href="<?= route('/assets/create') ?>">+ إضافة أصل</a><?php endif; ?>
+        <?php if ($canManage): ?><a class="btn btn-outline" href="<?= route('/custody/categories') ?>">🏷️ التصنيفات</a><?php endif; ?>
+        <a class="btn btn-outline" href="<?= route('/custody/handovers') ?>">📋 محاضر التسليم</a>
+        <?php if ($canAssign): ?><a class="btn btn-outline" href="<?= route('/custody/handovers/create') ?>">🤝 تسليم عهدة</a><?php endif; ?>
+        <?php if ($canCreate): ?><a class="btn" href="<?= route('/custody/create') ?>">+ إضافة أصل</a><?php endif; ?>
     </div>
 </div>
 
 <div class="card">
     <details class="filters-collapse"<?= $filters ? ' open' : '' ?>>
     <summary>🔍 البحث والتصفية<?= $filters ? ' <span class="badge badge-info">مفعّلة</span>' : '' ?></summary>
-    <form method="get" action="<?= route('/assets') ?>" class="filters-toolbar" style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin-bottom:16px;">
+    <form method="get" action="<?= route('/custody') ?>" class="filters-toolbar" style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin-bottom:16px;">
         <div class="field" style="margin:0;flex:1;min-width:180px;">
             <label>بحث</label>
             <input type="text" name="q" value="<?= e($filters['q'] ?? '') ?>" placeholder="اسم، رمز، رقم تسلسلي، أو اسم الحامل...">
@@ -42,7 +42,7 @@ $assetsQuery = function (array $filters, array $ov = []) {
             </select>
         </div>
         <button class="btn btn-sm" type="submit">بحث</button>
-        <?php if ($filters): ?><a class="btn btn-outline btn-sm" href="<?= route('/assets') ?>">مسح</a><?php endif; ?>
+        <?php if ($filters): ?><a class="btn btn-outline btn-sm" href="<?= route('/custody') ?>">مسح</a><?php endif; ?>
     </form>
     </details>
 
@@ -56,7 +56,7 @@ $assetsQuery = function (array $filters, array $ov = []) {
         <?php foreach ($assets as $a): ?>
             <tr>
                 <td>
-                    <a href="<?= route('/assets/' . $a['id']) ?>"><strong><?= e($a['name']) ?></strong></a>
+                    <a href="<?= route('/custody/' . $a['id']) ?>"><strong><?= e($a['name']) ?></strong></a>
                     <?php if ($a['asset_code']): ?><div class="hint"><?= e($a['asset_code']) ?></div><?php endif; ?>
                 </td>
                 <td><?= e($a['category_name'] ?? '—') ?></td>

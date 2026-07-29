@@ -24,6 +24,6 @@ return function (array $user, string $query): array {
         'title' => $a['name'] . ($a['asset_code'] ? ' (' . $a['asset_code'] . ')' : ''),
         'subtitle' => ($labels[$a['status']] ?? $a['status']) . ($a['current_holder_name'] ? ' · بعهدة: ' . $a['current_holder_name'] : ''),
         'icon' => '📦',
-        'url' => route('/assets/' . $a['id']),
+        'url' => route('/custody/' . $a['id']),
     ], $rows);
 };

@@ -13,7 +13,7 @@ return function (array $user, string $fromDate, string $toDate): array {
     return array_map(fn ($a) => [
         'date' => $a['warranty_expiry'],
         'title' => '🛡️ انتهاء ضمان: ' . $a['name'],
-        'url' => route('/assets/' . $a['id']),
+        'url' => route('/custody/' . $a['id']),
         'module' => 'assets',
     ], $rows);
 };

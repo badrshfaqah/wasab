@@ -12,7 +12,7 @@ return function (array $user): array {
         [
             'label' => 'العهد والأصول',
             'icon' => '📦',
-            'url' => route('/assets'),
+            'url' => route('/custody'),
         ],
     ];
 };

@@ -1,11 +1,11 @@
 <?php
 $isEdit = $asset !== null;
-$action = $isEdit ? route('/assets/' . $asset['id']) : route('/assets');
+$action = $isEdit ? route('/custody/' . $asset['id']) : route('/custody');
 $v = fn ($k) => e($asset[$k] ?? '');
 ?>
 <div class="page-head">
     <div><h1><?= $isEdit ? 'تعديل الأصل' : 'إضافة أصل' ?></h1></div>
-    <a class="btn btn-outline" href="<?= $isEdit ? route('/assets/' . $asset['id']) : route('/assets') ?>">← رجوع</a>
+    <a class="btn btn-outline" href="<?= $isEdit ? route('/custody/' . $asset['id']) : route('/custody') ?>">← رجوع</a>
 </div>
 
 <div class="card" style="max-width:680px;">

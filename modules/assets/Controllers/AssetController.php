@@ -22,7 +22,7 @@ class AssetController
 
         // الموظف الذي يملك view_own فقط (لا view) يُحوَّل لصفحة عهده الخاصة
         if (!$this->can('assets.view') && $this->can('assets.view_own')) {
-            redirect('/assets/my');
+            redirect('/custody/my');
         }
         if (!$this->can('assets.view')) {
             $this->forbidden();
@@ -117,11 +117,11 @@ class AssetController
             $this->forbidden();
             return;
         }
-        $this->verifyCsrf('/assets/create');
+        $this->verifyCsrf('/custody/create');
 
         $data = $this->validated($companyId);
         if ($data === null) {
-            redirect('/assets/create');
+            redirect('/custody/create');
         }
         $data['company_id'] = $companyId;
         $data['created_by'] = Auth::id();
@@ -137,7 +137,7 @@ class AssetController
         ActivityLog::log('assets.create', 'asset', $assetId, "إضافة أصل: {$data['name']}");
 
         flash_set('success', 'تمت إضافة الأصل.');
-        redirect('/assets/' . $assetId);
+        redirect('/custody/' . $assetId);
     }
 
     public function edit(array $params): void
@@ -165,11 +165,11 @@ class AssetController
             return;
         }
         $asset = $this->findVisible((int) $params['id'], $companyId);
-        $this->verifyCsrf('/assets/' . $asset['id'] . '/edit');
+        $this->verifyCsrf('/custody/' . $asset['id'] . '/edit');
 
         $data = $this->validated($companyId);
         if ($data === null) {
-            redirect('/assets/' . $asset['id'] . '/edit');
+            redirect('/custody/' . $asset['id'] . '/edit');
         }
         // الحالة والحامل يُداران عبر الإسناد/الإرجاع لا التعديل المباشر - لا نمسّهما هنا
         unset($data['status']);
@@ -185,7 +185,7 @@ class AssetController
         ActivityLog::log('assets.update', 'asset', (int) $asset['id'], "تعديل أصل: {$data['name']}");
 
         flash_set('success', 'تم حفظ التعديلات.');
-        redirect('/assets/' . $asset['id']);
+        redirect('/custody/' . $asset['id']);
     }
 
     public function destroy(array $params): void
@@ -196,17 +196,17 @@ class AssetController
             return;
         }
         $asset = $this->findVisible((int) $params['id'], $companyId);
-        $this->verifyCsrf('/assets/' . $asset['id']);
+        $this->verifyCsrf('/custody/' . $asset['id']);
 
         if ($asset['status'] === 'assigned') {
             flash_set('error', 'لا يمكن حذف أصل تحت عهدة حالية - أرجعه أولاً.');
-            redirect('/assets/' . $asset['id']);
+            redirect('/custody/' . $asset['id']);
         }
 
         Asset::delete((int) $asset['id']);
         ActivityLog::log('assets.delete', 'asset', (int) $asset['id'], "حذف أصل: {$asset['name']}");
         flash_set('success', 'تم حذف الأصل.');
-        redirect('/assets');
+        redirect('/custody');
     }
 
     /** تغيير الحالة يدوياً (صيانة/خارج الخدمة/مفقود/إعادة للإتاحة) - غير الإسناد. */
@@ -218,24 +218,24 @@ class AssetController
             return;
         }
         $asset = $this->findVisible((int) $params['id'], $companyId);
-        $this->verifyCsrf('/assets/' . $asset['id']);
+        $this->verifyCsrf('/custody/' . $asset['id']);
 
         $status = Request::input('status');
         // الحالات القابلة للضبط اليدوي (الإسناد/الإرجاع لهما مساراهما الخاص)
         $manual = ['available', 'maintenance', 'retired', 'lost'];
         if (!in_array($status, $manual, true)) {
             flash_set('error', 'حالة غير صحيحة.');
-            redirect('/assets/' . $asset['id']);
+            redirect('/custody/' . $asset['id']);
         }
         if ($asset['status'] === 'assigned') {
             flash_set('error', 'الأصل تحت عهدة - أرجعه أولاً قبل تغيير حالته.');
-            redirect('/assets/' . $asset['id']);
+            redirect('/custody/' . $asset['id']);
         }
 
         Asset::update((int) $asset['id'], ['status' => $status, 'updated_at' => date('Y-m-d H:i:s')]);
         AssetLog::add((int) $asset['id'], Auth::id(), 'status_changed', 'تغيير الحالة إلى: ' . (Asset::statusLabels()[$status] ?? $status));
         flash_set('success', 'تم تحديث حالة الأصل.');
-        redirect('/assets/' . $asset['id']);
+        redirect('/custody/' . $asset['id']);
     }
 
     // ---------------------------------------------------------------
@@ -303,7 +303,7 @@ class AssetController
         $asset = Asset::find($id);
         if (!$asset || (int) $asset['company_id'] !== $companyId) {
             flash_set('error', 'الأصل غير موجود.');
-            redirect('/assets');
+            redirect('/custody');
         }
         return $asset;
     }

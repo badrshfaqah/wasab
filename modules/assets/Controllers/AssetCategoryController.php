@@ -32,17 +32,17 @@ class AssetCategoryController
             $this->forbidden();
             return;
         }
-        $this->verifyCsrf('/assets/categories');
+        $this->verifyCsrf('/custody/categories');
 
         $name = trim((string) Request::input('name', ''));
         if ($name === '') {
             flash_set('error', 'اسم التصنيف مطلوب.');
-            redirect('/assets/categories');
+            redirect('/custody/categories');
         }
         $id = AssetCategory::create($companyId, $name);
         ActivityLog::log('assets.category_create', 'asset_category', $id, "إضافة تصنيف أصول: {$name}");
         flash_set('success', 'تمت إضافة التصنيف.');
-        redirect('/assets/categories');
+        redirect('/custody/categories');
     }
 
     public function destroy(array $params): void
@@ -55,14 +55,14 @@ class AssetCategoryController
         $cat = AssetCategory::find((int) $params['id']);
         if (!$cat || (int) $cat['company_id'] !== $companyId) {
             flash_set('error', 'التصنيف غير موجود.');
-            redirect('/assets/categories');
+            redirect('/custody/categories');
         }
-        $this->verifyCsrf('/assets/categories');
+        $this->verifyCsrf('/custody/categories');
 
         AssetCategory::delete((int) $cat['id']);
         ActivityLog::log('assets.category_delete', 'asset_category', (int) $cat['id'], "حذف تصنيف أصول: {$cat['name']}");
         flash_set('success', 'تم حذف التصنيف (الأصول بقيت بلا تصنيف).');
-        redirect('/assets/categories');
+        redirect('/custody/categories');
     }
 
     private function requireCompanyContext(): int

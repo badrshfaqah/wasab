@@ -17,9 +17,9 @@ return function (array $user): array {
         + Asset::countByStatus($companyId, 'lost');
 
     return [
-        ['label' => 'إجمالي الأصول', 'value' => $total, 'icon' => '📦', 'color' => 'primary', 'url' => route('/assets')],
-        ['label' => 'أصول بعهدة', 'value' => $assigned, 'icon' => '🤝', 'color' => 'info', 'url' => route('/assets?status=assigned')],
-        ['label' => 'أصول متاحة', 'value' => $available, 'icon' => '✅', 'color' => 'success', 'url' => route('/assets?status=available')],
-        ['label' => 'قيد الصيانة', 'value' => $maintenance, 'icon' => '🔧', 'color' => $maintenance > 0 ? 'warning' : 'muted', 'url' => route('/assets?status=maintenance')],
+        ['label' => 'إجمالي الأصول', 'value' => $total, 'icon' => '📦', 'color' => 'primary', 'url' => route('/custody')],
+        ['label' => 'أصول بعهدة', 'value' => $assigned, 'icon' => '🤝', 'color' => 'info', 'url' => route('/custody?status=assigned')],
+        ['label' => 'أصول متاحة', 'value' => $available, 'icon' => '✅', 'color' => 'success', 'url' => route('/custody?status=available')],
+        ['label' => 'قيد الصيانة', 'value' => $maintenance, 'icon' => '🔧', 'color' => $maintenance > 0 ? 'warning' : 'muted', 'url' => route('/custody?status=maintenance')],
     ];
 };

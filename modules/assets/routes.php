@@ -13,27 +13,27 @@ use Modules\Assets\Controllers\AssetHandoverController;
 return function (Router $router): void {
     $auth = [Middleware::class, 'auth'];
 
-    $router->get('/assets', [AssetController::class, 'index'], [$auth]);
-    $router->get('/assets/my', [AssetController::class, 'mine'], [$auth]);
+    $router->get('/custody', [AssetController::class, 'index'], [$auth]);
+    $router->get('/custody/my', [AssetController::class, 'mine'], [$auth]);
 
     // التصنيفات
-    $router->get('/assets/categories', [AssetCategoryController::class, 'index'], [$auth]);
-    $router->post('/assets/categories', [AssetCategoryController::class, 'store'], [$auth]);
-    $router->post('/assets/categories/{id}/delete', [AssetCategoryController::class, 'destroy'], [$auth]);
+    $router->get('/custody/categories', [AssetCategoryController::class, 'index'], [$auth]);
+    $router->post('/custody/categories', [AssetCategoryController::class, 'store'], [$auth]);
+    $router->post('/custody/categories/{id}/delete', [AssetCategoryController::class, 'destroy'], [$auth]);
 
     // محاضر التسليم
-    $router->get('/assets/handovers', [AssetHandoverController::class, 'index'], [$auth]);
-    $router->get('/assets/handovers/create', [AssetHandoverController::class, 'create'], [$auth]);
-    $router->post('/assets/handovers', [AssetHandoverController::class, 'store'], [$auth]);
-    $router->get('/assets/handovers/{id}', [AssetHandoverController::class, 'show'], [$auth]);
-    $router->post('/assets/handovers/items/{itemId}/return', [AssetHandoverController::class, 'returnItem'], [$auth]);
+    $router->get('/custody/handovers', [AssetHandoverController::class, 'index'], [$auth]);
+    $router->get('/custody/handovers/create', [AssetHandoverController::class, 'create'], [$auth]);
+    $router->post('/custody/handovers', [AssetHandoverController::class, 'store'], [$auth]);
+    $router->get('/custody/handovers/{id}', [AssetHandoverController::class, 'show'], [$auth]);
+    $router->post('/custody/handovers/items/{itemId}/return', [AssetHandoverController::class, 'returnItem'], [$auth]);
 
     // الأصول
-    $router->get('/assets/create', [AssetController::class, 'create'], [$auth]);
-    $router->post('/assets', [AssetController::class, 'store'], [$auth]);
-    $router->get('/assets/{id}/edit', [AssetController::class, 'edit'], [$auth]);
-    $router->post('/assets/{id}', [AssetController::class, 'update'], [$auth]);
-    $router->post('/assets/{id}/delete', [AssetController::class, 'destroy'], [$auth]);
-    $router->post('/assets/{id}/status', [AssetController::class, 'changeStatus'], [$auth]);
-    $router->get('/assets/{id}', [AssetController::class, 'show'], [$auth]);
+    $router->get('/custody/create', [AssetController::class, 'create'], [$auth]);
+    $router->post('/custody', [AssetController::class, 'store'], [$auth]);
+    $router->get('/custody/{id}/edit', [AssetController::class, 'edit'], [$auth]);
+    $router->post('/custody/{id}', [AssetController::class, 'update'], [$auth]);
+    $router->post('/custody/{id}/delete', [AssetController::class, 'destroy'], [$auth]);
+    $router->post('/custody/{id}/status', [AssetController::class, 'changeStatus'], [$auth]);
+    $router->get('/custody/{id}', [AssetController::class, 'show'], [$auth]);
 };

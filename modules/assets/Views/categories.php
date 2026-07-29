@@ -1,10 +1,10 @@
 <div class="page-head">
     <div><h1>تصنيفات الأصول</h1><p>نظّم أصول الشركة في تصنيفات (لابتوبات، أثاث، سيارات...).</p></div>
-    <a class="btn btn-outline" href="<?= route('/assets') ?>">← الأصول</a>
+    <a class="btn btn-outline" href="<?= route('/custody') ?>">← الأصول</a>
 </div>
 
 <div class="card" style="max-width:520px;">
-    <form method="post" action="<?= route('/assets/categories') ?>" style="display:flex;gap:8px;align-items:flex-end;">
+    <form method="post" action="<?= route('/custody/categories') ?>" style="display:flex;gap:8px;align-items:flex-end;">
         <?= csrf_field() ?>
         <div class="field" style="margin:0;flex:1;"><label>تصنيف جديد</label><input type="text" name="name" required maxlength="120" placeholder="مثال: أجهزة حاسب"></div>
         <button class="btn" type="submit">إضافة</button>
@@ -24,7 +24,7 @@
                 <td><?= e($c['name']) ?></td>
                 <td><?= (int) $c['assets_count'] ?></td>
                 <td>
-                    <form method="post" action="<?= route('/assets/categories/' . $c['id'] . '/delete') ?>" onsubmit="return confirm('حذف التصنيف؟ الأصول ستبقى بلا تصنيف.');">
+                    <form method="post" action="<?= route('/custody/categories/' . $c['id'] . '/delete') ?>" onsubmit="return confirm('حذف التصنيف؟ الأصول ستبقى بلا تصنيف.');">
                         <?= csrf_field() ?><button class="btn btn-outline btn-sm" type="submit">حذف</button>
                     </form>
                 </td>

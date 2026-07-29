@@ -21,7 +21,7 @@ return function (array $user): array {
             'value' => $assigned,
             'icon' => '📦',
             'color' => 'info',
-            'url' => route('/assets?status=assigned'),
+            'url' => route('/custody?status=assigned'),
         ];
     }
 
@@ -36,7 +36,7 @@ return function (array $user): array {
                 'empty_text' => 'لا عهد مسندة إليك',
                 'items' => array_map(fn ($a) => [
                     'label' => $a['name'] . ($a['asset_code'] ? ' (' . $a['asset_code'] . ')' : ''),
-                    'url' => route('/assets/' . $a['id']),
+                    'url' => route('/custody/' . $a['id']),
                     'meta' => $a['category_name'] ?? '',
                 ], array_slice($mine, 0, 5)),
             ];

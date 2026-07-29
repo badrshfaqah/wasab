@@ -4,7 +4,7 @@
         <h1>محضر تسليم</h1>
         <p>الحامل: <strong><?= e($handover['holder_name']) ?></strong> · <?= e($holderTypeLabels[$handover['holder_type']] ?? '') ?> · بتاريخ <?= format_date($handover['handover_date']) ?></p>
     </div>
-    <a class="btn btn-outline" href="<?= route('/assets/handovers') ?>">← المحاضر</a>
+    <a class="btn btn-outline" href="<?= route('/custody/handovers') ?>">← المحاضر</a>
 </div>
 
 <?php if ($handover['holder_contact']): ?>
@@ -22,7 +22,7 @@
         <tbody>
         <?php foreach ($items as $it): ?>
             <tr>
-                <td><a href="<?= route('/assets/' . $it['asset_id']) ?>"><strong><?= e($it['asset_name']) ?></strong></a><?= $it['asset_code'] ? ' <span class="hint">(' . e($it['asset_code']) . ')</span>' : '' ?></td>
+                <td><a href="<?= route('/custody/' . $it['asset_id']) ?>"><strong><?= e($it['asset_name']) ?></strong></a><?= $it['asset_code'] ? ' <span class="hint">(' . e($it['asset_code']) . ')</span>' : '' ?></td>
                 <td dir="ltr" style="text-align:end;"><?= e($it['serial_number'] ?: '—') ?></td>
                 <td>
                     <?php if ($it['returned_at']): ?>
@@ -34,7 +34,7 @@
                 </td>
                 <td>
                     <?php if (!$it['returned_at'] && $canAssign): ?>
-                    <form method="post" action="<?= route('/assets/handovers/items/' . $it['id'] . '/return') ?>" style="display:flex;gap:6px;flex-wrap:wrap;">
+                    <form method="post" action="<?= route('/custody/handovers/items/' . $it['id'] . '/return') ?>" style="display:flex;gap:6px;flex-wrap:wrap;">
                         <?= csrf_field() ?>
                         <input type="text" name="return_condition" maxlength="60" placeholder="حالة الإرجاع" style="width:130px;padding:6px 8px;">
                         <button class="btn btn-outline btn-sm" type="submit">↩️ إرجاع</button>

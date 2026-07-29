@@ -1,13 +1,13 @@
 <div class="page-head">
     <div><h1>محضر تسليم جديد</h1><p>سلّم أصلاً أو أكثر لحاملٍ واحد — من الملف الوظيفي أو مستخدمي النظام أو شخص يدوي.</p></div>
-    <a class="btn btn-outline" href="<?= route('/assets/handovers') ?>">← المحاضر</a>
+    <a class="btn btn-outline" href="<?= route('/custody/handovers') ?>">← المحاضر</a>
 </div>
 
 <?php if (!$assignable): ?>
-    <div class="empty-state"><div class="ic">📦</div><h3>لا توجد أصول متاحة للتسليم</h3><p>كل الأصول إمّا بعهدة أو غير متاحة. أضف أصلاً أو أرجع عهدة أولاً.</p><a class="btn" href="<?= route('/assets/create') ?>">+ إضافة أصل</a></div>
+    <div class="empty-state"><div class="ic">📦</div><h3>لا توجد أصول متاحة للتسليم</h3><p>كل الأصول إمّا بعهدة أو غير متاحة. أضف أصلاً أو أرجع عهدة أولاً.</p><a class="btn" href="<?= route('/custody/create') ?>">+ إضافة أصل</a></div>
 <?php else: ?>
 <div class="card" style="max-width:720px;">
-    <form method="post" action="<?= route('/assets/handovers') ?>">
+    <form method="post" action="<?= route('/custody/handovers') ?>">
         <?= csrf_field() ?>
 
         <div class="card-title"><span>👤 حامل العهدة</span></div>
@@ -80,7 +80,7 @@ function assetsHolderToggle() {
 }
 document.addEventListener('DOMContentLoaded', function () {
     assetsHolderToggle();
-    var form = document.querySelector('form[action$="/assets/handovers"]');
+    var form = document.querySelector('form[action$="/custody/handovers"]');
     if (form) form.addEventListener('submit', function () {
         var type = document.getElementById('holder-type').value;
         var val = '';

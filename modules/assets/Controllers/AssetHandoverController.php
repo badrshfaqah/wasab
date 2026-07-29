@@ -66,7 +66,7 @@ class AssetHandoverController
             $this->forbidden();
             return;
         }
-        $this->verifyCsrf('/assets/handovers/create');
+        $this->verifyCsrf('/custody/handovers/create');
 
         // الحامل: نوع + مرجع (أو اسم يدوي) - يُتحقق من انتمائه للشركة
         $holderType = Request::input('holder_type', 'manual');
@@ -78,14 +78,14 @@ class AssetHandoverController
         $holderName = AssetHolder::resolveName($companyId, $holderType, $holderRef, $manualName);
         if ($holderName === null) {
             flash_set('error', 'حدّد حامل العهدة (اختر موظفاً/مستخدماً أو اكتب اسماً يدوياً صحيحاً).');
-            redirect('/assets/handovers/create');
+            redirect('/custody/handovers/create');
         }
 
         // الأصول: يجب أن تكون متاحة وتخصّ الشركة
         $assetIds = array_values(array_unique(array_filter(array_map('intval', (array) ($_POST['asset_ids'] ?? [])), fn ($id) => $id > 0)));
         if (!$assetIds) {
             flash_set('error', 'اختر أصلاً واحداً على الأقل للتسليم.');
-            redirect('/assets/handovers/create');
+            redirect('/custody/handovers/create');
         }
         $placeholders = implode(',', array_fill(0, count($assetIds), '?'));
         $validAssets = Database::select(
@@ -95,7 +95,7 @@ class AssetHandoverController
         );
         if (count($validAssets) !== count($assetIds)) {
             flash_set('error', 'بعض الأصول المختارة لم تعد متاحة للتسليم، حدّث الصفحة وأعد المحاولة.');
-            redirect('/assets/handovers/create');
+            redirect('/custody/handovers/create');
         }
 
         $handoverDate = Request::input('handover_date') ?: date('Y-m-d');
@@ -134,13 +134,13 @@ class AssetHandoverController
                 $notifyUser,
                 '📦 عهدة جديدة باسمك',
                 "تم تسجيل {$count} " . ($count === 1 ? 'أصل' : 'أصول') . ' في عهدتك.',
-                route('/assets/my')
+                route('/custody/my')
             );
         }
 
         ActivityLog::log('assets.handover', 'asset_handover', $handoverId, "محضر تسليم لـ {$holderName} (" . count($validAssets) . ' أصل)');
         flash_set('success', 'تم تسجيل محضر التسليم وإسناد العهد.');
-        redirect('/assets/handovers/' . $handoverId);
+        redirect('/custody/handovers/' . $handoverId);
     }
 
     public function show(array $params): void
@@ -171,13 +171,13 @@ class AssetHandoverController
         $item = AssetHandover::findItem((int) $params['itemId']);
         if (!$item || (int) $item['company_id'] !== $companyId) {
             flash_set('error', 'البند غير موجود.');
-            redirect('/assets/handovers');
+            redirect('/custody/handovers');
         }
-        $this->verifyCsrf('/assets/handovers/' . $item['handover_id']);
+        $this->verifyCsrf('/custody/handovers/' . $item['handover_id']);
 
         if ($item['returned_at']) {
             flash_set('error', 'هذا الأصل مُرجع بالفعل.');
-            redirect('/assets/handovers/' . $item['handover_id']);
+            redirect('/custody/handovers/' . $item['handover_id']);
         }
 
         $condition = mb_substr(trim((string) Request::input('return_condition', '')), 0, 60) ?: null;
@@ -196,7 +196,7 @@ class AssetHandoverController
 
         ActivityLog::log('assets.return', 'asset', (int) $item['asset_id'], "إرجاع عهدة: {$item['asset_name']}");
         flash_set('success', 'تم تسجيل إرجاع الأصل.');
-        redirect('/assets/handovers/' . $item['handover_id']);
+        redirect('/custody/handovers/' . $item['handover_id']);
     }
 
     // ---------------------------------------------------------------
@@ -221,7 +221,7 @@ class AssetHandoverController
         $handover = AssetHandover::find($id);
         if (!$handover || (int) $handover['company_id'] !== $companyId) {
             flash_set('error', 'المحضر غير موجود.');
-            redirect('/assets/handovers');
+            redirect('/custody/handovers');
         }
         return $handover;
     }

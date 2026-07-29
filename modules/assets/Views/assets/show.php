@@ -8,10 +8,10 @@ $actionLabels = ['created' => 'تسجيل', 'updated' => 'تعديل', 'assigned
         <p><?= e($asset['category_name'] ?? 'بلا تصنيف') ?><?= $asset['asset_code'] ? ' · ' . e($asset['asset_code']) : '' ?></p>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        <a class="btn btn-outline" href="<?= route('/assets') ?>">← القائمة</a>
-        <?php if ($canEdit): ?><a class="btn btn-outline" href="<?= route('/assets/' . $asset['id'] . '/edit') ?>">تعديل</a><?php endif; ?>
+        <a class="btn btn-outline" href="<?= route('/custody') ?>">← القائمة</a>
+        <?php if ($canEdit): ?><a class="btn btn-outline" href="<?= route('/custody/' . $asset['id'] . '/edit') ?>">تعديل</a><?php endif; ?>
         <?php if ($canAssign && $asset['status'] === 'available'): ?>
-            <a class="btn" href="<?= route('/assets/handovers/create?asset=' . $asset['id']) ?>">🤝 تسليم عهدة</a>
+            <a class="btn" href="<?= route('/custody/handovers/create?asset=' . $asset['id']) ?>">🤝 تسليم عهدة</a>
         <?php endif; ?>
     </div>
 </div>
@@ -21,7 +21,7 @@ $actionLabels = ['created' => 'تسجيل', 'updated' => 'تعديل', 'assigned
     <div class="card-title"><span>🤝 العهدة الحالية</span></div>
     <p style="margin:0;">هذا الأصل بعهدة <strong><?= e($asset['current_holder_name']) ?></strong> منذ <?= format_date($asset['assigned_at'], 'Y-m-d') ?>.</p>
     <?php if ($openItem && $canAssign): ?>
-        <form method="post" action="<?= route('/assets/handovers/items/' . $openItem['id'] . '/return') ?>" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;">
+        <form method="post" action="<?= route('/custody/handovers/items/' . $openItem['id'] . '/return') ?>" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;">
             <?= csrf_field() ?>
             <div class="field" style="margin:0;min-width:160px;"><label>حالة الإرجاع</label><input type="text" name="return_condition" maxlength="60" placeholder="سليم / تالف..."></div>
             <div class="field" style="margin:0;flex:1;min-width:180px;"><label>ملاحظة</label><input type="text" name="return_note" maxlength="255"></div>
@@ -48,7 +48,7 @@ $actionLabels = ['created' => 'تسجيل', 'updated' => 'تعديل', 'assigned
             <?php if ($canEdit): ?>
                 <?php foreach (['available' => 'إعادة للإتاحة', 'maintenance' => 'إرسال لصيانة', 'retired' => 'خارج الخدمة', 'lost' => 'مفقود'] as $st => $lbl): ?>
                     <?php if ($asset['status'] !== $st): ?>
-                    <form method="post" action="<?= route('/assets/' . $asset['id'] . '/status') ?>">
+                    <form method="post" action="<?= route('/custody/' . $asset['id'] . '/status') ?>">
                         <?= csrf_field() ?><input type="hidden" name="status" value="<?= $st ?>">
                         <button class="btn btn-outline btn-sm" type="submit"><?= $lbl ?></button>
                     </form>
@@ -56,7 +56,7 @@ $actionLabels = ['created' => 'تسجيل', 'updated' => 'تعديل', 'assigned
                 <?php endforeach; ?>
             <?php endif; ?>
             <?php if ($canDelete): ?>
-            <form method="post" action="<?= route('/assets/' . $asset['id'] . '/delete') ?>" onsubmit="return confirm('حذف هذا الأصل نهائياً؟');">
+            <form method="post" action="<?= route('/custody/' . $asset['id'] . '/delete') ?>" onsubmit="return confirm('حذف هذا الأصل نهائياً؟');">
                 <?= csrf_field() ?><button class="btn btn-danger btn-sm" type="submit">حذف الأصل</button>
             </form>
             <?php endif; ?>
