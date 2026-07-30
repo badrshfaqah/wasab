@@ -20,6 +20,7 @@ return function (Router $router): void {
     $router->post('/api/inbox', [InboxApiController::class, 'receive'], []);
 
     $router->get('/inbox', [InboxController::class, 'index'], [$auth]);
+    $router->get('/inbox/export/{format}', [InboxController::class, 'export'], [$auth]);
 
     $router->get('/inbox/sites', [InboxSiteController::class, 'index'], [$auth]);
     $router->get('/inbox/sites/create', [InboxSiteController::class, 'create'], [$auth]);

@@ -11,9 +11,14 @@ $empQuery = function (array $filters, array $overrides = []): string {
 ?>
 <div class="page-head">
     <div><h1>الملف الوظيفي</h1><p>الملفات الوظيفية لموظفي الشركة.</p></div>
-    <?php if ($canCreate): ?>
-        <a class="btn" href="<?= route('/employees/create') ?>">+ ملف وظيفي جديد</a>
-    <?php endif; ?>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <?php $exq = http_build_query($filters); ?>
+        <a class="btn btn-outline btn-sm" href="<?= route('/employees/export/csv' . ($exq ? '?' . $exq : '')) ?>">⬇️ Excel</a>
+        <a class="btn btn-outline btn-sm" href="<?= route('/employees/export/print' . ($exq ? '?' . $exq : '')) ?>" target="_blank" rel="noopener">🖨️ PDF</a>
+        <?php if ($canCreate): ?>
+            <a class="btn" href="<?= route('/employees/create') ?>">+ ملف وظيفي جديد</a>
+        <?php endif; ?>
+    </div>
 </div>
 
 <div class="card">

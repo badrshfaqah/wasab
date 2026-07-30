@@ -145,6 +145,45 @@ class InboxController
         return Auth::isSystemAdmin() || Auth::isCompanyAdmin() || $this->can('inbox.delete');
     }
 
+    /** تصدير قائمة الرسائل (بنفس نطاق وفلاتر الصفحة) إلى CSV أو طباعة/PDF. */
+    public function export(array $params): void
+    {
+        $companyId = $this->requireCompanyContext();
+        if (!$this->can('inbox.view')) {
+            $this->forbidden();
+            return;
+        }
+        $scope = Request::query('scope', 'all');
+        if (!in_array($scope, self::SCOPES, true)) {
+            $scope = 'all';
+        }
+        $filters = [];
+        if ($q = trim((string) Request::query('q', ''))) {
+            $filters['q'] = $q;
+        }
+        if ($siteId = (int) Request::query('site_id', 0)) {
+            $filters['site_id'] = $siteId;
+        }
+        $messages = InboxMessage::paginate($companyId, $scope, 1, 100000, $filters)['rows'];
+
+        $headers = ['الموقع', 'المرسل', 'البريد', 'الجوال', 'الموضوع', 'الرسالة', 'الحالة', 'وقت الاستلام'];
+        $rows = array_map(fn ($m) => [
+            $m['site_name'] ?? '-',
+            $m['sender_name'] ?? '-',
+            $m['sender_email'] ?? '-',
+            $m['sender_phone'] ?? '-',
+            $m['subject'] ?? '-',
+            mb_substr((string) $m['body'], 0, 500),
+            $m['is_read'] ? 'مقروءة' : 'غير مقروءة',
+            format_date($m['received_at'], 'Y-m-d H:i'),
+        ], $messages);
+
+        if (($params['format'] ?? 'csv') === 'print') {
+            \App\Core\Export::printable('رسائل مركز المراسلات', $headers, $rows);
+        }
+        \App\Core\Export::csv('inbox_messages', $headers, $rows);
+    }
+
     private function findVisible(int $id, int $companyId): array
     {
         $message = InboxMessage::find($id);

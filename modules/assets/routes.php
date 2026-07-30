@@ -14,6 +14,7 @@ return function (Router $router): void {
     $auth = [Middleware::class, 'auth'];
 
     $router->get('/custody', [AssetController::class, 'index'], [$auth]);
+    $router->get('/custody/export/{format}', [AssetController::class, 'export'], [$auth]);
     $router->get('/custody/my', [AssetController::class, 'mine'], [$auth]);
 
     // التصنيفات

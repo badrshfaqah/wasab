@@ -8,10 +8,13 @@ $assetsQuery = function (array $filters, array $ov = []) {
 <div class="page-head">
     <div><h1>العهد والأصول</h1><p>سجل أصول الشركة والعهد المسندة لحامليها.</p></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <?php $exq = http_build_query($filters); ?>
+        <a class="btn btn-outline btn-sm" href="<?= route('/custody/export/csv' . ($exq ? '?' . $exq : '')) ?>">⬇️ Excel</a>
+        <a class="btn btn-outline btn-sm" href="<?= route('/custody/export/print' . ($exq ? '?' . $exq : '')) ?>" target="_blank" rel="noopener">🖨️ PDF</a>
         <?php if ($canManage): ?><a class="btn btn-outline" href="<?= route('/custody/categories') ?>">🏷️ التصنيفات</a><?php endif; ?>
-        <a class="btn btn-outline" href="<?= route('/custody/handovers') ?>">📋 محاضر التسليم</a>
-        <?php if ($canAssign): ?><a class="btn btn-outline" href="<?= route('/custody/handovers/create') ?>">🤝 تسليم عهدة</a><?php endif; ?>
-        <?php if ($canCreate): ?><a class="btn" href="<?= route('/custody/create') ?>">+ إضافة أصل</a><?php endif; ?>
+        <a class="btn btn-outline" href="<?= route('/custody/handovers') ?>">📋 المحاضر</a>
+        <?php if ($canAssign): ?><a class="btn btn-outline" href="<?= route('/custody/handovers/create') ?>">🤝 تسليم</a><?php endif; ?>
+        <?php if ($canCreate): ?><a class="btn" href="<?= route('/custody/create') ?>">+ أصل</a><?php endif; ?>
     </div>
 </div>
 

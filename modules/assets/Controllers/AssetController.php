@@ -278,6 +278,45 @@ class AssetController
         ];
     }
 
+    /** تصدير قائمة الأصول (بنفس فلاتر الصفحة) إلى CSV أو طباعة/PDF. */
+    public function export(array $params): void
+    {
+        $companyId = $this->requireCompanyContext();
+        if (!$this->can('assets.view')) {
+            $this->forbidden();
+            return;
+        }
+        $filters = [];
+        if ($q = trim((string) Request::query('q', ''))) {
+            $filters['q'] = $q;
+        }
+        if (in_array(Request::query('status', ''), Asset::STATUSES, true)) {
+            $filters['status'] = Request::query('status');
+        }
+        if ($catId = (int) Request::query('category_id', 0)) {
+            $filters['category_id'] = $catId;
+        }
+        $assets = Asset::paginate($companyId, 1, 100000, $filters)['rows'];
+        $labels = Asset::statusLabels();
+
+        $headers = ['الأصل', 'الرمز', 'الرقم التسلسلي', 'التصنيف', 'الحالة', 'الحامل الحالي', 'قيمة الشراء', 'انتهاء الضمان'];
+        $rows = array_map(fn ($a) => [
+            $a['name'],
+            $a['asset_code'] ?? '-',
+            $a['serial_number'] ?? '-',
+            $a['category_name'] ?? '-',
+            $labels[$a['status']] ?? $a['status'],
+            $a['current_holder_name'] ?? '-',
+            $a['purchase_cost'] !== null ? number_format((float) $a['purchase_cost'], 2) : '-',
+            $a['warranty_expiry'] ? format_date($a['warranty_expiry']) : '-',
+        ], $assets);
+
+        if (($params['format'] ?? 'csv') === 'print') {
+            \App\Core\Export::printable('العهد والأصول', $headers, $rows);
+        }
+        \App\Core\Export::csv('assets', $headers, $rows);
+    }
+
     private function requireCompanyContext(): int
     {
         $companyId = Auth::companyId();

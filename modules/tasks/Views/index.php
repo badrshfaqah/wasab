@@ -20,8 +20,11 @@ $tasksQuery = function (string $scope, array $filters, array $overrides = []): s
 ?>
 <div class="page-head">
     <div><h1>المهام</h1><p>متابعة المهام المسندة إليك والتي أنشأتها.</p></div>
-    <div style="display:flex;gap:8px;">
-        <a class="btn btn-outline" href="<?= route('/tasks/board?' . http_build_query(array_merge(['scope' => $scope], $filters))) ?>">🗂️ عرض كانبان</a>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <?php $exq = http_build_query(array_merge(['scope' => $scope], $filters)); ?>
+        <a class="btn btn-outline btn-sm" href="<?= route('/tasks/export/csv?' . $exq) ?>">⬇️ Excel</a>
+        <a class="btn btn-outline btn-sm" href="<?= route('/tasks/export/print?' . $exq) ?>" target="_blank" rel="noopener">🖨️ PDF</a>
+        <a class="btn btn-outline" href="<?= route('/tasks/board?' . http_build_query(array_merge(['scope' => $scope], $filters))) ?>">🗂️ كانبان</a>
         <?php if (can('tasks.create')): ?>
             <a class="btn" href="<?= route('/tasks/create') ?>">+ مهمة جديدة</a>
         <?php endif; ?>

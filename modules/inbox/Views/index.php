@@ -13,11 +13,14 @@ $inboxQuery = function (string $scope, array $filters, array $overrides = []): s
 ?>
 <div class="page-head">
     <div><h1>مركز المراسلات</h1><p>كل رسائل نماذج التواصل من مواقعك في شاشة واحدة<?= $unreadCount > 0 ? ' - <strong>' . (int) $unreadCount . '</strong> غير مقروءة' : '' ?>.</p></div>
-    <?php if ($canManageSites): ?>
-        <div style="display:flex;gap:8px;">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <?php $exq = http_build_query(array_merge(['scope' => $scope], $filters)); ?>
+        <a class="btn btn-outline btn-sm" href="<?= route('/inbox/export/csv?' . $exq) ?>">⬇️ Excel</a>
+        <a class="btn btn-outline btn-sm" href="<?= route('/inbox/export/print?' . $exq) ?>" target="_blank" rel="noopener">🖨️ PDF</a>
+        <?php if ($canManageSites): ?>
             <a class="btn btn-outline" href="<?= route('/inbox/sites') ?>">🌐 إدارة المواقع</a>
-        </div>
-    <?php endif; ?>
+        <?php endif; ?>
+    </div>
 </div>
 
 <div class="tabs">

@@ -508,6 +508,36 @@ class EmployeeController
         return array_values(array_filter($users, fn ($u) => !in_array((int) $u['id'], array_map('intval', $linkedIds), true)));
     }
 
+    /** تصدير قائمة الموظفين (بنفس فلاتر الصفحة) - بلا بيانات حساسة. */
+    public function export(array $params): void
+    {
+        $companyId = $this->requireCompanyContext();
+        if (!$this->can('employees.view')) {
+            $this->forbidden();
+            return;
+        }
+        $filters = $this->currentFilters();
+        $employees = Employee::paginate($companyId, $filters, 1, 100000)['rows'];
+
+        $statusLabels = ['active' => 'نشط', 'on_leave' => 'إجازة', 'suspended' => 'موقوف', 'terminated' => 'منتهي الخدمة'];
+        $headers = ['الاسم', 'المسمى الوظيفي', 'القسم', 'الفرع', 'الجوال', 'البريد', 'تاريخ التعيين', 'الحالة'];
+        $rows = array_map(fn ($e) => [
+            $e['full_name'],
+            $e['job_title'] ?? '-',
+            $e['department'] ?? '-',
+            $e['branch'] ?? '-',
+            $e['phone'] ?? '-',
+            $e['personal_email'] ?? '-',
+            $e['hire_date'] ? format_date($e['hire_date']) : '-',
+            $statusLabels[$e['status']] ?? $e['status'],
+        ], $employees);
+
+        if (($params['format'] ?? 'csv') === 'print') {
+            \App\Core\Export::printable('الموظفون', $headers, $rows);
+        }
+        \App\Core\Export::csv('employees', $headers, $rows);
+    }
+
     private function currentFilters(): array
     {
         $filters = [];

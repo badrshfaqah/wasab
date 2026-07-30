@@ -532,6 +532,46 @@ class TaskController
     }
 
     /** فلاتر القائمة/اللوحة المشتركة: بحث بالعنوان، مسؤول، أولوية، حالة. */
+    /** تصدير قائمة المهام (بنفس نطاق وفلاتر الصفحة) إلى CSV أو طباعة/PDF. */
+    public function export(array $params): void
+    {
+        $companyId = $this->requireCompanyContext();
+        if (!$this->can('tasks.view')) {
+            $this->forbidden();
+            return;
+        }
+
+        $scope = Request::query('scope', 'mine');
+        $allowedScopes = ['mine', 'created', 'overdue', 'approval'];
+        if ($this->canManage()) {
+            $allowedScopes[] = 'all';
+        }
+        if (!in_array($scope, $allowedScopes, true)) {
+            $scope = 'mine';
+        }
+        $filters = $this->currentFilters();
+
+        $tasks = Task::paginate($companyId, $scope, Auth::id(), 1, 100000, $filters)['rows'];
+
+        $priorityLabels = ['low' => 'منخفضة', 'medium' => 'متوسطة', 'high' => 'عالية', 'urgent' => 'عاجلة'];
+        $statusLabels = ['todo' => 'لم تبدأ', 'in_progress' => 'قيد التنفيذ', 'in_review' => 'قيد المراجعة', 'done' => 'مكتملة', 'cancelled' => 'ملغاة'];
+
+        $headers = ['العنوان', 'المسؤول', 'المنشئ', 'الأولوية', 'الحالة', 'تاريخ الاستحقاق'];
+        $rows = array_map(fn ($t) => [
+            $t['title'],
+            $t['assignee_name'] ?? '-',
+            $t['creator_name'] ?? '-',
+            $priorityLabels[$t['priority']] ?? $t['priority'],
+            $statusLabels[$t['status']] ?? $t['status'],
+            $t['due_date'] ? format_date($t['due_date']) : '-',
+        ], $tasks);
+
+        if (($params['format'] ?? 'csv') === 'print') {
+            \App\Core\Export::printable('المهام', $headers, $rows);
+        }
+        \App\Core\Export::csv('tasks', $headers, $rows);
+    }
+
     private function currentFilters(): array
     {
         $filters = [];
