@@ -24,7 +24,7 @@ namespace App\Core;
  */
 class CoreMigrator
 {
-    public const CURRENT_VERSION = 14;
+    public const CURRENT_VERSION = 15;
     private const RETRY_COOLDOWN_SECONDS = 300;
 
     private static function migrations(): array
@@ -104,6 +104,14 @@ class CoreMigrator
                     'calendar_events',
                     'user_id',
                     "INT UNSIGNED NULL COMMENT 'حدث شخصي لهذا المستخدم فقط - NULL يعني حدثاً عاماً للشركة' AFTER `company_id`"
+                ),
+            ],
+            15 => [
+                'label' => 'إضافة ثيم التصميم لكل شركة',
+                'run' => fn () => self::addColumnIfMissing(
+                    'companies',
+                    'theme',
+                    "VARCHAR(30) NOT NULL DEFAULT 'classic' COMMENT 'مفتاح ثيم التصميم - App\\\\Core\\\\Theme' AFTER `sidebar_color`"
                 ),
             ],
         ];

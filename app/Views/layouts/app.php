@@ -11,6 +11,9 @@ if ($user && !empty($user['company_id'])) {
 }
 $primaryColor = $company['primary_color'] ?? '#2563eb';
 $sidebarColor = $company['sidebar_color'] ?? '#111827';
+// ثيم الشركة يحدد لون خلفية الصفحة ونمط الأشكال؛ اللونان الأساسي والقائمة
+// يبقيان من أعمدة الشركة (يكتبهما اختيار الثيم، ويتيح تخصيصهما فوقه).
+$theme = \App\Core\Theme::resolve($company['theme'] ?? null);
 $unread = $user ? Notification::unreadCount((int) $user['id']) : 0;
 $notifications = $user ? Notification::recent((int) $user['id'], 6) : [];
 $currentPath = \App\Core\Request::path();
@@ -35,9 +38,9 @@ if ($impersonating) {
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="وصاب">
-<style>:root{--primary:<?= e($primaryColor) ?>;--primary-light:<?= e($primaryColor) ?>14;--sidebar-bg:<?= e($sidebarColor) ?>;}</style>
+<style>:root{--primary:<?= e($primaryColor) ?>;--primary-light:<?= e($primaryColor) ?>14;--sidebar-bg:<?= e($sidebarColor) ?>;--bg:<?= e($theme['bg']) ?>;}</style>
 </head>
-<body>
+<body class="theme-shape-<?= e($theme['shape']) ?>">
 <div class="app-shell">
     <?php include __DIR__ . '/../partials/sidebar.php'; ?>
     <div class="sidebar-backdrop" hidden></div>

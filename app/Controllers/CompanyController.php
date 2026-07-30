@@ -54,6 +54,7 @@ class CompanyController
                 'name' => $data['name'],
                 'primary_color' => $data['primary_color'],
                 'sidebar_color' => $data['sidebar_color'],
+                'theme' => $data['theme'],
                 'logo' => $upload['filename'],
                 'status' => $data['status'],
                 'created_at' => date('Y-m-d H:i:s'),
@@ -105,6 +106,7 @@ class CompanyController
                 'name' => $data['name'],
                 'primary_color' => $data['primary_color'],
                 'sidebar_color' => $data['sidebar_color'],
+                'theme' => $data['theme'],
                 'logo' => $logo,
                 'status' => $data['status'],
                 'updated_at' => date('Y-m-d H:i:s'),
@@ -158,6 +160,7 @@ class CompanyController
             'name' => trim((string) Request::input('name', '')),
             'primary_color' => trim((string) Request::input('primary_color', '#2563eb')),
             'sidebar_color' => trim((string) Request::input('sidebar_color', '#111827')),
+            'theme' => (string) Request::input('theme', \App\Core\Theme::DEFAULT),
             'status' => Request::input('status', 'active') === 'inactive' ? 'inactive' : 'active',
         ];
 
@@ -173,6 +176,9 @@ class CompanyController
         }
         if (!preg_match('/^#[0-9a-fA-F]{6}$/', $data['sidebar_color'])) {
             $data['sidebar_color'] = '#111827';
+        }
+        if (!\App\Core\Theme::isValid($data['theme'])) {
+            $data['theme'] = \App\Core\Theme::DEFAULT;
         }
 
         return $data;

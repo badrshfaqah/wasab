@@ -77,7 +77,12 @@ class SettingController
                 $sidebarColor = '#111827';
             }
 
-            $update = ['primary_color' => $color, 'sidebar_color' => $sidebarColor, 'updated_at' => date('Y-m-d H:i:s')];
+            $theme = (string) Request::input('theme', '');
+            if (!\App\Core\Theme::isValid($theme)) {
+                $theme = \App\Core\Theme::DEFAULT;
+            }
+
+            $update = ['primary_color' => $color, 'sidebar_color' => $sidebarColor, 'theme' => $theme, 'updated_at' => date('Y-m-d H:i:s')];
             if ($name !== '') {
                 $update['name'] = $name;
             }

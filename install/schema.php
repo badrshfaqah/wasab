@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS `companies` (
     `logo` VARCHAR(255) NULL,
     `primary_color` VARCHAR(7) NOT NULL DEFAULT '#2563eb',
     `sidebar_color` VARCHAR(7) NOT NULL DEFAULT '#111827',
+    `theme` VARCHAR(30) NOT NULL DEFAULT 'classic' COMMENT 'مفتاح ثيم التصميم - App\\Core\\Theme',
     `status` ENUM('active','inactive') NOT NULL DEFAULT 'active',
     `created_at` DATETIME NOT NULL,
     `updated_at` DATETIME NULL

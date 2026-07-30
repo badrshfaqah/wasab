@@ -585,3 +585,50 @@ body{-webkit-tap-highlight-color:transparent;}
     .topbar{padding-top:12px;}
   }
 }
+
+/* ===== أنماط أشكال الثيمات (class على body يحدده ثيم الشركة) ===== */
+/* rounded هو الافتراضي الحالي - لا قواعد له. sharp حواف حادة، soft حواف أنعم. */
+body.theme-shape-sharp .card,
+body.theme-shape-sharp .stat-card,
+body.theme-shape-sharp .btn,
+body.theme-shape-sharp input[type=text],
+body.theme-shape-sharp input[type=email],
+body.theme-shape-sharp input[type=password],
+body.theme-shape-sharp input[type=number],
+body.theme-shape-sharp input[type=date],
+body.theme-shape-sharp input[type=search],
+body.theme-shape-sharp textarea,
+body.theme-shape-sharp select,
+body.theme-shape-sharp .badge,
+body.theme-shape-sharp .dropdown,
+body.theme-shape-sharp .alert{border-radius:4px;}
+body.theme-shape-sharp .avatar{border-radius:6px;}
+
+body.theme-shape-soft .card,
+body.theme-shape-soft .stat-card{border-radius:20px;}
+body.theme-shape-soft .btn,
+body.theme-shape-soft input[type=text],
+body.theme-shape-soft input[type=email],
+body.theme-shape-soft input[type=password],
+body.theme-shape-soft input[type=number],
+body.theme-shape-soft input[type=date],
+body.theme-shape-soft input[type=search],
+body.theme-shape-soft textarea,
+body.theme-shape-soft select{border-radius:12px;}
+body.theme-shape-soft .dropdown{border-radius:16px;}
+
+/* ===== منتقي الثيم (صفحة الإعدادات) ===== */
+.theme-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;}
+.theme-card{
+  display:flex;flex-direction:column;align-items:center;gap:8px;
+  padding:12px 8px;border:2px solid var(--border);border-radius:12px;
+  background:var(--card);cursor:pointer;font-family:inherit;transition:border-color .15s,transform .15s;
+}
+.theme-card:hover{border-color:var(--primary);transform:translateY(-2px);}
+.theme-card.selected{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-light);}
+.theme-swatch{display:flex;width:100%;height:38px;border-radius:8px;overflow:hidden;}
+.theme-swatch > span{flex:1;}
+.theme-name{font-size:12.5px;font-weight:700;color:var(--text);}
+.theme-advanced{margin-bottom:16px;}
+.theme-advanced > summary{cursor:pointer;font-size:13px;font-weight:700;color:var(--muted);padding:8px 0;}
+.theme-advanced > summary:hover{color:var(--primary);}
