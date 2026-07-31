@@ -1,0 +1,72 @@
+<?php
+$companyId = $letter['company_id'];
+$bg = $settings['background_image'] ? route('/media/forms/' . $companyId . '/' . $settings['background_image']) : null;
+$header = $settings['header_html'] ?? '';
+$footer = $settings['footer_html'] ?? '';
+?>
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title><?= e($letter['title']) ?> - <?= e($letter['number']) ?></title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap');
+*{box-sizing:border-box;}
+body{margin:0;background:#e5e7eb;font-family:'Cairo','Segoe UI',Tahoma,Arial,sans-serif;color:#1f2937;}
+.toolbar{position:sticky;top:0;background:#111827;color:#fff;padding:10px 20px;display:flex;justify-content:space-between;align-items:center;z-index:10;}
+.toolbar button,.toolbar a{background:#2563eb;color:#fff;border:0;border-radius:6px;padding:8px 16px;font-size:14px;cursor:pointer;text-decoration:none;font-family:inherit;}
+.page-wrap{display:flex;justify-content:center;padding:24px 12px;}
+.doc-page{
+  position:relative;width:210mm;min-height:297mm;background:#fff <?= $bg ? 'url(' . e($bg) . ') center/cover no-repeat' : '' ?>;
+  box-shadow:0 2px 16px rgba(0,0,0,.15);padding:35mm 25mm;-webkit-print-color-adjust:exact;print-color-adjust:exact;
+}
+.doc-number{position:absolute;top:14mm;left:20mm;font-size:12px;color:#374151;}
+.doc-header{margin-bottom:20px;font-size:13px;}
+.doc-body{line-height:2.2;font-size:15px;white-space:pre-wrap;min-height:120mm;}
+.doc-signature{margin-top:50px;display:flex;justify-content:flex-start;gap:20px;text-align:center;}
+.doc-signature img{max-height:80px;display:block;margin:0 auto 6px;}
+.doc-footer{margin-top:26px;font-size:12px;color:#4b5563;}
+@page{size:A4;margin:0;}
+@media print{
+  body{background:#fff;}
+  .toolbar{display:none;}
+  .page-wrap{padding:0;}
+  .doc-page{box-shadow:none;width:210mm;min-height:297mm;margin:0;}
+}
+</style>
+</head>
+<body>
+<div class="toolbar">
+    <span><?= e($letter['title']) ?> - <?= e($letter['number']) ?></span>
+    <div style="display:flex;gap:8px;">
+        <button onclick="window.print()">🖨️ طباعة / حفظ PDF</button>
+        <a href="javascript:window.close()">إغلاق</a>
+    </div>
+</div>
+<div class="page-wrap">
+    <div class="doc-page">
+        <div class="doc-number">رقم: <?= e($letter['number']) ?></div>
+        <?php if ($header): ?><div class="doc-header"><?= $header ?></div><?php endif; ?>
+
+        <div class="doc-body"><?= e($letter['body']) ?></div>
+
+        <?php if (!empty($settings['signature_image']) || !empty($settings['stamp_image']) || !empty($settings['signer_name'])): ?>
+        <div class="doc-signature">
+            <?php if (!empty($settings['stamp_image'])): ?>
+                <div><img src="<?= route('/media/forms/' . $companyId . '/' . $settings['stamp_image']) ?>" alt=""></div>
+            <?php endif; ?>
+            <div>
+                <?php if (!empty($settings['signature_image'])): ?>
+                    <img src="<?= route('/media/forms/' . $companyId . '/' . $settings['signature_image']) ?>" alt="">
+                <?php endif; ?>
+                <?php if (!empty($settings['signer_name'])): ?><div><strong><?= e($settings['signer_name']) ?></strong></div><?php endif; ?>
+                <?php if (!empty($settings['signer_title'])): ?><div style="font-size:12px;color:#6b7280;"><?= e($settings['signer_title']) ?></div><?php endif; ?>
+            </div>
+        </div>
+        <?php endif; ?>
+
+        <?php if ($footer): ?><div class="doc-footer"><?= $footer ?></div><?php endif; ?>
+    </div>
+</div>
+</body>
+</html>
