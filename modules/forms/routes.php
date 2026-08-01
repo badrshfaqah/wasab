@@ -29,6 +29,9 @@ return function (Router $router): void {
     $router->get('/forms/settings', [FormSettingController::class, 'index'], [$auth]);
     $router->post('/forms/settings', [FormSettingController::class, 'update'], [$auth]);
 
+    // صفحة تحقّق عامة بلا مصادقة (رمز عشوائي طويل غير قابل للتخمين) - قبل /forms/{id}
+    $router->get('/forms/verify/{token}', [FormController::class, 'verify'], []);
+
     // الخطابات المولّدة
     $router->get('/forms/{id}', [FormController::class, 'show'], [$auth]);
     $router->get('/forms/{id}/print', [FormController::class, 'print'], [$auth]);

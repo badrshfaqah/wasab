@@ -16,6 +16,17 @@ class FormLetter
         );
     }
 
+    /** خطاب حسب رمز التحقق العام (لصفحة التحقق بلا مصادقة). */
+    public static function findByToken(string $token): ?array
+    {
+        return Database::first(
+            'SELECT l.*, c.name AS company_name FROM forms_letters l
+               LEFT JOIN companies c ON c.id = l.company_id
+              WHERE l.verify_token = :t',
+            ['t' => $token]
+        );
+    }
+
     public static function create(array $data): int
     {
         return Database::insert('forms_letters', $data);

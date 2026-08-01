@@ -56,6 +56,7 @@ class Employee
             'salary_change' => 'تغيير راتب',
             'warning' => 'إنذار',
             'termination' => 'إنهاء خدمة',
+            'document' => 'خطاب/وثيقة',
             'note' => 'ملاحظة',
         ];
     }

@@ -21,4 +21,22 @@ return function (PDO $pdo, string $fromVersion): void {
             }
         }
     }
+
+    if (version_compare($fromVersion, '1.2.0', '<')) {
+        // رمز تحقق عام للخطابات (صفحة تحقق كالمستندات)
+        $exists = $pdo->query(
+            "SELECT 1 FROM information_schema.columns
+              WHERE table_schema = DATABASE() AND table_name = 'forms_letters' AND column_name = 'verify_token'"
+        )->fetchColumn();
+        if (!$exists) {
+            $pdo->exec("ALTER TABLE `forms_letters` ADD COLUMN `verify_token` CHAR(32) NULL COMMENT 'رمز تحقق عام' AFTER `body`");
+            $pdo->exec("ALTER TABLE `forms_letters` ADD UNIQUE KEY `forms_letters_verify_token_unique` (`verify_token`)");
+            // توليد رموز للخطابات الحالية
+            $rows = $pdo->query("SELECT id FROM forms_letters WHERE verify_token IS NULL")->fetchAll(PDO::FETCH_ASSOC);
+            $stmt = $pdo->prepare('UPDATE forms_letters SET verify_token = :t WHERE id = :id');
+            foreach ($rows as $row) {
+                $stmt->execute(['t' => bin2hex(random_bytes(16)), 'id' => $row['id']]);
+            }
+        }
+    }
 };

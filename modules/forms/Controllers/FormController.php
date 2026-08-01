@@ -125,13 +125,37 @@ class FormController
             'employee_id' => $employeeId,
             'recipient_name' => $recipient ? mb_substr($recipient, 0, 180) : null,
             'body' => $finalBody,
+            'verify_token' => bin2hex(random_bytes(16)),
             'created_by' => Auth::id(),
             'created_at' => date('Y-m-d H:i:s'),
         ]);
 
+        // أرشفة تلقائية بملف الموظف: تسجيل حدث بالسجل الزمني إن كان الخطاب لموظف والإضافة مفعّلة
+        if ($employeeId && \App\Core\ModuleManager::isActive('employees')) {
+            \Modules\Employees\Models\EmployeeTimeline::add(
+                $employeeId,
+                'document',
+                "صدر خطاب: {$template['name']} (رقم {$number})",
+                date('Y-m-d'),
+                Auth::id()
+            );
+        }
+
         ActivityLog::log('forms.generate', 'form_letter', $letterId, "توليد خطاب: {$template['name']}" . ($recipient ? " - {$recipient}" : ''));
         flash_set('success', 'تم توليد الخطاب برقم ' . $number . '.');
         redirect('/forms/' . $letterId);
+    }
+
+    /** صفحة تحقّق عامة من صحة خطاب عبر رمزه (بلا مصادقة، بلا عرض المحتوى). */
+    public function verify(array $params): void
+    {
+        $token = (string) ($params['token'] ?? '');
+        $letter = ctype_xdigit($token) ? FormLetter::findByToken($token) : null;
+
+        View::render('forms::verify', [
+            'pageTitle' => 'التحقق من خطاب',
+            'letter' => $letter,
+        ], '');
     }
 
     public function show(array $params): void

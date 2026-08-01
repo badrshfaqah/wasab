@@ -31,10 +31,12 @@ return function (PDO $pdo): void {
             `employee_id` INT UNSIGNED NULL COMMENT 'الموظف المولَّد له إن اختير من الملف الوظيفي',
             `recipient_name` VARCHAR(180) NULL COMMENT 'اسم المستفيد (لقطة)',
             `body` MEDIUMTEXT NOT NULL COMMENT 'النص النهائي بعد ملء حقول الدمج',
+            `verify_token` CHAR(32) NULL COMMENT 'رمز تحقق عام غير قابل للتخمين للتأكد من صحة الخطاب',
             `created_by` INT UNSIGNED NULL,
             `created_at` DATETIME NOT NULL,
             KEY `forms_letters_company_index` (`company_id`),
-            KEY `forms_letters_created_index` (`created_at`)
+            KEY `forms_letters_created_index` (`created_at`),
+            UNIQUE KEY `forms_letters_verify_token_unique` (`verify_token`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     ");
 
