@@ -71,6 +71,9 @@ $today = date('Y-m-d');
                 <tr><td class="hint">اللغات</td><td><?= e($employee['languages'] ?: '—') ?></td></tr>
                 <?php if ($canViewSensitive): ?>
                 <tr><td class="hint">رخصة القيادة</td><td><?= e($employee['driving_license_number'] ?: '—') ?><?= $employee['driving_license_expiry'] ? ' (تنتهي ' . format_date($employee['driving_license_expiry']) . ')' : '' ?></td></tr>
+                <tr><td class="hint">الجواز</td><td><?= e($employee['passport_number'] ?: '—') ?><?= $employee['passport_expiry'] ? ' (تنتهي ' . format_date($employee['passport_expiry']) . ')' : '' ?></td></tr>
+                <tr><td class="hint">انتهاء الإقامة</td><td><?= $employee['iqama_expiry'] ? format_date($employee['iqama_expiry']) : '—' ?></td></tr>
+                <tr><td class="hint">انتهاء الشهادة الصحية</td><td><?= $employee['health_cert_expiry'] ? format_date($employee['health_cert_expiry']) : '—' ?></td></tr>
                 <?php endif; ?>
             </table>
 
@@ -138,7 +141,7 @@ $today = date('Y-m-d');
             <div class="card-title"><span>🔒 الأسرة والتأمين</span></div>
             <table>
                 <tr><td class="hint">رقم التأمينات (GOSI)</td><td><?= e($employee['gosi_number'] ?: '—') ?></td></tr>
-                <tr><td class="hint">التأمين الطبي</td><td><?= e($employee['medical_insurance_provider'] ?: '—') ?><?= $employee['medical_insurance_policy_number'] ? ' - ' . e($employee['medical_insurance_policy_number']) : '' ?></td></tr>
+                <tr><td class="hint">التأمين الطبي</td><td><?= e($employee['medical_insurance_provider'] ?: '—') ?><?= $employee['medical_insurance_policy_number'] ? ' - ' . e($employee['medical_insurance_policy_number']) : '' ?><?= $employee['insurance_expiry'] ? ' (تنتهي ' . format_date($employee['insurance_expiry']) . ')' : '' ?></td></tr>
             </table>
 
             <div class="card-title" style="margin-top:16px;"><span>المُعالون</span></div>

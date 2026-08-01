@@ -178,6 +178,29 @@ $e = $employee ?? [];
             </div>
         </div>
 
+        <div class="card-title" style="margin-top:16px;"><span>🪪 الوثائق الرسمية وتواريخ انتهائها</span></div>
+        <p class="hint" style="margin-top:-6px;">تظهر ضمن "تنبيهات الوثائق" وبالتقويم الموحّد قبل انتهائها.</p>
+        <div class="grid-2">
+            <div class="field">
+                <label>رقم الجواز</label>
+                <input type="text" name="passport_number" value="<?= e($e['passport_number'] ?? '') ?>" dir="ltr">
+            </div>
+            <div class="field">
+                <label>تاريخ انتهاء الجواز</label>
+                <input type="date" name="passport_expiry" value="<?= e($e['passport_expiry'] ?? '') ?>">
+            </div>
+        </div>
+        <div class="grid-2">
+            <div class="field">
+                <label>تاريخ انتهاء الإقامة</label>
+                <input type="date" name="iqama_expiry" value="<?= e($e['iqama_expiry'] ?? '') ?>">
+            </div>
+            <div class="field">
+                <label>تاريخ انتهاء الشهادة الصحية</label>
+                <input type="date" name="health_cert_expiry" value="<?= e($e['health_cert_expiry'] ?? '') ?>">
+            </div>
+        </div>
+
         <div class="grid-2">
             <div class="field">
                 <label>نوع العقد</label>
@@ -234,6 +257,10 @@ $e = $employee ?? [];
                 <label>رقم بوليصة التأمين الطبي</label>
                 <input type="text" name="medical_insurance_policy_number" value="<?= e($e['medical_insurance_policy_number'] ?? '') ?>">
             </div>
+        </div>
+        <div class="field">
+            <label>تاريخ انتهاء التأمين الطبي</label>
+            <input type="date" name="insurance_expiry" value="<?= e($e['insurance_expiry'] ?? '') ?>" style="max-width:260px;">
         </div>
         <p class="hint">المُعالون (الأسرة) وشهادات/دورات ومستندات الموظف تُدار من صفحة الملف بعد الحفظ.</p>
         <?php endif; ?>

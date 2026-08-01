@@ -13,6 +13,7 @@ return function (Router $router): void {
 
     $router->get('/employees', [EmployeeController::class, 'index'], [$auth]);
     $router->get('/employees/export/{format}', [EmployeeController::class, 'export'], [$auth]);
+    $router->get('/employees/expiring', [EmployeeController::class, 'expiring'], [$auth]);
     $router->get('/employees/create', [EmployeeController::class, 'create'], [$auth]);
     $router->post('/employees', [EmployeeController::class, 'store'], [$auth]);
 

@@ -38,5 +38,20 @@ return function (array $user): array {
         'url' => route('/employees?status=on_leave'),
     ];
 
+    // تنبيه الوثائق المنتهية/القريبة - بيانات حسّاسة فتُعرض لمن يملك صلاحية ذلك فقط
+    if (Permission::check('employees.view_sensitive') || Permission::check('employees.manage')) {
+        $expiring = Employee::countExpiringDocuments($companyId, 60);
+        if ($expiring > 0) {
+            $widgets[] = [
+                'type' => 'stat',
+                'label' => 'وثائق تنتهي قريباً',
+                'value' => $expiring,
+                'icon' => '🔔',
+                'color' => 'danger',
+                'url' => route('/employees/expiring'),
+            ];
+        }
+    }
+
     return $widgets;
 };

@@ -46,6 +46,30 @@ class EmployeeController
             'perPage' => 20,
             'filters' => $filters,
             'canCreate' => $this->can('employees.create'),
+            'canViewSensitive' => $this->canViewSensitive(),
+            'expiringCount' => $this->canViewSensitive() ? Employee::countExpiringDocuments($companyId, 60) : 0,
+        ]);
+    }
+
+    /** تنبيهات الوثائق: كل ما انتهى أو سينتهي قريباً لموظفي الشركة، مرتّباً بالأولوية. */
+    public function expiring(): void
+    {
+        $companyId = $this->requireCompanyContext();
+        // بيانات حسّاسة (أرقام/تواريخ إقامة وجوازات) - نفس بوابة البيانات الحساسة
+        if (!$this->canViewSensitive()) {
+            $this->forbidden();
+            return;
+        }
+
+        $within = (int) Request::query('within', 60);
+        if (!in_array($within, [30, 60, 90, 180], true)) {
+            $within = 60;
+        }
+
+        View::render('employees::expiring', [
+            'pageTitle' => 'تنبيهات الوثائق',
+            'within' => $within,
+            'documents' => Employee::expiringDocuments($companyId, $within),
         ]);
     }
 
@@ -657,6 +681,11 @@ class EmployeeController
                 'medical_insurance_policy_number' => trim((string) Request::input('medical_insurance_policy_number', '')) ?: null,
                 'driving_license_number' => trim((string) Request::input('driving_license_number', '')) ?: null,
                 'driving_license_expiry' => Request::input('driving_license_expiry') ?: null,
+                'passport_number' => trim((string) Request::input('passport_number', '')) ?: null,
+                'passport_expiry' => Request::input('passport_expiry') ?: null,
+                'iqama_expiry' => Request::input('iqama_expiry') ?: null,
+                'health_cert_expiry' => Request::input('health_cert_expiry') ?: null,
+                'insurance_expiry' => Request::input('insurance_expiry') ?: null,
             ]);
         }
 

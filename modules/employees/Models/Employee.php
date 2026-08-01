@@ -142,22 +142,85 @@ class Employee
     }
 
     /** لمزوّد التقويم: عقود تنتهي أو شهادات/رخص تنتهي ضمن نطاق تاريخ معيّن. */
+    /**
+     * الوثائق القابلة للانتهاء على مستوى الملف الوظيفي (عمود => [تسمية، رمز]).
+     * قائمة بيضاء ثابتة - أسماء الأعمدة لا تأتي من المستخدم إطلاقاً.
+     */
+    public static function expirySources(): array
+    {
+        return [
+            'iqama_expiry' => ['label' => 'الإقامة', 'icon' => '🪪'],
+            'passport_expiry' => ['label' => 'الجواز', 'icon' => '📗'],
+            'driving_license_expiry' => ['label' => 'رخصة القيادة', 'icon' => '🚗'],
+            'health_cert_expiry' => ['label' => 'الشهادة الصحية', 'icon' => '🩺'],
+            'insurance_expiry' => ['label' => 'التأمين الطبي', 'icon' => '🏥'],
+            'contract_end_date' => ['label' => 'العقد', 'icon' => '📄'],
+            'probation_end_date' => ['label' => 'فترة التجربة', 'icon' => '⏳'],
+        ];
+    }
+
+    /** يبني استعلام UNION موحّداً لكل مصادر الانتهاء حتى تاريخ حدّي. */
+    private static function expiryUnionSql(): string
+    {
+        $parts = [];
+        foreach (self::expirySources() as $col => $meta) {
+            // الاسم من قائمة بيضاء، والتسميات ثابتة - لا مدخلات مستخدم في SQL
+            $label = str_replace("'", '', $meta['label']);
+            $icon = $meta['icon'];
+            $parts[] = "SELECT id AS employee_id, full_name, '{$label}' AS kind, '{$icon}' AS icon, `{$col}` AS expiry_date
+                          FROM employees_profiles
+                         WHERE company_id = :c AND status != 'terminated'
+                           AND `{$col}` IS NOT NULL AND `{$col}` <= :cutoff";
+        }
+        // الشهادات/الدورات لها جدول منفصل
+        $parts[] = "SELECT ec.employee_id, ep.full_name, CONCAT('شهادة: ', ec.title) AS kind, '🎓' AS icon, ec.expiry_date
+                      FROM employees_certifications ec
+                      JOIN employees_profiles ep ON ep.id = ec.employee_id
+                     WHERE ep.company_id = :c AND ep.status != 'terminated'
+                       AND ec.expiry_date IS NOT NULL AND ec.expiry_date <= :cutoff";
+        return implode("\nUNION ALL\n", $parts);
+    }
+
+    /**
+     * كل الوثائق التي انتهت أو ستنتهي خلال $withinDays يوماً، لكل موظفي الشركة،
+     * مرتّبة بالأقرب انتهاءً (المنتهية أولاً). تُحسب الأيام المتبقية في PHP.
+     */
+    public static function expiringDocuments(int $companyId, int $withinDays = 60): array
+    {
+        $cutoff = date('Y-m-d', strtotime("+{$withinDays} days"));
+        $sql = self::expiryUnionSql() . "\nORDER BY expiry_date ASC";
+        $rows = Database::select($sql, ['c' => $companyId, 'cutoff' => $cutoff]);
+
+        $today = new \DateTime('today');
+        foreach ($rows as &$row) {
+            $exp = new \DateTime($row['expiry_date']);
+            $row['days_left'] = (int) $today->diff($exp)->format('%r%a');
+        }
+        return $rows;
+    }
+
+    /** عدد الوثائق المنتهية أو التي ستنتهي قريباً (لبطاقة الرئيسية). */
+    public static function countExpiringDocuments(int $companyId, int $withinDays = 60): int
+    {
+        $cutoff = date('Y-m-d', strtotime("+{$withinDays} days"));
+        $sql = "SELECT COUNT(*) AS c FROM (" . self::expiryUnionSql() . ") t";
+        return (int) (Database::first($sql, ['c' => $companyId, 'cutoff' => $cutoff])['c'] ?? 0);
+    }
+
     public static function forCalendarRange(int $companyId, string $fromDate, string $toDate): array
     {
-        $contracts = Database::select(
-            "SELECT id, full_name, contract_end_date AS due_date, 'عقد' AS kind
-               FROM employees_profiles
-              WHERE company_id = :c AND status != 'terminated' AND contract_end_date BETWEEN :from AND :to",
-            ['c' => $companyId, 'from' => $fromDate, 'to' => $toDate]
-        );
-
-        $licenses = Database::select(
-            "SELECT id, full_name, driving_license_expiry AS due_date, 'رخصة قيادة' AS kind
-               FROM employees_profiles
-              WHERE company_id = :c AND status != 'terminated' AND driving_license_expiry BETWEEN :from AND :to",
-            ['c' => $companyId, 'from' => $fromDate, 'to' => $toDate]
-        );
-
-        return array_merge($contracts, $licenses);
+        $events = [];
+        foreach (self::expirySources() as $col => $meta) {
+            $rows = Database::select(
+                "SELECT id, full_name, `{$col}` AS due_date
+                   FROM employees_profiles
+                  WHERE company_id = :c AND status != 'terminated' AND `{$col}` BETWEEN :from AND :to",
+                ['c' => $companyId, 'from' => $fromDate, 'to' => $toDate]
+            );
+            foreach ($rows as $r) {
+                $events[] = ['id' => $r['id'], 'full_name' => $r['full_name'], 'due_date' => $r['due_date'], 'kind' => $meta['label']];
+            }
+        }
+        return $events;
     }
 }

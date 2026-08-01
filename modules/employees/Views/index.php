@@ -15,6 +15,11 @@ $empQuery = function (array $filters, array $overrides = []): string {
         <?php $exq = http_build_query($filters); ?>
         <a class="btn btn-outline btn-sm" href="<?= route('/employees/export/csv' . ($exq ? '?' . $exq : '')) ?>">⬇️ Excel</a>
         <a class="btn btn-outline btn-sm" href="<?= route('/employees/export/print' . ($exq ? '?' . $exq : '')) ?>" target="_blank" rel="noopener">🖨️ PDF</a>
+        <?php if (!empty($canViewSensitive)): ?>
+            <a class="btn btn-outline" href="<?= route('/employees/expiring') ?>">
+                🔔 تنبيهات الوثائق<?= !empty($expiringCount) ? ' <span class="badge badge-danger">' . (int) $expiringCount . '</span>' : '' ?>
+            </a>
+        <?php endif; ?>
         <?php if ($canCreate): ?>
             <a class="btn" href="<?= route('/employees/create') ?>">+ ملف وظيفي جديد</a>
         <?php endif; ?>
