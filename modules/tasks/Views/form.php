@@ -55,6 +55,27 @@ $statusLabels = ['todo' => 'لم تبدأ', 'in_progress' => 'قيد التنف�
                 <?php endforeach; ?>
             </select>
         </div>
+        <?php if (!empty($linkables)): ?>
+        <?php
+        $typeLabels = ['document' => 'مستند', 'asset' => 'أصل/عهدة', 'employee' => 'موظف'];
+        $currentLink = ($task['linked_type'] ?? '') !== '' ? $task['linked_type'] . ':' . (int) ($task['linked_id'] ?? 0) : '';
+        ?>
+        <div class="field">
+            <label>ربط بكيان (اختياري) — للتتبّع</label>
+            <select name="linked">
+                <option value="">— بدون —</option>
+                <?php foreach ($linkables as $type => $rows): ?>
+                    <?php if ($rows): ?>
+                    <optgroup label="<?= e($typeLabels[$type] ?? $type) ?>">
+                        <?php foreach ($rows as $r): ?>
+                            <option value="<?= $type . ':' . $r['id'] ?>" <?= $currentLink === $type . ':' . $r['id'] ? 'selected' : '' ?>><?= e($r['label']) ?></option>
+                        <?php endforeach; ?>
+                    </optgroup>
+                    <?php endif; ?>
+                <?php endforeach; ?>
+            </select>
+        </div>
+        <?php endif; ?>
         <div class="field">
             <label style="display:flex;align-items:center;gap:8px;font-weight:400;">
                 <input type="checkbox" name="requires_approval" value="1" id="req_approval" style="width:auto;" <?= !empty($task['requires_approval']) ? 'checked' : '' ?>>

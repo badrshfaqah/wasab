@@ -296,6 +296,7 @@ class TaskController
             'companyUsers' => $this->companyUsers($companyId),
             'statuses' => self::STATUSES,
             'priorities' => self::PRIORITIES,
+            'linkables' => $this->linkableEntities($companyId),
         ]);
     }
 
@@ -365,6 +366,7 @@ class TaskController
             'companyUsers' => $this->companyUsers($companyId),
             'statuses' => self::STATUSES,
             'priorities' => self::PRIORITIES,
+            'linkables' => $this->linkableEntities($companyId),
         ]);
     }
 
@@ -910,6 +912,9 @@ class TaskController
             $approverId = null;
         }
 
+        // ارتباط اختياري بكيان (مستند/أصل/موظف) بصيغة "type:id"
+        [$linkType, $linkId, $linkLabel] = $this->parseLink($companyId, (string) Request::input('linked', ''));
+
         return [
             'title' => $title,
             'description' => $description ?: null,
@@ -920,6 +925,68 @@ class TaskController
             'status' => $status,
             'requires_approval' => $requiresApproval,
             'approver_id' => $approverId,
+            'linked_type' => $linkType,
+            'linked_id' => $linkId,
+            'linked_label' => $linkLabel,
         ];
+    }
+
+    /** خريطة نوع الكيان: [الجدول, عمود الاسم, مسار العرض, هل الإضافة مفعّلة]. */
+    private function linkableTypes(): array
+    {
+        return [
+            'document' => ['documents_documents', 'title', '/documents/', 'documents'],
+            'asset' => ['assets_assets', 'name', '/custody/', 'assets'],
+            'employee' => ['employees_profiles', 'full_name', '/employees/', 'employees'],
+        ];
+    }
+
+    /** يحلّل قيمة "type:id" ويتحقق أن الكيان يخص الشركة والإضافة مفعّلة. يُرجع [type,id,label] أو [null,null,null]. */
+    private function parseLink(int $companyId, string $raw): array
+    {
+        if ($raw === '' || !str_contains($raw, ':')) {
+            return [null, null, null];
+        }
+        [$type, $id] = explode(':', $raw, 2);
+        $id = (int) $id;
+        $types = $this->linkableTypes();
+        if (!isset($types[$type]) || $id < 1) {
+            return [null, null, null];
+        }
+        [$table, $nameCol, , $moduleKey] = $types[$type];
+        if (!\App\Core\ModuleManager::isActive($moduleKey)) {
+            return [null, null, null];
+        }
+        $row = Database::first("SELECT `{$nameCol}` AS label FROM `{$table}` WHERE id = :id AND company_id = :c", ['id' => $id, 'c' => $companyId]);
+        if (!$row) {
+            return [null, null, null];
+        }
+        return [$type, $id, mb_substr((string) $row['label'], 0, 200)];
+    }
+
+    /** قوائم الكيانات القابلة للربط، مجمّعة حسب النوع (للنموذج). */
+    private function linkableEntities(int $companyId): array
+    {
+        $out = [];
+        foreach ($this->linkableTypes() as $type => [$table, $nameCol, , $moduleKey]) {
+            if (!\App\Core\ModuleManager::isActive($moduleKey)) {
+                continue;
+            }
+            $out[$type] = Database::select(
+                "SELECT id, `{$nameCol}` AS label FROM `{$table}` WHERE company_id = :c ORDER BY `{$nameCol}` LIMIT 500",
+                ['c' => $companyId]
+            );
+        }
+        return $out;
+    }
+
+    /** مسار عرض الكيان المرتبط (للعرض في صفحة المهمة). */
+    public static function linkUrl(?string $type, $id): ?string
+    {
+        if (!$type || !$id) {
+            return null;
+        }
+        $paths = ['document' => '/documents/', 'asset' => '/custody/', 'employee' => '/employees/'];
+        return isset($paths[$type]) ? route($paths[$type] . (int) $id) : null;
     }
 }

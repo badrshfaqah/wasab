@@ -36,6 +36,16 @@ $overdue = $task['due_date'] && $task['due_date'] < date('Y-m-d') && !in_array($
                 <?php if ($task['requires_approval']): ?>
                 <tr><th>المعتمِد</th><td><?= e($task['approver_name'] ?? '-') ?></td></tr>
                 <?php endif; ?>
+                <?php if (!empty($task['linked_type']) && !empty($task['linked_label'])): ?>
+                    <?php
+                    $typeIcons = ['document' => '📄', 'asset' => '📦', 'employee' => '👤'];
+                    $linkUrl = \Modules\Tasks\Controllers\TaskController::linkUrl($task['linked_type'], $task['linked_id']);
+                    ?>
+                    <tr><th>مرتبطة بـ</th><td>
+                        <?= $typeIcons[$task['linked_type']] ?? '🔗' ?>
+                        <?php if ($linkUrl): ?><a href="<?= $linkUrl ?>"><?= e($task['linked_label']) ?></a><?php else: ?><?= e($task['linked_label']) ?><?php endif; ?>
+                    </td></tr>
+                <?php endif; ?>
             </table>
 
             <form method="post" action="<?= route('/tasks/' . $task['id'] . '/status') ?>" style="margin-top:14px;display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;">

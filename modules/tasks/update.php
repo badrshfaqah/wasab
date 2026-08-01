@@ -58,6 +58,17 @@ return function (PDO $pdo, string $fromVersion): void {
         ");
     }
 
+    if (version_compare($fromVersion, '1.5.0', '<')) {
+        $lc = function (string $col) use ($pdo): bool {
+            return !$pdo->query("SELECT 1 FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'tasks_tasks' AND column_name = " . $pdo->quote($col))->fetchColumn();
+        };
+        if ($lc('linked_type')) {
+            $pdo->exec("ALTER TABLE `tasks_tasks` ADD COLUMN `linked_type` VARCHAR(20) NULL AFTER `escalated_at`");
+            $pdo->exec("ALTER TABLE `tasks_tasks` ADD COLUMN `linked_id` INT UNSIGNED NULL AFTER `linked_type`");
+            $pdo->exec("ALTER TABLE `tasks_tasks` ADD COLUMN `linked_label` VARCHAR(200) NULL AFTER `linked_id`");
+        }
+    }
+
     if (version_compare($fromVersion, '1.4.0', '<')) {
         // قوالب قوائم التحقق (Checklists)
         $pdo->exec("
