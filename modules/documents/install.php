@@ -28,6 +28,7 @@ return function (PDO $pdo): void {
             `company_id` INT UNSIGNED NOT NULL,
             `type` ENUM('general','letter','decision','certificate','authorization') NOT NULL DEFAULT 'general',
             `visibility` ENUM('public','private') NOT NULL DEFAULT 'public',
+            `confidentiality` ENUM('normal','internal','confidential','secret') NOT NULL DEFAULT 'normal' COMMENT 'تصنيف السرية (عادي/داخلي/سري/سري للغاية)',
             `status` ENUM('draft','pending_approval','approved','signed','archived') NOT NULL DEFAULT 'draft',
             `previous_status` ENUM('draft','pending_approval','approved','signed') NULL COMMENT 'الحالة قبل الأرشفة، لاستعادة المستند إليها',
             `number` VARCHAR(50) NULL,
@@ -35,6 +36,8 @@ return function (PDO $pdo): void {
             `content` LONGTEXT NULL,
             `template_id` INT UNSIGNED NULL,
             `follow_up_date` DATE NULL COMMENT 'تاريخ متابعة اختياري - يظهر كحدث بالتقويم الموحّد',
+            `expiry_date` DATE NULL COMMENT 'تاريخ انتهاء صلاحية المستند (اختياري)',
+            `verify_token` CHAR(32) NULL COMMENT 'رمز تحقق عام غير قابل للتخمين للتأكد من صحة المستند',
             `created_by` INT UNSIGNED NOT NULL,
             `approved_by` INT UNSIGNED NULL,
             `approved_at` DATETIME NULL,
@@ -48,7 +51,8 @@ return function (PDO $pdo): void {
             KEY `documents_creator_index` (`created_by`),
             KEY `documents_template_index` (`template_id`),
             KEY `documents_follow_up_index` (`follow_up_date`),
-            UNIQUE KEY `documents_company_number_unique` (`company_id`, `number`)
+            UNIQUE KEY `documents_company_number_unique` (`company_id`, `number`),
+            UNIQUE KEY `documents_verify_token_unique` (`verify_token`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     ");
 

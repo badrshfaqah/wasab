@@ -35,10 +35,25 @@ $typeLabels = Document::typeLabels();
                 </select>
             </div>
         </div>
+        <div class="grid-2">
+            <div class="field">
+                <label>تاريخ متابعة (اختياري)</label>
+                <input type="date" name="follow_up_date" value="<?= e($document['follow_up_date'] ?? '') ?>">
+                <p class="hint">يظهر كحدث بالتقويم الموحّد لتذكيرك بمتابعة المستند.</p>
+            </div>
+            <div class="field">
+                <label>تاريخ انتهاء الصلاحية (اختياري)</label>
+                <input type="date" name="expiry_date" value="<?= e($document['expiry_date'] ?? '') ?>">
+                <p class="hint">يُوسَم المستند بعد هذا التاريخ كمنتهي الصلاحية.</p>
+            </div>
+        </div>
         <div class="field">
-            <label>تاريخ متابعة (اختياري)</label>
-            <input type="date" name="follow_up_date" value="<?= e($document['follow_up_date'] ?? '') ?>">
-            <p class="hint">يظهر هذا التاريخ كحدث بالتقويم الموحّد لتذكيرك بمتابعة هذا المستند.</p>
+            <label>تصنيف السرية</label>
+            <select name="confidentiality">
+                <?php foreach (\Modules\Documents\Models\Document::confidentialityLabels() as $ck => $cl): ?>
+                    <option value="<?= $ck ?>" <?= ($document['confidentiality'] ?? 'normal') === $ck ? 'selected' : '' ?>><?= e($cl) ?></option>
+                <?php endforeach; ?>
+            </select>
         </div>
         <div class="field">
             <label style="display:flex;align-items:center;gap:16px;font-weight:400;">

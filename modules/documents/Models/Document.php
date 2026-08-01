@@ -28,9 +28,32 @@ class Document
         ];
     }
 
+    public static function confidentialityLabels(): array
+    {
+        return [
+            'normal' => 'عادي',
+            'internal' => 'داخلي',
+            'confidential' => 'سري',
+            'secret' => 'سري للغاية',
+        ];
+    }
+
     public static function find(int $id): ?array
     {
         return Database::first('SELECT * FROM documents_documents WHERE id = :id', ['id' => $id]);
+    }
+
+    /** بحث بمستند عبر رمز التحقق العام (لصفحة التحقق بلا تسجيل دخول). */
+    public static function findByToken(string $token): ?array
+    {
+        return Database::first(
+            'SELECT d.*, c.name AS company_name, u.name AS creator_name
+               FROM documents_documents d
+               LEFT JOIN companies c ON c.id = d.company_id
+               LEFT JOIN users u ON u.id = d.created_by
+              WHERE d.verify_token = :t',
+            ['t' => $token]
+        );
     }
 
     public static function create(array $data): int

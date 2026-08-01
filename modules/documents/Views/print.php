@@ -35,6 +35,9 @@ body{margin:0;background:#e5e7eb;font-family:'Cairo','Segoe UI',Tahoma,Arial,san
 .doc-badge.bottom-left{bottom:10mm;left:14mm;text-align:right;}
 .doc-header{margin-bottom:18px;font-size:13px;}
 .doc-footer{margin-top:24px;font-size:12px;color:#4b5563;}
+.doc-verify{margin-top:28px;padding-top:10px;border-top:1px dashed #d1d5db;font-size:11px;color:#6b7280;text-align:center;}
+.doc-verify-url{direction:ltr;word-break:break-all;margin-top:2px;font-size:11px;}
+.doc-verify-code{margin-top:2px;letter-spacing:1px;font-weight:600;color:#374151;}
 .doc-title{font-size:20px;font-weight:700;margin:0 0 18px;text-align:center;}
 .doc-content{line-height:2;font-size:14.5px;min-height:120mm;}
 .doc-content :is(ul,ol){padding-inline-start:24px;}
@@ -97,6 +100,14 @@ body{margin:0;background:#e5e7eb;font-family:'Cairo','Segoe UI',Tahoma,Arial,san
 
         <?php if ($footerHtml): ?>
             <div class="doc-footer"><?= $footerHtml ?></div>
+        <?php endif; ?>
+
+        <?php if (!empty($verifyUrl)): ?>
+            <div class="doc-verify">
+                <span>🔎 للتحقق من صحة هذا المستند، امسح الرمز أو افتح الرابط:</span>
+                <div class="doc-verify-url"><?= e($verifyUrl) ?></div>
+                <div class="doc-verify-code">رمز التحقق: <?= e(strtoupper(substr((string) $document['verify_token'], 0, 8))) ?></div>
+            </div>
         <?php endif; ?>
     </div>
 </div>

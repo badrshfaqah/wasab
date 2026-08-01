@@ -27,6 +27,9 @@ return function (Router $router): void {
     $router->get('/documents/settings', [DocumentSettingController::class, 'edit'], [$auth]);
     $router->post('/documents/settings', [DocumentSettingController::class, 'update'], [$auth]);
 
+    // صفحة تحقّق عامة بلا مصادقة (رمز عشوائي طويل غير قابل للتخمين) - قبل /documents/{id}
+    $router->get('/documents/verify/{token}', [DocumentController::class, 'verify'], []);
+
     $router->get('/documents/{id}', [DocumentController::class, 'show'], [$auth]);
     $router->get('/documents/{id}/edit', [DocumentController::class, 'edit'], [$auth]);
     $router->post('/documents/{id}', [DocumentController::class, 'update'], [$auth]);

@@ -17,7 +17,19 @@ $canRestore = $document['status'] === 'archived' && $canManage;
             <?= e($typeLabels[$document['type']] ?? $document['type']) ?>
             <?php if ($document['number']): ?> · رقم: <strong><?= e($document['number']) ?></strong><?php endif; ?>
             · <?= status_badge($document['status']) ?>
+            <?php
+            $confLabels = Document::confidentialityLabels();
+            $conf = $document['confidentiality'] ?? 'normal';
+            if ($conf !== 'normal'):
+                $confColor = $conf === 'secret' ? 'danger' : ($conf === 'confidential' ? 'warning' : 'info');
+            ?>
+                · <span class="badge badge-<?= $confColor ?>">🔒 <?= e($confLabels[$conf]) ?></span>
+            <?php endif; ?>
             <?php if (!empty($document['follow_up_date'])): ?> · 📅 متابعة: <?= format_date($document['follow_up_date']) ?><?php endif; ?>
+            <?php if (!empty($document['expiry_date'])): ?>
+                <?php $expired = $document['expiry_date'] < date('Y-m-d'); ?>
+                · <span class="badge badge-<?= $expired ? 'danger' : 'muted' ?>"><?= $expired ? '⛔ انتهت الصلاحية' : '⏳ تنتهي' ?> <?= format_date($document['expiry_date']) ?></span>
+            <?php endif; ?>
         </p>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
@@ -33,6 +45,18 @@ $canRestore = $document['status'] === 'archived' && $canManage;
         <?php endif; ?>
     </div>
 </div>
+
+<?php if (!empty($document['verify_token'])): ?>
+    <?php $verifyUrl = base_url('documents/verify/' . $document['verify_token']); ?>
+    <div class="card" style="border-inline-start:4px solid var(--success);">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <span>✅ رابط التحقق العام من صحة هذا المستند:</span>
+            <a href="<?= e($verifyUrl) ?>" target="_blank" rel="noopener" style="word-break:break-all;"><?= e($verifyUrl) ?></a>
+            <button type="button" class="btn btn-outline btn-sm" data-copy="<?= e($verifyUrl) ?>">نسخ</button>
+        </div>
+        <p class="hint" style="margin:6px 0 0;">يمكن لأي شخص فتح هذا الرابط للتأكد من أصالة المستند دون الاطلاع على محتواه. يظهر أيضاً على النسخة المطبوعة.</p>
+    </div>
+<?php endif; ?>
 
 <div class="grid-2" style="align-items:start;">
     <div class="card">

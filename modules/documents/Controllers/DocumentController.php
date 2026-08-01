@@ -19,6 +19,7 @@ class DocumentController
 {
     private const TYPES = ['general', 'letter', 'decision', 'certificate', 'authorization'];
     private const STATUSES = ['draft', 'pending_approval', 'approved', 'signed', 'archived'];
+    private const CONFIDENTIALITIES = ['normal', 'internal', 'confidential', 'secret'];
 
     public function index(): void
     {
@@ -78,6 +79,7 @@ class DocumentController
 
         $data['company_id'] = $companyId;
         $data['created_by'] = Auth::id();
+        $data['verify_token'] = bin2hex(random_bytes(16));
 
         if ($data['visibility'] === 'private') {
             // خاص: يُعتمد تلقائياً فوراً بلا مسار موافقة، ويُمنح رقماً مباشرة
@@ -311,6 +313,25 @@ class DocumentController
             'template' => $template,
             'settings' => $settings,
             'company' => $company,
+            'verifyUrl' => !empty($document['verify_token']) ? base_url('documents/verify/' . $document['verify_token']) : null,
+        ], '');
+    }
+
+    /**
+     * صفحة تحقّق عامة (بلا تسجيل دخول) للتأكد من صحة مستند عبر رمزه.
+     * تعرض بيانات موجزة تُثبت الأصالة (الرقم/العنوان/الحالة/الجهة/التواريخ) دون
+     * محتوى المستند نفسه حفاظاً على الخصوصية.
+     */
+    public function verify(array $params): void
+    {
+        $token = (string) ($params['token'] ?? '');
+        $document = ctype_xdigit($token) ? Document::findByToken($token) : null;
+
+        View::render('documents::verify', [
+            'pageTitle' => 'التحقق من مستند',
+            'document' => $document,
+            'typeLabels' => Document::typeLabels(),
+            'statusLabels' => Document::statusLabels(),
         ], '');
     }
 
@@ -419,8 +440,10 @@ class DocumentController
         $title = trim((string) Request::input('title', ''));
         $type = Request::input('type', 'general');
         $visibility = Request::input('visibility', 'public');
+        $confidentiality = Request::input('confidentiality', 'normal');
         $templateId = (int) Request::input('template_id', 0) ?: null;
         $followUpDate = Request::input('follow_up_date') ?: null;
+        $expiryDate = Request::input('expiry_date') ?: null;
         $content = HtmlSanitizer::sanitize(Request::input('content', ''));
 
         if ($title === '') {
@@ -432,6 +455,9 @@ class DocumentController
         }
         if (!in_array($visibility, ['public', 'private'], true)) {
             $visibility = 'public';
+        }
+        if (!in_array($confidentiality, self::CONFIDENTIALITIES, true)) {
+            $confidentiality = 'normal';
         }
 
         if ($templateId) {
@@ -446,8 +472,10 @@ class DocumentController
             'title' => $title,
             'type' => $type,
             'visibility' => $visibility,
+            'confidentiality' => $confidentiality,
             'template_id' => $templateId,
             'follow_up_date' => $followUpDate,
+            'expiry_date' => $expiryDate,
             'content' => $content,
         ];
     }
