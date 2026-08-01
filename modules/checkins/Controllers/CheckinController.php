@@ -84,12 +84,14 @@ class CheckinController
         $done = trim((string) Request::input('done_text', ''));
         $plan = trim((string) Request::input('plan_text', ''));
         $blockers = trim((string) Request::input('blockers_text', ''));
+        $mood = (int) Request::input('mood', 0);
+        $mood = ($mood >= 1 && $mood <= 5) ? $mood : null;
 
         $doneTasks = (array) ($_POST['done_tasks'] ?? []);
         $planTasks = (array) ($_POST['planned_tasks'] ?? []);
 
-        if ($done === '' && $plan === '' && $blockers === '' && !$doneTasks && !$planTasks) {
-            flash_set('error', 'سجّل شيئاً واحداً على الأقل: إنجازاً أو خطة أو معوقاً.');
+        if ($done === '' && $plan === '' && $blockers === '' && !$doneTasks && !$planTasks && !$mood) {
+            flash_set('error', 'سجّل شيئاً واحداً على الأقل: إنجازاً أو خطة أو معوقاً أو معنوياتك.');
             redirect('/checkins');
         }
 
@@ -102,7 +104,8 @@ class CheckinController
             $today,
             mb_substr($done, 0, 5000) ?: null,
             mb_substr($plan, 0, 5000) ?: null,
-            mb_substr($blockers, 0, 5000) ?: null
+            mb_substr($blockers, 0, 5000) ?: null,
+            $mood
         );
 
         if (ModuleManager::isActive('tasks')) {
@@ -156,6 +159,46 @@ class CheckinController
                 'SELECT id, name FROM users WHERE company_id = :c AND status = "active" ORDER BY name',
                 ['c' => $companyId]
             ),
+            'canManage' => $this->canManage(),
+        ]);
+    }
+
+    /** التقرير الأسبوعي المجمّع للفريق (أيام التسجيل، المعوقات، متوسط المعنويات). */
+    public function report(): void
+    {
+        $companyId = $this->requireCompanyContext();
+        if (!$this->canViewTeam()) {
+            $this->forbidden();
+            return;
+        }
+
+        // بداية الأسبوع = الأحد؛ يمكن التنقّل عبر ?from=YYYY-MM-DD (يُطبَّق على أحد ذلك الأسبوع)
+        $fromParam = (string) Request::query('from', '');
+        $base = (preg_match('/^\d{4}-\d{2}-\d{2}$/', $fromParam) && strtotime($fromParam))
+            ? strtotime($fromParam)
+            : time();
+        // أرجِع للأحد (w=0) لهذا الأسبوع
+        $sunday = strtotime('-' . (int) date('w', $base) . ' days', $base);
+        $from = date('Y-m-d', $sunday);
+        $to = date('Y-m-d', strtotime('+6 days', $sunday));
+
+        $days = [];
+        for ($i = 0; $i < 7; $i++) {
+            $days[] = date('Y-m-d', strtotime("+{$i} days", $sunday));
+        }
+
+        View::render('checkins::report', [
+            'pageTitle' => 'التقرير الأسبوعي',
+            'from' => $from,
+            'to' => $to,
+            'days' => $days,
+            'prevFrom' => date('Y-m-d', strtotime('-7 days', $sunday)),
+            'nextFrom' => date('Y-m-d', strtotime('+7 days', $sunday)),
+            'isCurrentWeek' => $to >= date('Y-m-d'),
+            'rows' => CheckinEntry::weeklyReport($companyId, $from, $to),
+            'grid' => CheckinEntry::entriesInRange($companyId, $from, $to),
+            'moodScale' => CheckinEntry::moodScale(),
+            'workdays' => self::workdays($companyId),
             'canManage' => $this->canManage(),
         ]);
     }

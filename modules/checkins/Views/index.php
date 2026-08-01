@@ -1,5 +1,9 @@
 <?php
+use Modules\Checkins\Models\CheckinEntry;
+
 $statusLabels = ['todo' => 'لم تبدأ', 'in_progress' => 'قيد التنفيذ', 'in_review' => 'قيد المراجعة'];
+$moodScale = CheckinEntry::moodScale();
+$currentMood = (int) ($entry['mood'] ?? 0);
 ?>
 <div class="page-head">
     <div>
@@ -9,6 +13,7 @@ $statusLabels = ['todo' => 'لم تبدأ', 'in_progress' => 'قيد التنف�
     <div style="display:flex;gap:8px;">
         <?php if ($canViewTeam): ?>
             <a class="btn btn-outline" href="<?= route('/checkins/team') ?>">👥 لوحة الفريق</a>
+            <a class="btn btn-outline" href="<?= route('/checkins/report') ?>">📊 التقرير الأسبوعي</a>
         <?php endif; ?>
         <?php if ($canManage): ?>
             <a class="btn btn-outline" href="<?= route('/checkins/settings') ?>">⚙️ الإعدادات</a>
@@ -57,8 +62,39 @@ $statusLabels = ['todo' => 'لم تبدأ', 'in_progress' => 'قيد التنف�
             <textarea name="blockers_text" rows="2" placeholder="أي شيء يعطّل شغلك: بانتظار رد، صلاحية ناقصة، مشكلة تقنية..."><?= e($entry['blockers_text'] ?? '') ?></textarea>
         </div>
 
+        <div class="field">
+            <label>🙂 كيف كانت معنوياتك اليوم؟ (اختياري)</label>
+            <div class="mood-picker" style="display:flex;gap:6px;flex-wrap:wrap;">
+                <label style="font-weight:400;margin:0;cursor:pointer;">
+                    <input type="radio" name="mood" value="0" <?= $currentMood === 0 ? 'checked' : '' ?> hidden>
+                    <span class="mood-opt" style="display:inline-block;padding:6px 10px;border:1px solid var(--border);border-radius:8px;opacity:.6;">—</span>
+                </label>
+                <?php foreach ($moodScale as $val => $m): ?>
+                    <label style="font-weight:400;margin:0;cursor:pointer;" title="<?= e($m['label']) ?>">
+                        <input type="radio" name="mood" value="<?= $val ?>" <?= $currentMood === $val ? 'checked' : '' ?> hidden>
+                        <span class="mood-opt" style="display:inline-block;padding:6px 10px;border:1px solid <?= $currentMood === $val ? 'var(--primary)' : 'var(--border)' ?>;border-radius:8px;font-size:20px;<?= $currentMood === $val ? 'background:var(--primary-soft,rgba(0,0,0,.05));' : '' ?>">
+                            <?= $m['emoji'] ?>
+                        </span>
+                    </label>
+                <?php endforeach; ?>
+            </div>
+        </div>
+
         <button class="btn" type="submit"><?= $entry ? 'تحديث متابعة اليوم' : 'تسجيل متابعة اليوم' ?></button>
     </form>
+    <script>
+    // إبراز الوجه المختار بصرياً عند النقر
+    document.querySelectorAll('.mood-picker input[type=radio]').forEach(function (r) {
+        r.addEventListener('change', function () {
+            document.querySelectorAll('.mood-picker .mood-opt').forEach(function (s) {
+                s.style.borderColor = 'var(--border)';
+                s.style.background = '';
+            });
+            var span = r.parentElement.querySelector('.mood-opt');
+            if (r.value !== '0') { span.style.borderColor = 'var(--primary)'; span.style.background = 'rgba(0,0,0,.05)'; }
+        });
+    });
+    </script>
 </div>
 <?php endif; ?>
 
@@ -70,7 +106,7 @@ $statusLabels = ['todo' => 'لم تبدأ', 'in_progress' => 'قيد التنف�
         <?php foreach ($history as $h): ?>
             <div style="padding:10px 0;border-bottom:1px solid var(--border);">
                 <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;">
-                    <strong><?= e($h['entry_date']) ?></strong>
+                    <strong><?= e($h['entry_date']) ?><?= !empty($h['mood']) && isset($moodScale[(int) $h['mood']]) ? ' ' . $moodScale[(int) $h['mood']]['emoji'] : '' ?></strong>
                     <?php if (trim((string) $h['blockers_text']) !== ''): ?>
                         <span class="badge badge-warning">🚧 معوق<?= $h['blocker_task_id'] ? ' - تحت المعالجة' : '' ?></span>
                     <?php endif; ?>

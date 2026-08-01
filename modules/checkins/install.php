@@ -11,6 +11,7 @@ return function (PDO $pdo): void {
             `company_id` INT UNSIGNED NOT NULL,
             `user_id` INT UNSIGNED NOT NULL,
             `entry_date` DATE NOT NULL,
+            `mood` TINYINT UNSIGNED NULL COMMENT 'معنويات اليوم: 1 (مرهق) .. 5 (ممتاز) - اختياري',
             `done_text` TEXT NULL,
             `plan_text` TEXT NULL,
             `blockers_text` TEXT NULL,

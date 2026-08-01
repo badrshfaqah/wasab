@@ -11,6 +11,7 @@ return function (Router $router): void {
     $router->get('/checkins', [CheckinController::class, 'index'], [$auth]);
     $router->post('/checkins', [CheckinController::class, 'store'], [$auth]);
     $router->get('/checkins/team', [CheckinController::class, 'team'], [$auth]);
+    $router->get('/checkins/report', [CheckinController::class, 'report'], [$auth]);
     $router->post('/checkins/blocker-to-task', [CheckinController::class, 'blockerToTask'], [$auth]);
     $router->get('/checkins/settings', [CheckinController::class, 'settings'], [$auth]);
     $router->post('/checkins/settings', [CheckinController::class, 'saveSettings'], [$auth]);

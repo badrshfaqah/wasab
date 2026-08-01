@@ -1,7 +1,13 @@
 <?php
+use Modules\Checkins\Models\CheckinEntry;
+
 $submitted = array_filter($rows, fn ($r) => $r['entry_id']);
 $pending = array_filter($rows, fn ($r) => !$r['entry_id']);
 $withBlockers = array_filter($submitted, fn ($r) => trim((string) $r['blockers_text']) !== '');
+$moodScale = CheckinEntry::moodScale();
+$moodTag = fn ($r) => !empty($r['mood']) && isset($moodScale[(int) $r['mood']])
+    ? ' <span title="' . e($moodScale[(int) $r['mood']]['label']) . '">' . $moodScale[(int) $r['mood']]['emoji'] . '</span>'
+    : '';
 ?>
 <div class="page-head">
     <div>
@@ -64,7 +70,7 @@ $withBlockers = array_filter($submitted, fn ($r) => trim((string) $r['blockers_t
         <?php $tasks = $entryTasks[(int) $r['entry_id']] ?? []; ?>
         <details style="padding:8px 0;border-bottom:1px solid var(--border);">
             <summary style="cursor:pointer;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;list-style:none;">
-                <strong><?= e($r['user_name']) ?></strong>
+                <strong><?= e($r['user_name']) ?><?= $moodTag($r) ?></strong>
                 <span class="hint">سجّل <?= time_ago($r['submitted_at']) ?><?= trim((string) $r['blockers_text']) !== '' ? ' · 🚧' : '' ?></span>
             </summary>
             <div style="padding:8px 4px 4px;">
