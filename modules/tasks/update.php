@@ -57,4 +57,19 @@ return function (PDO $pdo, string $fromVersion): void {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
         ");
     }
+
+    if (version_compare($fromVersion, '1.4.0', '<')) {
+        // قوالب قوائم التحقق (Checklists)
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS `tasks_checklists` (
+                `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                `company_id` INT UNSIGNED NOT NULL,
+                `name` VARCHAR(160) NOT NULL,
+                `items` TEXT NOT NULL,
+                `created_by` INT UNSIGNED NULL,
+                `created_at` DATETIME NOT NULL,
+                KEY `tasks_checklists_company_index` (`company_id`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        ");
+    }
 };

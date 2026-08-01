@@ -10,6 +10,7 @@ use App\Core\Notification;
 use App\Core\Request;
 use App\Core\Uploads;
 use App\Core\View;
+use Modules\Tasks\Models\ChecklistTemplate;
 use Modules\Tasks\Models\RecurringTask;
 use Modules\Tasks\Models\Task;
 use Modules\Tasks\Models\TaskAttachment;
@@ -197,6 +198,90 @@ class TaskController
         redirect('/tasks/recurring');
     }
 
+    // ---------------------------------------------------------------
+    // قوالب قوائم التحقق (Checklists)
+
+    public function checklists(): void
+    {
+        $companyId = $this->requireCompanyContext();
+        if (!$this->canManage()) {
+            $this->forbidden();
+            return;
+        }
+        View::render('tasks::checklists', [
+            'pageTitle' => 'قوائم التحقق',
+            'items' => ChecklistTemplate::forCompany($companyId),
+        ]);
+    }
+
+    public function checklistStore(): void
+    {
+        $companyId = $this->requireCompanyContext();
+        if (!$this->canManage()) {
+            $this->forbidden();
+            return;
+        }
+        $this->verifyCsrf('/tasks/checklists');
+
+        $name = trim((string) Request::input('name', ''));
+        $items = trim((string) Request::input('items', ''));
+        if ($name === '' || $items === '') {
+            flash_set('error', 'الاسم والعناصر مطلوبان.');
+            redirect('/tasks/checklists');
+        }
+        ChecklistTemplate::create([
+            'company_id' => $companyId,
+            'name' => mb_substr($name, 0, 160),
+            'items' => $items,
+            'created_by' => Auth::id(),
+        ]);
+        flash_set('success', 'تمت إضافة قائمة التحقق.');
+        redirect('/tasks/checklists');
+    }
+
+    public function checklistDelete(array $params): void
+    {
+        $companyId = $this->requireCompanyContext();
+        if (!$this->canManage()) {
+            $this->forbidden();
+            return;
+        }
+        $this->verifyCsrf('/tasks/checklists');
+
+        $tpl = ChecklistTemplate::find((int) $params['id']);
+        if ($tpl && (int) $tpl['company_id'] === $companyId) {
+            ChecklistTemplate::delete($tpl['id']);
+            flash_set('success', 'تم حذف قائمة التحقق.');
+        }
+        redirect('/tasks/checklists');
+    }
+
+    /** يطبّق قالب قائمة تحقق على مهمة: يُنشئ عناصره كمهام فرعية. */
+    public function applyChecklist(array $params): void
+    {
+        $companyId = $this->requireCompanyContext();
+        $task = $this->findVisible((int) $params['id'], $companyId);
+        if (!$this->canManageSubtasks($task)) {
+            $this->forbidden();
+            return;
+        }
+        $this->verifyCsrf('/tasks/' . $task['id']);
+
+        $tpl = ChecklistTemplate::find((int) Request::input('checklist_id', 0));
+        if (!$tpl || (int) $tpl['company_id'] !== $companyId) {
+            flash_set('error', 'قائمة تحقق غير صحيحة.');
+            redirect('/tasks/' . $task['id']);
+        }
+        $count = 0;
+        foreach (ChecklistTemplate::items($tpl) as $item) {
+            TaskSubtask::add($task['id'], $item);
+            $count++;
+        }
+        TaskLog::add($task['id'], Auth::id(), 'updated', "تطبيق قائمة تحقق: {$tpl['name']} ({$count} عنصر)");
+        flash_set('success', "تمت إضافة {$count} عنصراً من قائمة \"{$tpl['name']}\".");
+        redirect('/tasks/' . $task['id']);
+    }
+
     public function create(): void
     {
         $companyId = $this->requireCompanyContext();
@@ -261,6 +346,7 @@ class TaskController
             'canApprove' => $this->canApproveTask($task),
             'statuses' => self::STATUSES,
             'companyUsers' => $this->companyUsers($companyId),
+            'checklists' => $this->canManageSubtasks($task) ? ChecklistTemplate::forCompany($companyId) : [],
         ]);
     }
 

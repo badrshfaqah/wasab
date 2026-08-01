@@ -18,6 +18,9 @@ return function (Router $router): void {
     $router->post('/tasks/recurring', [TaskController::class, 'recurringStore'], [$auth]);
     $router->post('/tasks/recurring/{id}/toggle', [TaskController::class, 'recurringToggle'], [$auth]);
     $router->post('/tasks/recurring/{id}/delete', [TaskController::class, 'recurringDelete'], [$auth]);
+    $router->get('/tasks/checklists', [TaskController::class, 'checklists'], [$auth]);
+    $router->post('/tasks/checklists', [TaskController::class, 'checklistStore'], [$auth]);
+    $router->post('/tasks/checklists/{id}/delete', [TaskController::class, 'checklistDelete'], [$auth]);
     $router->post('/tasks', [TaskController::class, 'store'], [$auth]);
     $router->get('/tasks/{id}', [TaskController::class, 'show'], [$auth]);
     $router->get('/tasks/{id}/edit', [TaskController::class, 'edit'], [$auth]);
@@ -27,6 +30,7 @@ return function (Router $router): void {
     $router->post('/tasks/{id}/approve', [TaskController::class, 'approve'], [$auth]);
     $router->post('/tasks/{id}/comments', [TaskController::class, 'comment'], [$auth]);
     $router->post('/tasks/{id}/subtasks', [TaskController::class, 'addSubtask'], [$auth]);
+    $router->post('/tasks/{id}/apply-checklist', [TaskController::class, 'applyChecklist'], [$auth]);
     $router->post('/tasks/{id}/subtasks/{subtaskId}/toggle', [TaskController::class, 'toggleSubtask'], [$auth]);
     $router->post('/tasks/{id}/subtasks/{subtaskId}/delete', [TaskController::class, 'deleteSubtask'], [$auth]);
     $router->post('/tasks/{id}/attachments', [TaskController::class, 'uploadAttachment'], [$auth]);

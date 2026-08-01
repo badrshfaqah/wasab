@@ -86,6 +86,16 @@ $overdue = $task['due_date'] && $task['due_date'] < date('Y-m-d') && !in_array($
                     <input type="text" name="title" placeholder="أضف عنصراً جديداً..." required>
                     <button class="btn btn-sm" type="submit">إضافة</button>
                 </form>
+                <?php if (!empty($checklists)): ?>
+                    <form method="post" action="<?= route('/tasks/' . $task['id'] . '/apply-checklist') ?>" style="margin-top:8px;display:flex;gap:8px;">
+                        <?= csrf_field() ?>
+                        <select name="checklist_id" required>
+                            <option value="">تطبيق قائمة تحقق جاهزة...</option>
+                            <?php foreach ($checklists as $cl): ?><option value="<?= $cl['id'] ?>"><?= e($cl['name']) ?></option><?php endforeach; ?>
+                        </select>
+                        <button class="btn btn-outline btn-sm" type="submit">تطبيق</button>
+                    </form>
+                <?php endif; ?>
             <?php endif; ?>
         </div>
 

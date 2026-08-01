@@ -103,4 +103,16 @@ return function (PDO $pdo): void {
             KEY `tasks_recurring_next_run_index` (`next_run`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     ");
+
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS `tasks_checklists` (
+            `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            `company_id` INT UNSIGNED NOT NULL,
+            `name` VARCHAR(160) NOT NULL,
+            `items` TEXT NOT NULL COMMENT 'عناصر القائمة، عنصر لكل سطر',
+            `created_by` INT UNSIGNED NULL,
+            `created_at` DATETIME NOT NULL,
+            KEY `tasks_checklists_company_index` (`company_id`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    ");
 };
