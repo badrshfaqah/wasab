@@ -110,6 +110,25 @@ return function (PDO $pdo): void {
     ");
 
     $pdo->exec("
+        CREATE TABLE IF NOT EXISTS `employees_reviews` (
+            `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            `company_id` INT UNSIGNED NOT NULL,
+            `employee_id` INT UNSIGNED NOT NULL,
+            `period` VARCHAR(60) NOT NULL COMMENT 'فترة التقييم نصاً، مثل: 2024 أو الربع الأول 2024',
+            `review_date` DATE NULL,
+            `overall_rating` TINYINT UNSIGNED NOT NULL DEFAULT 3 COMMENT 'من 1 إلى 5',
+            `strengths` TEXT NULL,
+            `improvements` TEXT NULL,
+            `goals` TEXT NULL,
+            `reviewer_id` INT UNSIGNED NULL,
+            `created_at` DATETIME NOT NULL,
+            KEY `employees_reviews_employee_index` (`employee_id`),
+            KEY `employees_reviews_company_index` (`company_id`),
+            CONSTRAINT `employees_reviews_employee_fk` FOREIGN KEY (`employee_id`) REFERENCES `employees_profiles`(`id`) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    ");
+
+    $pdo->exec("
         CREATE TABLE IF NOT EXISTS `employees_documents` (
             `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
             `employee_id` INT UNSIGNED NOT NULL,

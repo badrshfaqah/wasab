@@ -14,6 +14,7 @@ use Modules\Employees\Models\Employee;
 use Modules\Employees\Models\EmployeeCertification;
 use Modules\Employees\Models\EmployeeDependent;
 use Modules\Employees\Models\EmployeeDisciplinary;
+use Modules\Employees\Models\EmployeeReview;
 use Modules\Employees\Models\EmployeeDocument;
 use Modules\Employees\Models\EmployeeTimeline;
 
@@ -215,6 +216,8 @@ class EmployeeController
             'timeline' => EmployeeTimeline::forEmployee($employee['id']),
             'disciplinary' => $this->canViewSensitive() ? EmployeeDisciplinary::forEmployee($employee['id']) : [],
             'disciplinaryTypeLabels' => EmployeeDisciplinary::typeLabels(),
+            'reviews' => $this->canViewSensitive() ? EmployeeReview::forEmployee($employee['id']) : [],
+            'reviewRatingLabels' => EmployeeReview::ratingLabels(),
             'canEdit' => $this->can('employees.edit'),
             'canDelete' => $this->can('employees.delete'),
             'canViewSensitive' => $this->canViewSensitive(),
@@ -424,6 +427,65 @@ class EmployeeController
             EmployeeDisciplinary::delete($record['id']);
             \App\Core\ActivityLog::log('employees.disciplinary_delete', 'employee', $employee['id'], "حذف إجراء تأديبي: {$employee['full_name']}");
             flash_set('success', 'تم حذف الإجراء التأديبي.');
+        }
+        redirect('/employees/' . $employee['id']);
+    }
+
+    // ---------------------------------------------------------------
+    // تقييمات الأداء الدورية (بيانات حسّاسة)
+
+    public function addReview(array $params): void
+    {
+        $companyId = $this->requireCompanyContext();
+        $employee = $this->findVisible((int) $params['id'], $companyId);
+        if (!$this->canViewSensitive() || !$this->can('employees.edit')) {
+            $this->forbidden();
+            return;
+        }
+        $this->verifyCsrf('/employees/' . $employee['id']);
+
+        $period = trim((string) Request::input('period', ''));
+        if ($period === '') {
+            flash_set('error', 'فترة التقييم مطلوبة.');
+            redirect('/employees/' . $employee['id']);
+        }
+        $rating = (int) Request::input('overall_rating', 3);
+        if (!in_array($rating, EmployeeReview::RATINGS, true)) {
+            $rating = 3;
+        }
+
+        EmployeeReview::create([
+            'company_id' => $companyId,
+            'employee_id' => $employee['id'],
+            'period' => mb_substr($period, 0, 60),
+            'review_date' => Request::input('review_date') ?: null,
+            'overall_rating' => $rating,
+            'strengths' => trim((string) Request::input('strengths', '')) ?: null,
+            'improvements' => trim((string) Request::input('improvements', '')) ?: null,
+            'goals' => trim((string) Request::input('goals', '')) ?: null,
+            'reviewer_id' => Auth::id(),
+        ]);
+        \App\Core\ActivityLog::log('employees.review_add', 'employee', $employee['id'], "تسجيل تقييم أداء: {$employee['full_name']}");
+
+        flash_set('success', 'تم تسجيل تقييم الأداء.');
+        redirect('/employees/' . $employee['id']);
+    }
+
+    public function deleteReview(array $params): void
+    {
+        $companyId = $this->requireCompanyContext();
+        $employee = $this->findVisible((int) $params['id'], $companyId);
+        if (!$this->canViewSensitive() || !$this->can('employees.edit')) {
+            $this->forbidden();
+            return;
+        }
+        $this->verifyCsrf('/employees/' . $employee['id']);
+
+        $review = EmployeeReview::find((int) $params['reviewId']);
+        if ($review && (int) $review['employee_id'] === $employee['id']) {
+            EmployeeReview::delete($review['id']);
+            \App\Core\ActivityLog::log('employees.review_delete', 'employee', $employee['id'], "حذف تقييم أداء: {$employee['full_name']}");
+            flash_set('success', 'تم حذف التقييم.');
         }
         redirect('/employees/' . $employee['id']);
     }

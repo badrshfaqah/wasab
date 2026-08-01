@@ -44,5 +44,25 @@ return function (PDO $pdo, string $fromVersion): void {
                 CONSTRAINT `employees_disciplinary_employee_fk` FOREIGN KEY (`employee_id`) REFERENCES `employees_profiles`(`id`) ON DELETE CASCADE
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
         ");
+
+        // تقييمات الأداء الدورية
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS `employees_reviews` (
+                `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                `company_id` INT UNSIGNED NOT NULL,
+                `employee_id` INT UNSIGNED NOT NULL,
+                `period` VARCHAR(60) NOT NULL,
+                `review_date` DATE NULL,
+                `overall_rating` TINYINT UNSIGNED NOT NULL DEFAULT 3,
+                `strengths` TEXT NULL,
+                `improvements` TEXT NULL,
+                `goals` TEXT NULL,
+                `reviewer_id` INT UNSIGNED NULL,
+                `created_at` DATETIME NOT NULL,
+                KEY `employees_reviews_employee_index` (`employee_id`),
+                KEY `employees_reviews_company_index` (`company_id`),
+                CONSTRAINT `employees_reviews_employee_fk` FOREIGN KEY (`employee_id`) REFERENCES `employees_profiles`(`id`) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        ");
     }
 };

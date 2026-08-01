@@ -244,6 +244,60 @@ $today = date('Y-m-d');
             </form>
             <?php endif; ?>
         </div>
+
+        <div class="card">
+            <div class="card-title"><span>🔒 تقييمات الأداء<?= $reviews ? ' <span class="badge badge-info">' . count($reviews) . '</span>' : '' ?></span></div>
+            <?php foreach ($reviews as $r): ?>
+                <?php $stars = str_repeat('★', (int) $r['overall_rating']) . str_repeat('☆', 5 - (int) $r['overall_rating']); ?>
+                <div class="doc-log" style="align-items:flex-start;">
+                    <div>
+                        <strong><?= e($r['period']) ?></strong>
+                        <span style="color:var(--warning);letter-spacing:2px;" title="<?= (int) $r['overall_rating'] ?>/5"><?= $stars ?></span>
+                        <span class="hint"><?= e($reviewRatingLabels[$r['overall_rating']] ?? '') ?></span>
+                        <?php if ($r['strengths']): ?><div style="margin-top:4px;"><strong class="hint">نقاط القوة:</strong> <?= nl2br(e($r['strengths'])) ?></div><?php endif; ?>
+                        <?php if ($r['improvements']): ?><div><strong class="hint">فرص التحسين:</strong> <?= nl2br(e($r['improvements'])) ?></div><?php endif; ?>
+                        <?php if ($r['goals']): ?><div><strong class="hint">الأهداف:</strong> <?= nl2br(e($r['goals'])) ?></div><?php endif; ?>
+                        <div class="hint" style="margin-top:4px;">
+                            <?php if ($r['review_date']): ?><?= format_date($r['review_date']) ?> · <?php endif; ?>المقيّم: <?= e($r['reviewer_name'] ?? '—') ?>
+                        </div>
+                    </div>
+                    <?php if ($canEdit): ?>
+                    <form method="post" action="<?= route('/employees/' . $employee['id'] . '/reviews/' . $r['id'] . '/delete') ?>" data-confirm="حذف هذا التقييم نهائياً؟">
+                        <?= csrf_field() ?>
+                        <button type="submit" class="btn btn-outline btn-sm">حذف</button>
+                    </form>
+                    <?php endif; ?>
+                </div>
+            <?php endforeach; ?>
+            <?php if (!$reviews): ?><p class="hint">لا توجد تقييمات أداء مسجّلة.</p><?php endif; ?>
+            <?php if ($canEdit): ?>
+            <form method="post" action="<?= route('/employees/' . $employee['id'] . '/reviews') ?>" style="margin-top:12px;border-top:1px solid var(--border);padding-top:12px;">
+                <?= csrf_field() ?>
+                <div class="grid-2">
+                    <div class="field" style="margin:0;">
+                        <label class="hint">فترة التقييم</label>
+                        <input type="text" name="period" placeholder="مثال: 2024 أو الربع الأول 2025" required>
+                    </div>
+                    <div class="field" style="margin:0;">
+                        <label class="hint">التقدير العام</label>
+                        <select name="overall_rating">
+                            <?php foreach ($reviewRatingLabels as $val => $label): ?>
+                                <option value="<?= $val ?>" <?= $val === 3 ? 'selected' : '' ?>><?= $val ?> - <?= e($label) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                </div>
+                <div class="field" style="margin:8px 0 0;">
+                    <label class="hint">تاريخ التقييم (اختياري)</label>
+                    <input type="date" name="review_date">
+                </div>
+                <div class="field" style="margin:8px 0 0;"><textarea name="strengths" placeholder="نقاط القوة..." style="min-height:50px;"></textarea></div>
+                <div class="field" style="margin:8px 0 0;"><textarea name="improvements" placeholder="فرص التحسين..." style="min-height:50px;"></textarea></div>
+                <div class="field" style="margin:8px 0 0;"><textarea name="goals" placeholder="الأهداف للفترة القادمة..." style="min-height:50px;"></textarea></div>
+                <button class="btn btn-outline btn-sm" type="submit" style="margin-top:8px;">تسجيل التقييم</button>
+            </form>
+            <?php endif; ?>
+        </div>
         <?php endif; ?>
 
         <?php if ($canManage && $employee['admin_notes']): ?>
