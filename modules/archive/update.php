@@ -65,4 +65,15 @@ return function (PDO $pdo, string $fromVersion): void {
             $pdo->exec("ALTER TABLE `archive_settings` ADD COLUMN `retention_action` ENUM('none','archive','trash') NOT NULL DEFAULT 'none' COMMENT 'الإجراء بعد انقضاء مدة الاحتفاظ' AFTER `retention_months`");
         }
     }
+
+    if (version_compare($fromVersion, '1.3.0', '<')) {
+        // لقطة اسم الكيان المرتبط (العمودان linked_module/linked_id موجودان أصلاً)
+        $missing = !$pdo->query(
+            "SELECT 1 FROM information_schema.columns
+              WHERE table_schema = DATABASE() AND table_name = 'archive_files' AND column_name = 'linked_label'"
+        )->fetchColumn();
+        if ($missing) {
+            $pdo->exec("ALTER TABLE `archive_files` ADD COLUMN `linked_label` VARCHAR(200) NULL COMMENT 'اسم الكيان المرتبط (لقطة)' AFTER `linked_id`");
+        }
+    }
 };

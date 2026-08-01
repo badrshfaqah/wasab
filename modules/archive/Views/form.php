@@ -75,6 +75,28 @@
             <textarea name="notes"><?= e($file['notes'] ?? '') ?></textarea>
         </div>
 
+        <?php if (!empty($linkables)): ?>
+        <?php
+        $modLabels = ['documents' => 'مستند', 'assets' => 'أصل/عهدة', 'employees' => 'موظف'];
+        $curLink = ($file['linked_module'] ?? '') !== '' ? $file['linked_module'] . ':' . (int) ($file['linked_id'] ?? 0) : '';
+        ?>
+        <div class="field">
+            <label>ربط بكيان (اختياري) — لتتبّع الملف</label>
+            <select name="linked">
+                <option value="">— بدون —</option>
+                <?php foreach ($linkables as $mod => $rows): ?>
+                    <?php if ($rows): ?>
+                    <optgroup label="<?= e($modLabels[$mod] ?? $mod) ?>">
+                        <?php foreach ($rows as $r): ?>
+                            <option value="<?= $mod . ':' . $r['id'] ?>" <?= $curLink === $mod . ':' . $r['id'] ? 'selected' : '' ?>><?= e($r['label']) ?></option>
+                        <?php endforeach; ?>
+                    </optgroup>
+                    <?php endif; ?>
+                <?php endforeach; ?>
+            </select>
+        </div>
+        <?php endif; ?>
+
         <div class="form-actions">
             <button class="btn" type="submit"><?= $isEdit ? 'حفظ التعديلات' : 'رفع الملف' ?></button>
             <a class="btn btn-outline" href="<?= $isEdit ? route('/archive/' . $file['id']) : route('/archive') ?>">إلغاء</a>

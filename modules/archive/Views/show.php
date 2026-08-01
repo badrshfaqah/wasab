@@ -70,6 +70,16 @@ $logLabels = [
             <tr><td class="hint">الكلمات المفتاحية</td><td><?= e($file['keywords'] ?: '—') ?></td></tr>
             <tr><td class="hint">ملاحظات</td><td><?= e($file['notes'] ?: '—') ?></td></tr>
             <tr><td class="hint">تاريخ انتهاء الصلاحية</td><td><?= $file['expires_at'] ? format_date($file['expires_at']) : '—' ?></td></tr>
+            <?php if (!empty($file['linked_module']) && !empty($file['linked_label'])): ?>
+                <?php
+                $modIcons = ['documents' => '📄', 'assets' => '📦', 'employees' => '👤'];
+                $lUrl = \Modules\Archive\Controllers\ArchiveFileController::linkUrl($file['linked_module'], $file['linked_id']);
+                ?>
+                <tr><td class="hint">مرتبط بـ</td><td>
+                    <?= $modIcons[$file['linked_module']] ?? '🔗' ?>
+                    <?php if ($lUrl): ?><a href="<?= $lUrl ?>"><?= e($file['linked_label']) ?></a><?php else: ?><?= e($file['linked_label']) ?><?php endif; ?>
+                </td></tr>
+            <?php endif; ?>
             <tr><td class="hint">رافع الملف</td><td><?= e($file['uploader_name'] ?? '-') ?></td></tr>
             <tr><td class="hint">تاريخ الإنشاء</td><td><?= format_date($file['created_at'], 'Y-m-d H:i') ?></td></tr>
             <tr><td class="hint">آخر تعديل</td><td><?= $file['updated_at'] ? format_date($file['updated_at'], 'Y-m-d H:i') : '—' ?></td></tr>

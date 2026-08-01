@@ -69,6 +69,7 @@ class ArchiveFileController
             'accessUserIds' => [],
             'allTags' => ArchiveTag::forCompany($companyId),
             'fileTags' => [],
+            'linkables' => $this->linkableEntities($companyId),
         ]);
     }
 
@@ -163,6 +164,7 @@ class ArchiveFileController
             'accessUserIds' => ArchiveFile::accessUserIds($file['id']),
             'allTags' => ArchiveTag::forCompany($companyId),
             'fileTags' => ArchiveTag::forFile($file['id']),
+            'linkables' => $this->linkableEntities($companyId),
         ]);
     }
 
@@ -603,6 +605,8 @@ class ArchiveFileController
             $visibility = 'inherit';
         }
 
+        [$linkMod, $linkId, $linkLabel] = $this->parseLink($companyId, (string) Request::input('linked', ''));
+
         return [
             'category_id' => $categoryId,
             'title' => $title ?: null,
@@ -611,6 +615,62 @@ class ArchiveFileController
             'notes' => $notes ?: null,
             'visibility_type' => $visibility,
             'expires_at' => $expiresAt,
+            'linked_module' => $linkMod,
+            'linked_id' => $linkId,
+            'linked_label' => $linkLabel,
         ];
+    }
+
+    /** خريطة أنواع الكيانات القابلة للربط: moduleKey => [الجدول, عمود الاسم, مسار العرض]. */
+    private function linkableTypes(): array
+    {
+        return [
+            'documents' => ['documents_documents', 'title', '/documents/'],
+            'assets' => ['assets_assets', 'name', '/custody/'],
+            'employees' => ['employees_profiles', 'full_name', '/employees/'],
+        ];
+    }
+
+    /** يحلّل "module:id" ويتحقق من ملكية الشركة وتفعيل الإضافة. يُرجع [module,id,label] أو [null,null,null]. */
+    private function parseLink(int $companyId, string $raw): array
+    {
+        if ($raw === '' || !str_contains($raw, ':')) {
+            return [null, null, null];
+        }
+        [$mod, $id] = explode(':', $raw, 2);
+        $id = (int) $id;
+        $types = $this->linkableTypes();
+        if (!isset($types[$mod]) || $id < 1 || !\App\Core\ModuleManager::isActive($mod)) {
+            return [null, null, null];
+        }
+        [$table, $nameCol] = $types[$mod];
+        $row = Database::first("SELECT `{$nameCol}` AS label FROM `{$table}` WHERE id = :id AND company_id = :c", ['id' => $id, 'c' => $companyId]);
+        return $row ? [$mod, $id, mb_substr((string) $row['label'], 0, 200)] : [null, null, null];
+    }
+
+    /** قوائم الكيانات القابلة للربط مجمّعة حسب الإضافة (للنموذج). */
+    private function linkableEntities(int $companyId): array
+    {
+        $out = [];
+        foreach ($this->linkableTypes() as $mod => [$table, $nameCol]) {
+            if (!\App\Core\ModuleManager::isActive($mod)) {
+                continue;
+            }
+            $out[$mod] = Database::select(
+                "SELECT id, `{$nameCol}` AS label FROM `{$table}` WHERE company_id = :c ORDER BY `{$nameCol}` LIMIT 500",
+                ['c' => $companyId]
+            );
+        }
+        return $out;
+    }
+
+    /** مسار عرض الكيان المرتبط. */
+    public static function linkUrl(?string $mod, $id): ?string
+    {
+        if (!$mod || !$id) {
+            return null;
+        }
+        $paths = ['documents' => '/documents/', 'assets' => '/custody/', 'employees' => '/employees/'];
+        return isset($paths[$mod]) ? route($paths[$mod] . (int) $id) : null;
     }
 }
