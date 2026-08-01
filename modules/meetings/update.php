@@ -53,4 +53,9 @@ return function (PDO $pdo, string $fromVersion): void {
             $pdo->exec("ALTER TABLE `meetings_meetings` ADD KEY `meetings_recurrence_group_index` (`recurrence_group_id`)");
         }
     }
+
+    if (version_compare($fromVersion, '1.3.0', '<')) {
+        // جدول الأعمال: حقل نصي يُعرض قبل الاجتماع ويُضمَّن في تصدير التقويم (ICS)
+        meetings_add_column_if_missing($pdo, 'meetings_meetings', 'agenda', "TEXT NULL AFTER `description`");
+    }
 };

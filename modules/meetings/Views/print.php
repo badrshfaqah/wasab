@@ -55,6 +55,11 @@ $afterNotes = array_filter($notes, fn ($n) => $n['phase'] === 'after');
     <p><?= nl2br(e($meeting['description'])) ?></p>
 <?php endif; ?>
 
+<?php if (!empty($meeting['agenda'])): ?>
+    <h2>جدول الأعمال</h2>
+    <p><?= nl2br(e($meeting['agenda'])) ?></p>
+<?php endif; ?>
+
 <h2>الحاضرون (<?= count($attendees) ?>)</h2>
 <table>
     <thead><tr><th>الاسم</th><th>النوع</th><th>الرد</th></tr></thead>

@@ -19,6 +19,7 @@ $isRecurring = ($meeting['recurrence_rule'] ?? 'none') !== 'none';
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <a class="btn btn-outline" href="<?= route('/meetings/' . $meeting['id'] . '/print') ?>" target="_blank">🖨️ طباعة / PDF</a>
+        <a class="btn btn-outline" href="<?= route('/meetings/' . $meeting['id'] . '/ics') ?>">📅 إضافة لتقويمي</a>
         <?php if ($canEdit): ?>
             <a class="btn btn-outline" href="<?= route('/meetings/' . $meeting['id'] . '/edit') ?>">تعديل</a>
         <?php endif; ?>
@@ -86,6 +87,11 @@ $isRecurring = ($meeting['recurrence_rule'] ?? 'none') !== 'none';
         </table>
         <?php if ($meeting['description']): ?>
             <p style="margin-top:12px;"><?= nl2br(e($meeting['description'])) ?></p>
+        <?php endif; ?>
+
+        <?php if (!empty($meeting['agenda'])): ?>
+            <div class="card-title" style="margin-top:20px;"><span>📋 جدول الأعمال</span></div>
+            <div style="white-space:pre-line;"><?= e($meeting['agenda']) ?></div>
         <?php endif; ?>
 
         <?php if ($canEdit && $meeting['status'] !== 'cancelled'): ?>

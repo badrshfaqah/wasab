@@ -137,6 +137,7 @@ class MeetingController
                     'type' => $data['type'],
                     'location' => $data['location'],
                     'description' => $data['description'],
+                    'agenda' => $data['agenda'],
                     'starts_at' => $occStartsAt,
                     'ends_at' => $occEndsAt,
                     'recurrence_rule' => $recurrenceRule,
@@ -629,6 +630,7 @@ class MeetingController
         $startsAt = Request::input('starts_at');
         $endsAt = Request::input('ends_at') ?: null;
         $description = trim((string) Request::input('description', ''));
+        $agenda = trim((string) Request::input('agenda', ''));
 
         if ($title === '') {
             flash_set('error', 'عنوان الاجتماع مطلوب.');
@@ -649,6 +651,91 @@ class MeetingController
             'starts_at' => $startsAt,
             'ends_at' => $endsAt,
             'description' => $description ?: null,
+            'agenda' => $agenda ?: null,
         ];
+    }
+
+    /**
+     * تصدير الاجتماع كملف تقويم (ICS / RFC 5545) ليضيفه المدعو لتقويمه الشخصي.
+     * الأوقات مخزّنة بتوقيت الرياض (UTC+3 ثابت) وتُحوَّل إلى UTC لضمان صحتها في أي تقويم.
+     */
+    public function ics(array $params): void
+    {
+        $companyId = $this->requireCompanyContext();
+        $meeting = $this->findVisible((int) $params['id'], $companyId);
+
+        $riyadh = new \DateTimeZone('Asia/Riyadh');
+        $utc = new \DateTimeZone('UTC');
+        $start = new \DateTime($meeting['starts_at'], $riyadh);
+        $end = $meeting['ends_at']
+            ? new \DateTime($meeting['ends_at'], $riyadh)
+            : (clone $start)->modify('+1 hour');
+        $start->setTimezone($utc);
+        $end->setTimezone($utc);
+
+        $descParts = [];
+        if (!empty($meeting['description'])) {
+            $descParts[] = $meeting['description'];
+        }
+        if (!empty($meeting['agenda'])) {
+            $descParts[] = "جدول الأعمال:\n" . $meeting['agenda'];
+        }
+        $description = implode("\n\n", $descParts);
+
+        $esc = static fn (string $s): string => str_replace(
+            ["\\", "\n", ",", ";"],
+            ["\\\\", "\\n", "\\,", "\\;"],
+            $s
+        );
+        // معرّف فريد ثابت للحدث حتى يُحدَّث بدل تكراره إن أُعيد الاستيراد
+        $host = $_SERVER['HTTP_HOST'] ?? 'wasab.local';
+        $uid = 'meeting-' . $meeting['id'] . '@' . preg_replace('/[^a-zA-Z0-9.\-]/', '', $host);
+        $stamp = (new \DateTime('now', $utc))->format('Ymd\THis\Z');
+
+        $lines = [
+            'BEGIN:VCALENDAR',
+            'VERSION:2.0',
+            'PRODID:-//Wasab//Meetings//AR',
+            'CALSCALE:GREGORIAN',
+            'METHOD:PUBLISH',
+            'BEGIN:VEVENT',
+            'UID:' . $uid,
+            'DTSTAMP:' . $stamp,
+            'DTSTART:' . $start->format('Ymd\THis\Z'),
+            'DTEND:' . $end->format('Ymd\THis\Z'),
+            'SUMMARY:' . $esc($meeting['title']),
+        ];
+        if (!empty($meeting['location'])) {
+            $lines[] = 'LOCATION:' . $esc($meeting['location']);
+        }
+        if ($description !== '') {
+            $lines[] = 'DESCRIPTION:' . $esc($description);
+        }
+        if (($meeting['status'] ?? '') === 'cancelled') {
+            $lines[] = 'STATUS:CANCELLED';
+        }
+        $lines[] = 'END:VEVENT';
+        $lines[] = 'END:VCALENDAR';
+
+        // طيّ الأسطر الطويلة على 75 ثمانية حسب المعيار (سطر تكميلي يبدأ بمسافة)
+        $folded = array_map(static function (string $line): string {
+            if (strlen($line) <= 75) {
+                return $line;
+            }
+            $out = '';
+            while (strlen($line) > 75) {
+                $out .= substr($line, 0, 75) . "\r\n ";
+                $line = substr($line, 75);
+            }
+            return $out . $line;
+        }, $lines);
+
+        $body = implode("\r\n", $folded) . "\r\n";
+        $filename = 'meeting-' . $meeting['id'] . '.ics';
+        header('Content-Type: text/calendar; charset=utf-8');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Content-Length: ' . strlen($body));
+        echo $body;
+        exit;
     }
 }

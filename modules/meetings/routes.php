@@ -25,6 +25,7 @@ return function (Router $router): void {
 
     $router->get('/meetings/{id}', [MeetingController::class, 'show'], [$auth]);
     $router->get('/meetings/{id}/print', [MeetingController::class, 'print'], [$auth]);
+    $router->get('/meetings/{id}/ics', [MeetingController::class, 'ics'], [$auth]);
     $router->get('/meetings/{id}/edit', [MeetingController::class, 'edit'], [$auth]);
     $router->post('/meetings/{id}', [MeetingController::class, 'update'], [$auth]);
     $router->post('/meetings/{id}/delete', [MeetingController::class, 'destroy'], [$auth]);

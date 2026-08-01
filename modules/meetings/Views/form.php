@@ -89,6 +89,12 @@ $toLocalDatetime = function (?string $value) {
         </div>
 
         <div class="field">
+            <label>جدول الأعمال (اختياري)</label>
+            <textarea name="agenda" placeholder="بند لكل سطر:&#10;1. اعتماد محضر الاجتماع السابق&#10;2. مناقشة الميزانية&#10;3. ما يستجد من أعمال"><?= e($meeting['agenda'] ?? '') ?></textarea>
+            <p class="hint">يظهر للمدعوين قبل الاجتماع، ويُضمَّن في ملف التقويم.</p>
+        </div>
+
+        <div class="field">
             <label>الحاضرون من الشركة</label>
             <select name="attendee_user_ids[]" multiple size="6">
                 <?php foreach ($companyUsers as $u): ?>

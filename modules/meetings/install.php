@@ -15,6 +15,7 @@ return function (PDO $pdo): void {
             `starts_at` DATETIME NOT NULL,
             `ends_at` DATETIME NULL,
             `description` TEXT NULL,
+            `agenda` TEXT NULL COMMENT 'جدول أعمال الاجتماع (بند لكل سطر) - يُعرض قبل الاجتماع ويُضمَّن في ملف التقويم',
             `outcomes` TEXT NULL,
             `status` ENUM('scheduled','completed','cancelled') NOT NULL DEFAULT 'scheduled',
             `recurrence_rule` ENUM('none','weekly','monthly') NOT NULL DEFAULT 'none',
