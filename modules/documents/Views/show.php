@@ -108,6 +108,30 @@ $canRestore = $document['status'] === 'archived' && $canManage;
         <?php endif; ?>
     </div>
 
+    <?php if (!empty($versions)): ?>
+    <div class="card">
+        <div class="card-title"><span>سجل الإصدارات <span class="badge badge-info"><?= count($versions) ?></span></span></div>
+        <p class="hint" style="margin-top:0;">تُحفظ لقطة من المحتوى قبل كل تعديل. يمكنك عرض أي إصدار سابق أو استعادته.</p>
+        <?php foreach ($versions as $v): ?>
+            <div class="doc-log" style="align-items:center;">
+                <div>
+                    <strong>إصدار #<?= (int) $v['version_no'] ?></strong> — <?= e($v['title']) ?>
+                    <div class="doc-log-meta"><?= e($v['saved_by_name'] ?? 'النظام') ?> · <?= format_date($v['created_at'], 'Y-m-d H:i') ?></div>
+                </div>
+                <div style="display:flex;gap:6px;align-items:center;">
+                    <a class="btn btn-outline btn-sm" href="<?= route('/documents/' . $document['id'] . '/versions/' . $v['id']) ?>">عرض</a>
+                    <?php if ($canEdit): ?>
+                    <form method="post" action="<?= route('/documents/' . $document['id'] . '/versions/' . $v['id'] . '/restore') ?>" data-confirm="استعادة هذا الإصدار؟ سيُحفظ المحتوى الحالي كإصدار قبل الاستبدال.">
+                        <?= csrf_field() ?>
+                        <button type="submit" class="btn btn-outline btn-sm">استعادة</button>
+                    </form>
+                    <?php endif; ?>
+                </div>
+            </div>
+        <?php endforeach; ?>
+    </div>
+    <?php endif; ?>
+
     <div class="card">
         <div class="card-title"><span>سجل العمليات</span></div>
         <?php if (!$logs): ?>

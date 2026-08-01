@@ -57,6 +57,20 @@ return function (PDO $pdo): void {
     ");
 
     $pdo->exec("
+        CREATE TABLE IF NOT EXISTS `documents_versions` (
+            `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            `document_id` INT UNSIGNED NOT NULL,
+            `version_no` INT UNSIGNED NOT NULL,
+            `title` VARCHAR(255) NOT NULL,
+            `content` LONGTEXT NULL,
+            `saved_by` INT UNSIGNED NULL,
+            `created_at` DATETIME NOT NULL,
+            KEY `documents_versions_document_index` (`document_id`),
+            CONSTRAINT `documents_versions_document_fk` FOREIGN KEY (`document_id`) REFERENCES `documents_documents`(`id`) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    ");
+
+    $pdo->exec("
         CREATE TABLE IF NOT EXISTS `documents_settings` (
             `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
             `company_id` INT UNSIGNED NOT NULL,

@@ -13,6 +13,7 @@ use App\Core\View;
 use Modules\Documents\Models\Document;
 use Modules\Documents\Models\DocumentLog;
 use Modules\Documents\Models\DocumentSetting;
+use Modules\Documents\Models\DocumentVersion;
 use Modules\Documents\Models\DocumentTemplate;
 
 class DocumentController
@@ -108,6 +109,7 @@ class DocumentController
             'pageTitle' => $document['title'],
             'document' => $document,
             'logs' => DocumentLog::forDocument($document['id']),
+            'versions' => DocumentVersion::forDocument($document['id']),
             'canEdit' => $this->canEditDocument($document),
             'canDelete' => $this->canDeleteDocument($document),
             'canManage' => $this->canManage(),
@@ -157,11 +159,68 @@ class DocumentController
             $data['number'] = DocumentSetting::generateNumber($companyId);
         }
 
+        // لقطة إصدار قبل التعديل إن تغيّر المحتوى أو العنوان (سجل الإصدارات)
+        $contentChanged = array_key_exists('content', $data) && (string) $data['content'] !== (string) ($document['content'] ?? '');
+        $titleChanged = array_key_exists('title', $data) && (string) $data['title'] !== (string) ($document['title'] ?? '');
+        if ($contentChanged || $titleChanged) {
+            DocumentVersion::snapshot($document, Auth::id());
+        }
+
         Document::update($document['id'], $data);
         DocumentLog::add($document['id'], Auth::id(), 'updated', 'تم تعديل بيانات المستند');
 
         ActivityLog::log('documents.update', 'document', $document['id'], "تعديل مستند: {$data['title']}");
         flash_set('success', 'تم حفظ التعديلات.');
+        redirect('/documents/' . $document['id']);
+    }
+
+    /** عرض محتوى إصدار سابق (للقراءة) مع إتاحة استعادته. */
+    public function viewVersion(array $params): void
+    {
+        $companyId = $this->requireCompanyContext();
+        $document = $this->findVisible((int) $params['id'], $companyId);
+        $version = DocumentVersion::find((int) $params['versionId']);
+        if (!$version || (int) $version['document_id'] !== (int) $document['id']) {
+            flash_set('error', 'الإصدار غير موجود.');
+            redirect('/documents/' . $document['id']);
+        }
+
+        View::render('documents::version_view', [
+            'pageTitle' => 'إصدار سابق #' . $version['version_no'],
+            'document' => $document,
+            'version' => $version,
+            'canEdit' => $this->canEditDocument($document),
+        ]);
+    }
+
+    /** استعادة محتوى المستند إلى إصدار سابق (مع حفظ لقطة للحالة الحالية أولاً). */
+    public function restoreVersion(array $params): void
+    {
+        $companyId = $this->requireCompanyContext();
+        $document = $this->findVisible((int) $params['id'], $companyId);
+        if (!$this->canEditDocument($document)) {
+            $this->forbidden();
+            return;
+        }
+        $this->verifyCsrf('/documents/' . $document['id']);
+
+        $version = DocumentVersion::find((int) $params['versionId']);
+        if (!$version || (int) $version['document_id'] !== (int) $document['id']) {
+            flash_set('error', 'الإصدار غير موجود.');
+            redirect('/documents/' . $document['id']);
+        }
+
+        // نحفظ لقطة للحالة الحالية حتى تكون الاستعادة نفسها قابلة للتراجع
+        DocumentVersion::snapshot($document, Auth::id());
+        Document::update($document['id'], [
+            'title' => $version['title'],
+            'content' => $version['content'],
+            'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+        DocumentLog::add($document['id'], Auth::id(), 'updated', 'استعادة إصدار سابق #' . $version['version_no']);
+        ActivityLog::log('documents.restore_version', 'document', $document['id'], "استعادة إصدار #{$version['version_no']} للمستند: {$document['title']}");
+
+        flash_set('success', 'تمت استعادة الإصدار #' . $version['version_no'] . '.');
         redirect('/documents/' . $document['id']);
     }
 
