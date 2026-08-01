@@ -73,6 +73,18 @@ class Employee
         );
     }
 
+    /** بيانات مختصرة لكل الموظفين النشطين لبناء الهيكل التنظيمي (بلا بيانات حسّاسة). */
+    public static function forOrgChart(int $companyId): array
+    {
+        return Database::select(
+            "SELECT id, full_name, job_title, department, manager_employee_id
+               FROM employees_profiles
+              WHERE company_id = :c AND status != 'terminated'
+              ORDER BY full_name",
+            ['c' => $companyId]
+        );
+    }
+
     public static function create(array $data): int
     {
         $data['created_at'] = date('Y-m-d H:i:s');

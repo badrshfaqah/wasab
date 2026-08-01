@@ -73,6 +73,42 @@ class EmployeeController
         ]);
     }
 
+    /** الهيكل التنظيمي: شجرة الموظفين مبنية على "المدير المباشر". */
+    public function orgChart(): void
+    {
+        $companyId = $this->requireCompanyContext();
+        if (!$this->can('employees.view')) {
+            $this->forbidden();
+            return;
+        }
+
+        $all = \Modules\Employees\Models\Employee::forOrgChart($companyId);
+
+        // بناء شجرة: children[managerId] = [موظفون]. الجذور: بلا مدير أو مدير خارج القائمة.
+        $byId = [];
+        foreach ($all as $e) {
+            $byId[(int) $e['id']] = $e;
+        }
+        $children = [];
+        $roots = [];
+        foreach ($all as $e) {
+            $mgr = $e['manager_employee_id'] ? (int) $e['manager_employee_id'] : 0;
+            if ($mgr && isset($byId[$mgr])) {
+                $children[$mgr][] = (int) $e['id'];
+            } else {
+                $roots[] = (int) $e['id'];
+            }
+        }
+
+        View::render('employees::orgchart', [
+            'pageTitle' => 'الهيكل التنظيمي',
+            'byId' => $byId,
+            'children' => $children,
+            'roots' => $roots,
+            'total' => count($all),
+        ]);
+    }
+
     /** حاسبة مكافأة نهاية الخدمة لموظف (نظام العمل السعودي). بيانات راتب حسّاسة. */
     public function endOfService(array $params): void
     {

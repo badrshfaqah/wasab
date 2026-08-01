@@ -20,6 +20,7 @@ $empQuery = function (array $filters, array $overrides = []): string {
                 🔔 تنبيهات الوثائق<?= !empty($expiringCount) ? ' <span class="badge badge-danger">' . (int) $expiringCount . '</span>' : '' ?>
             </a>
         <?php endif; ?>
+        <a class="btn btn-outline" href="<?= route('/employees/orgchart') ?>">🏢 الهيكل التنظيمي</a>
         <?php if ($canCreate): ?>
             <a class="btn" href="<?= route('/employees/create') ?>">+ ملف وظيفي جديد</a>
         <?php endif; ?>
