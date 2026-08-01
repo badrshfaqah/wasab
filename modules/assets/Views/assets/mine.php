@@ -3,6 +3,25 @@
     <div><h1>عهدي</h1><p>الأصول المسندة إليك حالياً.</p></div>
 </div>
 
+<?php if (!empty($pendingAck)): ?>
+<div class="card" style="border-inline-start:4px solid var(--warning);">
+    <div class="card-title"><span>✍️ بانتظار إقرارك بالاستلام</span></div>
+    <p class="hint" style="margin:0 0 12px;">سُجّلت العهد التالية باسمك ولم تُقرّ باستلامها بعد. الإقرار يؤكد استلامك لها.</p>
+    <?php foreach ($pendingAck as $h): ?>
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:10px 0;border-bottom:1px solid var(--border);">
+            <div>
+                <strong>محضر #<?= (int) $h['id'] ?></strong> — <?= (int) $h['items_count'] ?> أصل
+                <div class="hint">بتاريخ <?= format_date($h['handover_date'], 'Y-m-d') ?></div>
+            </div>
+            <form method="post" action="<?= route('/custody/handovers/' . $h['id'] . '/acknowledge') ?>" onsubmit="return confirm('تأكيد إقرارك باستلام عهدة هذا المحضر؟');">
+                <?= csrf_field() ?>
+                <button class="btn btn-sm" type="submit">✅ أقرّ بالاستلام</button>
+            </form>
+        </div>
+    <?php endforeach; ?>
+</div>
+<?php endif; ?>
+
 <div class="card">
     <?php if (!$assets): ?>
         <div class="empty-state"><div class="ic">📦</div><h3>لا عهد مسندة إليك</h3><p>ستظهر هنا الأصول التي تُسنَد لعهدتك.</p></div>

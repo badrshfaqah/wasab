@@ -1,8 +1,15 @@
 <?php
 $badgeColor = ['available' => 'success', 'assigned' => 'info', 'maintenance' => 'warning', 'retired' => 'muted', 'lost' => 'danger'];
-$assetsQuery = function (array $filters, array $ov = []) {
-    $p = array_filter(array_merge($filters, $ov), fn ($v) => $v !== null && $v !== '');
+$assetsQuery = function (array $filters, array $ov = []) use ($sort, $dir) {
+    $p = array_filter(array_merge($filters, ['sort' => $sort, 'dir' => $dir], $ov), fn ($v) => $v !== null && $v !== '');
     return route('/custody' . ($p ? '?' . http_build_query($p) : ''));
+};
+// رأس عمود قابل للفرز: ينقر ليفرز تصاعدياً/تنازلياً مع سهم يوضح الاتجاه الحالي
+$sortHead = function (string $key, string $label) use ($sort, $dir, $filters, $assetsQuery) {
+    $nextDir = ($sort === $key && $dir === 'asc') ? 'desc' : 'asc';
+    $arrow = $sort === $key ? ($dir === 'asc' ? ' ▲' : ' ▼') : '';
+    $url = $assetsQuery($filters, ['sort' => $key, 'dir' => $nextDir, 'page' => null]);
+    return '<a href="' . $url . '" style="color:inherit;white-space:nowrap;">' . e($label) . $arrow . '</a>';
 };
 ?>
 <div class="page-head">
@@ -12,7 +19,9 @@ $assetsQuery = function (array $filters, array $ov = []) {
         <a class="btn btn-outline btn-sm" href="<?= route('/custody/export/csv' . ($exq ? '?' . $exq : '')) ?>">⬇️ Excel</a>
         <a class="btn btn-outline btn-sm" href="<?= route('/custody/export/print' . ($exq ? '?' . $exq : '')) ?>" target="_blank" rel="noopener">🖨️ PDF</a>
         <?php if ($canManage): ?><a class="btn btn-outline" href="<?= route('/custody/categories') ?>">🏷️ التصنيفات</a><?php endif; ?>
+        <a class="btn btn-outline" href="<?= route('/custody/statements') ?>">🧾 كشوف العهد</a>
         <a class="btn btn-outline" href="<?= route('/custody/handovers') ?>">📋 المحاضر</a>
+        <?php if ($canCreate): ?><a class="btn btn-outline" href="<?= route('/custody/import') ?>">⬆️ استيراد</a><?php endif; ?>
         <?php if ($canAssign): ?><a class="btn btn-outline" href="<?= route('/custody/handovers/create') ?>">🤝 تسليم</a><?php endif; ?>
         <?php if ($canCreate): ?><a class="btn" href="<?= route('/custody/create') ?>">+ أصل</a><?php endif; ?>
     </div>
@@ -51,7 +60,13 @@ $assetsQuery = function (array $filters, array $ov = []) {
 
     <div class="table-wrap">
     <table class="table-cards">
-        <thead><tr><th>الأصل</th><th>التصنيف</th><th>الحالة</th><th>الحامل الحالي</th><th>الرقم التسلسلي</th></tr></thead>
+        <thead><tr>
+            <th><?= $sortHead('name', 'الأصل') ?></th>
+            <th><?= $sortHead('category', 'التصنيف') ?></th>
+            <th><?= $sortHead('status', 'الحالة') ?></th>
+            <th><?= $sortHead('holder', 'الحامل الحالي') ?></th>
+            <th>الرقم التسلسلي</th>
+        </tr></thead>
         <tbody>
         <?php if (!$assets): ?>
             <tr><td colspan="5"><div class="empty-state"><div class="ic">📦</div>لا توجد أصول مطابقة</div></td></tr>

@@ -160,6 +160,147 @@ class AssetHandoverController
         ]);
     }
 
+    /** طباعة/PDF محضر التسليم موقّعاً (ميزة 2). */
+    public function print(array $params): void
+    {
+        $companyId = $this->requireCompanyContext();
+        if (!$this->can('assets.view')) {
+            $this->forbidden();
+            return;
+        }
+        $handover = $this->findVisible((int) $params['id'], $companyId);
+
+        View::render('assets::handovers.print', [
+            'pageTitle' => 'محضر تسليم عهدة',
+            'handover' => $handover,
+            'items' => AssetHandover::items((int) $handover['id']),
+            'company' => \App\Core\Database::first('SELECT name FROM companies WHERE id = :id', ['id' => $companyId]),
+        ], '');
+    }
+
+    /** إقرار الحامل (المربوط بحساب) باستلام عهدة المحضر (ميزة 12). */
+    public function acknowledge(array $params): void
+    {
+        $companyId = $this->requireCompanyContext();
+        $handover = AssetHandover::find((int) $params['id']);
+        if (!$handover) {
+            flash_set('error', 'المحضر غير موجود.');
+            redirect('/custody/my');
+        }
+        $this->verifyCsrf('/custody/my');
+
+        // لا يُقرّ إلا صاحب العهدة نفسه (المستخدم المسند له أو ملفه الوظيفي المربوط)
+        if (!AssetHandover::belongsToUser($handover, $companyId, Auth::id())) {
+            $this->forbidden();
+            return;
+        }
+        if ($handover['acknowledged_at']) {
+            flash_set('error', 'سبق الإقرار بهذا المحضر.');
+            redirect('/custody/my');
+        }
+
+        AssetHandover::acknowledge((int) $handover['id']);
+        ActivityLog::log('assets.acknowledge', 'asset_handover', (int) $handover['id'], "إقرار باستلام عهدة (محضر #{$handover['id']})");
+
+        // تنبيه من أنشأ المحضر بأن الحامل أقرّ بالاستلام
+        if ($handover['created_by']) {
+            Notification::send((int) $handover['created_by'], '✅ تم إقرار استلام عهدة', $handover['holder_name'] . ' أقرّ باستلام العهدة.', route('/custody/handovers/' . $handover['id']));
+        }
+
+        flash_set('success', 'تم تسجيل إقرارك باستلام العهدة. شكراً لك.');
+        redirect('/custody/my');
+    }
+
+    /** نقل عهدة أصل مباشرة من حامله الحالي لحاملٍ جديد بخطوة واحدة (ميزة 4). */
+    public function transferForm(array $params): void
+    {
+        $companyId = $this->requireCompanyContext();
+        if (!$this->can('assets.assign')) {
+            $this->forbidden();
+            return;
+        }
+        $asset = Asset::find((int) $params['id']);
+        if (!$asset || (int) $asset['company_id'] !== $companyId || $asset['status'] !== 'assigned') {
+            flash_set('error', 'الأصل غير موجود أو ليس بعهدة حالية.');
+            redirect('/custody');
+        }
+        $selectable = AssetHolder::selectable($companyId);
+
+        View::render('assets::handovers.transfer', [
+            'pageTitle' => 'نقل عهدة: ' . $asset['name'],
+            'asset' => $asset,
+            'employees' => $selectable['employees'],
+            'users' => $selectable['users'],
+        ]);
+    }
+
+    public function transfer(array $params): void
+    {
+        $companyId = $this->requireCompanyContext();
+        if (!$this->can('assets.assign')) {
+            $this->forbidden();
+            return;
+        }
+        $asset = Asset::find((int) $params['id']);
+        if (!$asset || (int) $asset['company_id'] !== $companyId || $asset['status'] !== 'assigned') {
+            flash_set('error', 'الأصل غير موجود أو ليس بعهدة حالية.');
+            redirect('/custody');
+        }
+        $this->verifyCsrf('/custody/' . $asset['id']);
+
+        // الحامل الجديد (بنفس منطق الإسناد)
+        $holderType = Request::input('holder_type', 'manual');
+        if (!in_array($holderType, ['employee', 'user', 'manual'], true)) {
+            $holderType = 'manual';
+        }
+        $holderRef = $holderType === 'manual' ? null : ((int) Request::input('holder_ref', 0) ?: null);
+        $manualName = (string) Request::input('holder_manual_name', '');
+        $holderName = AssetHolder::resolveName($companyId, $holderType, $holderRef, $manualName);
+        if ($holderName === null) {
+            flash_set('error', 'حدّد الحامل الجديد.');
+            redirect('/custody/' . $asset['id'] . '/transfer');
+        }
+
+        $now = date('Y-m-d H:i:s');
+        $prevHolder = $asset['current_holder_name'];
+
+        // 1) إغلاق البند المفتوح الحالي (إرجاع ضمني) 2) محضر جديد للحامل الجديد
+        $openItem = AssetHandover::openItemForAsset((int) $asset['id']);
+        if ($openItem) {
+            AssetHandover::markReturned((int) $openItem['id'], null, 'نُقلت العهدة إلى: ' . $holderName);
+        }
+
+        $handoverId = AssetHandover::create([
+            'company_id' => $companyId,
+            'holder_type' => $holderType,
+            'holder_ref' => $holderRef,
+            'holder_name' => $holderName,
+            'holder_contact' => mb_substr(trim((string) Request::input('holder_contact', '')), 0, 120) ?: null,
+            'handover_date' => Request::input('handover_date') ?: date('Y-m-d'),
+            'notes' => 'نقل عهدة من: ' . $prevHolder,
+            'created_by' => Auth::id(),
+            'created_at' => $now,
+        ]);
+        AssetHandover::addItem($handoverId, (int) $asset['id']);
+        Asset::update((int) $asset['id'], [
+            'current_holder_type' => $holderType,
+            'current_holder_ref' => $holderRef,
+            'current_holder_name' => $holderName,
+            'assigned_at' => $now,
+            'updated_at' => $now,
+        ]);
+        AssetLog::add((int) $asset['id'], Auth::id(), 'transferred', "نقل العهدة من {$prevHolder} إلى {$holderName}");
+
+        $notifyUser = AssetHolder::linkedUserId($companyId, $holderType, $holderRef);
+        if ($notifyUser) {
+            Notification::send($notifyUser, '📦 عهدة جديدة باسمك', "نُقلت عهدة \"{$asset['name']}\" إليك.", route('/custody/my'));
+        }
+
+        ActivityLog::log('assets.transfer', 'asset', (int) $asset['id'], "نقل عهدة {$asset['name']} من {$prevHolder} إلى {$holderName}");
+        flash_set('success', 'تم نقل العهدة إلى ' . $holderName . '.');
+        redirect('/custody/' . $asset['id']);
+    }
+
     /** إرجاع بند (أصل) من محضر: يُعيد الأصل متاحاً ويسجّل حالة الإرجاع. */
     public function returnItem(array $params): void
     {

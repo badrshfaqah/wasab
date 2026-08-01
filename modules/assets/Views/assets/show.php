@@ -1,6 +1,6 @@
 <?php
 $badgeColor = ['available' => 'success', 'assigned' => 'info', 'maintenance' => 'warning', 'retired' => 'muted', 'lost' => 'danger'];
-$actionLabels = ['created' => 'تسجيل', 'updated' => 'تعديل', 'assigned' => 'تسليم عهدة', 'returned' => 'إرجاع', 'status_changed' => 'تغيير حالة'];
+$actionLabels = ['created' => 'تسجيل', 'updated' => 'تعديل', 'assigned' => 'تسليم عهدة', 'returned' => 'إرجاع', 'transferred' => 'نقل عهدة', 'status_changed' => 'تغيير حالة'];
 ?>
 <div class="page-head">
     <div>
@@ -20,6 +20,11 @@ $actionLabels = ['created' => 'تسجيل', 'updated' => 'تعديل', 'assigned
 <div class="card" style="border-inline-start:4px solid var(--info);">
     <div class="card-title"><span>🤝 العهدة الحالية</span></div>
     <p style="margin:0;">هذا الأصل بعهدة <strong><?= e($asset['current_holder_name']) ?></strong> منذ <?= format_date($asset['assigned_at'], 'Y-m-d') ?>.</p>
+    <?php if ($canAssign): ?>
+        <div style="margin-top:12px;">
+            <a class="btn btn-outline btn-sm" href="<?= route('/custody/' . $asset['id'] . '/transfer') ?>">🔄 نقل العهدة لحاملٍ آخر</a>
+        </div>
+    <?php endif; ?>
     <?php if ($openItem && $canAssign): ?>
         <form method="post" action="<?= route('/custody/handovers/items/' . $openItem['id'] . '/return') ?>" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;">
             <?= csrf_field() ?>

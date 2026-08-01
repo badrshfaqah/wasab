@@ -66,10 +66,31 @@ class Asset
         return [implode(' AND ', $where), $params];
     }
 
-    public static function paginate(int $companyId, int $page, int $perPage, array $filters = []): array
+    /** أعمدة الفرز المسموحة (مفتاح آمن => تعبير SQL) - قائمة بيضاء تمنع حقن SQL. */
+    public static function sortColumns(): array
+    {
+        return [
+            'name' => 'a.name',
+            'status' => 'a.status',
+            'category' => 'c.name',
+            'code' => 'a.asset_code',
+            'holder' => 'a.current_holder_name',
+            'value' => 'a.purchase_cost',
+            'warranty' => 'a.warranty_expiry',
+            'assigned' => 'a.assigned_at',
+            'created' => 'a.id',
+        ];
+    }
+
+    public static function paginate(int $companyId, int $page, int $perPage, array $filters = [], string $sort = 'created', string $dir = 'desc'): array
     {
         [$whereSql, $params] = self::buildFilters($companyId, $filters);
         $total = (int) (Database::first("SELECT COUNT(*) AS c FROM assets_assets a WHERE {$whereSql}", $params)['c'] ?? 0);
+
+        // الفرز عبر قائمة بيضاء فقط (لا قيمة من المستخدم تدخل SQL مباشرة)
+        $cols = self::sortColumns();
+        $orderCol = $cols[$sort] ?? $cols['created'];
+        $orderDir = strtolower($dir) === 'asc' ? 'ASC' : 'DESC';
 
         $offset = ($page - 1) * $perPage;
         $rows = Database::select(
@@ -77,12 +98,40 @@ class Asset
                FROM assets_assets a
                LEFT JOIN assets_categories c ON c.id = a.category_id
               WHERE {$whereSql}
-              ORDER BY a.id DESC
+              ORDER BY {$orderCol} {$orderDir}, a.id DESC
               LIMIT {$perPage} OFFSET {$offset}",
             $params
         );
 
         return ['rows' => $rows, 'total' => $total];
+    }
+
+    /** كل الأصول المسندة حالياً لحاملٍ معيّن (لكشف عهدة الموظف) - عزل بالشركة. */
+    public static function heldByHolder(int $companyId, string $holderType, int $holderRef): array
+    {
+        return Database::select(
+            "SELECT a.*, c.name AS category_name
+               FROM assets_assets a
+               LEFT JOIN assets_categories c ON c.id = a.category_id
+              WHERE a.company_id = :c AND a.status = 'assigned'
+                AND a.current_holder_type = :t AND a.current_holder_ref = :r
+              ORDER BY a.assigned_at DESC",
+            ['c' => $companyId, 't' => $holderType, 'r' => $holderRef]
+        );
+    }
+
+    /** الحاملون الحاليون (نوع+معرّف+اسم) مع عدد ما بعهدتهم - لصفحة كشوف العهد. */
+    public static function currentHolders(int $companyId): array
+    {
+        return Database::select(
+            "SELECT current_holder_type AS holder_type, current_holder_ref AS holder_ref,
+                    current_holder_name AS holder_name, COUNT(*) AS assets_count
+               FROM assets_assets
+              WHERE company_id = :c AND status = 'assigned' AND current_holder_ref IS NOT NULL
+              GROUP BY current_holder_type, current_holder_ref, current_holder_name
+              ORDER BY holder_name",
+            ['c' => $companyId]
+        );
     }
 
     /** أصول متاحة للإسناد (غير مسندة وليست خارج الخدمة/مفقودة). */

@@ -4,8 +4,17 @@
         <h1>محضر تسليم</h1>
         <p>الحامل: <strong><?= e($handover['holder_name']) ?></strong> · <?= e($holderTypeLabels[$handover['holder_type']] ?? '') ?> · بتاريخ <?= format_date($handover['handover_date']) ?></p>
     </div>
-    <a class="btn btn-outline" href="<?= route('/custody/handovers') ?>">← المحاضر</a>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <a class="btn btn-outline" href="<?= route('/custody/handovers') ?>">← المحاضر</a>
+        <a class="btn btn-outline" target="_blank" rel="noopener" href="<?= route('/custody/handovers/' . $handover['id'] . '/print') ?>">🖨️ محضر مطبوع</a>
+    </div>
 </div>
+
+<?php if (!empty($handover['acknowledged_at'])): ?>
+<div class="card" style="border-inline-start:4px solid var(--success);">
+    <p style="margin:0;">✅ أقرّ الحامل باستلام هذه العهدة إلكترونياً بتاريخ <?= format_date($handover['acknowledged_at'], 'Y-m-d H:i') ?>.</p>
+</div>
+<?php endif; ?>
 
 <?php if ($handover['holder_contact']): ?>
 <div class="card"><p style="margin:0;">📞 تواصل الحامل: <span dir="ltr"><?= e($handover['holder_contact']) ?></span></p></div>

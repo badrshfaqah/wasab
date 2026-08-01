@@ -40,8 +40,14 @@ class AssetController
             $filters['category_id'] = $catId;
         }
 
+        $sort = Request::query('sort', 'created');
+        if (!array_key_exists($sort, Asset::sortColumns())) {
+            $sort = 'created';
+        }
+        $dir = strtolower((string) Request::query('dir', 'desc')) === 'asc' ? 'asc' : 'desc';
+
         $page = max(1, (int) Request::query('page', 1));
-        $result = Asset::paginate($companyId, $page, 20, $filters);
+        $result = Asset::paginate($companyId, $page, 20, $filters, $sort, $dir);
 
         View::render('assets::assets.index', [
             'pageTitle' => 'العهد والأصول',
@@ -50,12 +56,57 @@ class AssetController
             'page' => $page,
             'perPage' => 20,
             'filters' => $filters,
+            'sort' => $sort,
+            'dir' => $dir,
             'categories' => AssetCategory::forCompany($companyId),
             'statusLabels' => Asset::statusLabels(),
             'canManage' => $this->canManage(),
             'canCreate' => $this->can('assets.create'),
             'canAssign' => $this->can('assets.assign'),
         ]);
+    }
+
+    /** كشوف العهد: قائمة الحاملين الحاليين، ولكلٍّ كشف مطبوع بما بعهدته (ميزة 8). */
+    public function statements(): void
+    {
+        $companyId = $this->requireCompanyContext();
+        if (!$this->can('assets.view')) {
+            $this->forbidden();
+            return;
+        }
+        View::render('assets::statements', [
+            'pageTitle' => 'كشوف العهد',
+            'holders' => Asset::currentHolders($companyId),
+        ]);
+    }
+
+    /** كشف عهدة حاملٍ واحد - صفحة طباعة/PDF (ميزة 8). */
+    public function statementPrint(array $params): void
+    {
+        $companyId = $this->requireCompanyContext();
+        if (!$this->can('assets.view')) {
+            $this->forbidden();
+            return;
+        }
+        $type = (string) ($params['type'] ?? '');
+        $ref = (int) ($params['ref'] ?? 0);
+        if (!in_array($type, ['employee', 'user', 'manual'], true) || $ref < 1) {
+            http_response_code(404);
+            exit;
+        }
+        $assets = Asset::heldByHolder($companyId, $type, $ref);
+        if (!$assets) {
+            flash_set('error', 'لا توجد عهد حالية لهذا الحامل.');
+            redirect('/custody/statements');
+        }
+
+        View::render('assets::statement_print', [
+            'pageTitle' => 'كشف عهدة',
+            'holderName' => $assets[0]['current_holder_name'] ?? '-',
+            'assets' => $assets,
+            'company' => \App\Core\Database::first('SELECT name FROM companies WHERE id = :id', ['id' => $companyId]),
+            'statusLabels' => Asset::statusLabels(),
+        ], '');
     }
 
     /** عهدي: العهد المسندة للمستخدم الحالي (المربوط بحساب). */
@@ -70,8 +121,103 @@ class AssetController
         View::render('assets::assets.mine', [
             'pageTitle' => 'عهدي',
             'assets' => Asset::currentlyHeldByUser($companyId, Auth::id()),
+            'pendingAck' => AssetHandover::pendingAckForUser($companyId, Auth::id()),
             'statusLabels' => Asset::statusLabels(),
         ]);
+    }
+
+    /** استيراد أصول جماعي من ملف CSV (ميزة 10) - نموذج الرفع. */
+    public function importForm(): void
+    {
+        $this->requireCompanyContext();
+        if (!$this->can('assets.create')) {
+            $this->forbidden();
+            return;
+        }
+        View::render('assets::import', ['pageTitle' => 'استيراد أصول']);
+    }
+
+    /** معالجة ملف الاستيراد: كل سطر أصل جديد بحالة "متاح". */
+    public function import(): void
+    {
+        $companyId = $this->requireCompanyContext();
+        if (!$this->can('assets.create')) {
+            $this->forbidden();
+            return;
+        }
+        $this->verifyCsrf('/custody/import');
+
+        $file = $_FILES['file'] ?? null;
+        if (!$file || ($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK || !is_uploaded_file($file['tmp_name'])) {
+            flash_set('error', 'يرجى اختيار ملف CSV صالح.');
+            redirect('/custody/import');
+        }
+        if (($file['size'] ?? 0) > 2 * 1024 * 1024) {
+            flash_set('error', 'حجم الملف كبير (الحد 2 ميجابايت).');
+            redirect('/custody/import');
+        }
+
+        $handle = fopen($file['tmp_name'], 'r');
+        if ($handle === false) {
+            flash_set('error', 'تعذر قراءة الملف.');
+            redirect('/custody/import');
+        }
+
+        // خريطة التصنيفات الموجودة بالاسم (تُنشأ الناقصة تلقائياً)
+        $catByName = [];
+        foreach (AssetCategory::forCompany($companyId) as $c) {
+            $catByName[trim(mb_strtolower($c['name']))] = (int) $c['id'];
+        }
+
+        $now = date('Y-m-d H:i:s');
+        $imported = 0;
+        $skipped = 0;
+        $rowNum = 0;
+        while (($row = fgetcsv($handle)) !== false) {
+            $rowNum++;
+            // تخطّي سطر العناوين (إن احتوى كلمة "الاسم" أو "name")
+            if ($rowNum === 1 && (mb_stripos((string) ($row[0] ?? ''), 'الاسم') !== false || stripos((string) ($row[0] ?? ''), 'name') !== false)) {
+                continue;
+            }
+            $name = trim((string) ($row[0] ?? ''));
+            if ($name === '') {
+                $skipped++;
+                continue;
+            }
+            // ترتيب الأعمدة: الاسم، التصنيف، الرمز، الرقم التسلسلي، القيمة، تاريخ الشراء
+            $catName = trim((string) ($row[1] ?? ''));
+            $catId = null;
+            if ($catName !== '') {
+                $key = mb_strtolower($catName);
+                if (!isset($catByName[$key])) {
+                    $catByName[$key] = AssetCategory::create($companyId, $catName);
+                }
+                $catId = $catByName[$key];
+            }
+            $cost = trim((string) ($row[4] ?? ''));
+            $cost = ($cost !== '' && is_numeric(str_replace(',', '', $cost))) ? (float) str_replace(',', '', $cost) : null;
+            $purchaseDate = trim((string) ($row[5] ?? ''));
+            $purchaseDate = ($purchaseDate !== '' && strtotime($purchaseDate)) ? date('Y-m-d', strtotime($purchaseDate)) : null;
+
+            Asset::create([
+                'company_id' => $companyId,
+                'category_id' => $catId,
+                'name' => mb_substr($name, 0, 180),
+                'asset_code' => mb_substr(trim((string) ($row[2] ?? '')), 0, 80) ?: null,
+                'serial_number' => mb_substr(trim((string) ($row[3] ?? '')), 0, 120) ?: null,
+                'status' => 'available',
+                'purchase_cost' => $cost,
+                'purchase_date' => $purchaseDate,
+                'created_by' => Auth::id(),
+                'created_at' => $now,
+            ]);
+            $imported++;
+        }
+        fclose($handle);
+
+        ActivityLog::log('assets.import', 'asset', null, "استيراد أصول جماعي: {$imported} أصل");
+        flash_set('success', "تم استيراد {$imported} أصلاً" . ($skipped > 0 ? " (تُخطّي {$skipped} سطراً فارغاً)" : '') . '.');
+        redirect('/custody');
     }
 
     public function show(array $params): void

@@ -87,4 +87,59 @@ class AssetHandover
             ['a' => $assetId]
         );
     }
+
+    public static function acknowledge(int $id): void
+    {
+        Database::update('assets_handovers', ['acknowledged_at' => date('Y-m-d H:i:s')], 'id = :id', ['id' => $id]);
+    }
+
+    /**
+     * محاضر بانتظار إقرار المستخدم الحالي (المسندة له مباشرة كمستخدم أو عبر ملفه
+     * الوظيفي المربوط)، غير المُقَرّة بعد ولها بند واحد على الأقل لم يُرجَع.
+     */
+    public static function pendingAckForUser(int $companyId, int $userId): array
+    {
+        $employeeClause = '';
+        $params = ['c' => $companyId, 'uid' => $userId];
+        if (\App\Core\ModuleManager::isActive('employees')) {
+            $employeeClause = "OR (h.holder_type = 'employee' AND h.holder_ref IN (
+                SELECT id FROM employees_profiles WHERE company_id = :c2 AND linked_user_id = :uid2
+            ))";
+            $params['c2'] = $companyId;
+            $params['uid2'] = $userId;
+        }
+
+        return Database::select(
+            "SELECT h.*,
+                    (SELECT COUNT(*) FROM assets_handover_items i WHERE i.handover_id = h.id) AS items_count
+               FROM assets_handovers h
+              WHERE h.company_id = :c AND h.acknowledged_at IS NULL
+                AND EXISTS (SELECT 1 FROM assets_handover_items i WHERE i.handover_id = h.id AND i.returned_at IS NULL)
+                AND (
+                    (h.holder_type = 'user' AND h.holder_ref = :uid)
+                    {$employeeClause}
+                )
+              ORDER BY h.id DESC",
+            $params
+        );
+    }
+
+    /** هل يخصّ هذا المحضر المستخدم الحالي؟ (للتحقق قبل السماح بالإقرار). */
+    public static function belongsToUser(array $handover, int $companyId, int $userId): bool
+    {
+        if ((int) $handover['company_id'] !== $companyId) {
+            return false;
+        }
+        if ($handover['holder_type'] === 'user') {
+            return (int) $handover['holder_ref'] === $userId;
+        }
+        if ($handover['holder_type'] === 'employee' && \App\Core\ModuleManager::isActive('employees')) {
+            $row = Database::first(
+                'SELECT 1 FROM employees_profiles WHERE id = :id AND company_id = :c AND linked_user_id = :u',
+                ['id' => $handover['holder_ref'], 'c' => $companyId, 'u' => $userId]
+            );
+            return (bool) $row;
+        }
+        return false;
+    }
 }

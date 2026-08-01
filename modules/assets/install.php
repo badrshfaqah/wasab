@@ -56,6 +56,7 @@ return function (PDO $pdo): void {
             `holder_contact` VARCHAR(120) NULL COMMENT 'للحامل اليدوي: جوال/بريد',
             `handover_date` DATE NOT NULL,
             `notes` TEXT NULL,
+            `acknowledged_at` DATETIME NULL COMMENT 'وقت إقرار الحامل (المربوط بحساب) باستلام العهدة',
             `created_by` INT UNSIGNED NULL,
             `created_at` DATETIME NOT NULL,
             KEY `assets_handovers_company_index` (`company_id`),
