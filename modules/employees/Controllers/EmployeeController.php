@@ -73,6 +73,44 @@ class EmployeeController
         ]);
     }
 
+    /** حاسبة مكافأة نهاية الخدمة لموظف (نظام العمل السعودي). بيانات راتب حسّاسة. */
+    public function endOfService(array $params): void
+    {
+        $companyId = $this->requireCompanyContext();
+        $employee = $this->findVisible((int) $params['id'], $companyId);
+        if (!$this->canViewSensitive()) {
+            $this->forbidden();
+            return;
+        }
+
+        $reason = Request::query('reason', 'terminated');
+        if (!in_array($reason, \Modules\Employees\Models\EndOfService::REASONS, true)) {
+            $reason = 'terminated';
+        }
+        $endDate = trim((string) Request::query('end_date', ''));
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $endDate) || !strtotime($endDate)) {
+            $endDate = date('Y-m-d');
+        }
+        // بداية الخدمة: تاريخ بدء العقد إن وُجد وإلا تاريخ الالتحاق
+        $startDate = $employee['contract_start_date'] ?: $employee['hire_date'];
+        $wage = (float) ($employee['salary_base'] ?? 0) + (float) ($employee['salary_allowances'] ?? 0);
+
+        $result = $startDate
+            ? \Modules\Employees\Models\EndOfService::calculate($wage, $startDate, $endDate, $reason)
+            : \Modules\Employees\Models\EndOfService::calculate($wage, '', '', $reason);
+
+        View::render('employees::eosb', [
+            'pageTitle' => 'مكافأة نهاية الخدمة',
+            'employee' => $employee,
+            'startDate' => $startDate,
+            'endDate' => $endDate,
+            'reason' => $reason,
+            'wage' => $wage,
+            'result' => $result,
+            'reasonLabels' => \Modules\Employees\Models\EndOfService::reasonLabels(),
+        ]);
+    }
+
     public function create(): void
     {
         $companyId = $this->requireCompanyContext();

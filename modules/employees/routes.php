@@ -18,6 +18,7 @@ return function (Router $router): void {
     $router->post('/employees', [EmployeeController::class, 'store'], [$auth]);
 
     $router->get('/employees/{id}', [EmployeeController::class, 'show'], [$auth]);
+    $router->get('/employees/{id}/eosb', [EmployeeController::class, 'endOfService'], [$auth]);
     $router->get('/employees/{id}/edit', [EmployeeController::class, 'edit'], [$auth]);
     $router->post('/employees/{id}', [EmployeeController::class, 'update'], [$auth]);
     $router->post('/employees/{id}/delete', [EmployeeController::class, 'destroy'], [$auth]);
