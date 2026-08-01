@@ -92,6 +92,24 @@ return function (PDO $pdo): void {
     ");
 
     $pdo->exec("
+        CREATE TABLE IF NOT EXISTS `employees_disciplinary` (
+            `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            `company_id` INT UNSIGNED NOT NULL,
+            `employee_id` INT UNSIGNED NOT NULL,
+            `action_type` ENUM('verbal','written','deduction','suspension','final_warning','other') NOT NULL DEFAULT 'written',
+            `incident_date` DATE NULL,
+            `action_date` DATE NULL,
+            `description` TEXT NOT NULL,
+            `penalty` VARCHAR(255) NULL COMMENT 'الجزاء المطبَّق (خصم/إيقاف...) نصاً',
+            `issued_by` INT UNSIGNED NULL COMMENT 'المستخدم الذي سجّل الإجراء',
+            `created_at` DATETIME NOT NULL,
+            KEY `employees_disciplinary_employee_index` (`employee_id`),
+            KEY `employees_disciplinary_company_index` (`company_id`),
+            CONSTRAINT `employees_disciplinary_employee_fk` FOREIGN KEY (`employee_id`) REFERENCES `employees_profiles`(`id`) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    ");
+
+    $pdo->exec("
         CREATE TABLE IF NOT EXISTS `employees_documents` (
             `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
             `employee_id` INT UNSIGNED NOT NULL,

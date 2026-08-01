@@ -13,6 +13,7 @@ use App\Core\View;
 use Modules\Employees\Models\Employee;
 use Modules\Employees\Models\EmployeeCertification;
 use Modules\Employees\Models\EmployeeDependent;
+use Modules\Employees\Models\EmployeeDisciplinary;
 use Modules\Employees\Models\EmployeeDocument;
 use Modules\Employees\Models\EmployeeTimeline;
 
@@ -212,6 +213,8 @@ class EmployeeController
             'certifications' => EmployeeCertification::forEmployee($employee['id']),
             'documents' => EmployeeDocument::forEmployee($employee['id']),
             'timeline' => EmployeeTimeline::forEmployee($employee['id']),
+            'disciplinary' => $this->canViewSensitive() ? EmployeeDisciplinary::forEmployee($employee['id']) : [],
+            'disciplinaryTypeLabels' => EmployeeDisciplinary::typeLabels(),
             'canEdit' => $this->can('employees.edit'),
             'canDelete' => $this->can('employees.delete'),
             'canViewSensitive' => $this->canViewSensitive(),
@@ -360,6 +363,67 @@ class EmployeeController
         if ($dependent && (int) $dependent['employee_id'] === $employee['id']) {
             EmployeeDependent::delete($dependent['id']);
             flash_set('success', 'تم حذف المُعال.');
+        }
+        redirect('/employees/' . $employee['id']);
+    }
+
+    // ---------------------------------------------------------------
+    // المخالفات والجزاءات التأديبية (بيانات حسّاسة - للمدراء/الموارد البشرية)
+
+    public function addDisciplinary(array $params): void
+    {
+        $companyId = $this->requireCompanyContext();
+        $employee = $this->findVisible((int) $params['id'], $companyId);
+        if (!$this->canViewSensitive() || !$this->can('employees.edit')) {
+            $this->forbidden();
+            return;
+        }
+        $this->verifyCsrf('/employees/' . $employee['id']);
+
+        $type = Request::input('action_type', 'written');
+        if (!in_array($type, EmployeeDisciplinary::TYPES, true)) {
+            $type = 'written';
+        }
+        $description = trim((string) Request::input('description', ''));
+        if ($description === '') {
+            flash_set('error', 'وصف المخالفة/الإجراء مطلوب.');
+            redirect('/employees/' . $employee['id']);
+        }
+        $incidentDate = Request::input('incident_date') ?: null;
+        $actionDate = Request::input('action_date') ?: null;
+        $penalty = trim((string) Request::input('penalty', '')) ?: null;
+
+        EmployeeDisciplinary::create([
+            'company_id' => $companyId,
+            'employee_id' => $employee['id'],
+            'action_type' => $type,
+            'incident_date' => $incidentDate,
+            'action_date' => $actionDate,
+            'description' => $description,
+            'penalty' => $penalty,
+            'issued_by' => Auth::id(),
+        ]);
+        \App\Core\ActivityLog::log('employees.disciplinary_add', 'employee', $employee['id'], "تسجيل إجراء تأديبي: {$employee['full_name']}");
+
+        flash_set('success', 'تم تسجيل الإجراء التأديبي.');
+        redirect('/employees/' . $employee['id']);
+    }
+
+    public function deleteDisciplinary(array $params): void
+    {
+        $companyId = $this->requireCompanyContext();
+        $employee = $this->findVisible((int) $params['id'], $companyId);
+        if (!$this->canViewSensitive() || !$this->can('employees.edit')) {
+            $this->forbidden();
+            return;
+        }
+        $this->verifyCsrf('/employees/' . $employee['id']);
+
+        $record = EmployeeDisciplinary::find((int) $params['recordId']);
+        if ($record && (int) $record['employee_id'] === $employee['id']) {
+            EmployeeDisciplinary::delete($record['id']);
+            \App\Core\ActivityLog::log('employees.disciplinary_delete', 'employee', $employee['id'], "حذف إجراء تأديبي: {$employee['full_name']}");
+            flash_set('success', 'تم حذف الإجراء التأديبي.');
         }
         redirect('/employees/' . $employee['id']);
     }

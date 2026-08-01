@@ -186,6 +186,64 @@ $today = date('Y-m-d');
             </form>
             <?php endif; ?>
         </div>
+
+        <div class="card">
+            <div class="card-title"><span>🔒 المخالفات والجزاءات<?= $disciplinary ? ' <span class="badge badge-danger">' . count($disciplinary) . '</span>' : '' ?></span></div>
+            <?php foreach ($disciplinary as $d): ?>
+                <div class="doc-log" style="align-items:flex-start;">
+                    <div>
+                        <strong><?= e($disciplinaryTypeLabels[$d['action_type']] ?? $d['action_type']) ?></strong>
+                        <?= $d['penalty'] ? ' <span class="hint">— ' . e($d['penalty']) . '</span>' : '' ?>
+                        <div style="margin-top:4px;"><?= nl2br(e($d['description'])) ?></div>
+                        <div class="hint" style="margin-top:4px;">
+                            <?php if ($d['incident_date']): ?>الواقعة: <?= format_date($d['incident_date']) ?> · <?php endif; ?>
+                            <?php if ($d['action_date']): ?>الإجراء: <?= format_date($d['action_date']) ?> · <?php endif; ?>
+                            سجّله: <?= e($d['issued_by_name'] ?? '—') ?>
+                        </div>
+                    </div>
+                    <?php if ($canEdit): ?>
+                    <form method="post" action="<?= route('/employees/' . $employee['id'] . '/disciplinary/' . $d['id'] . '/delete') ?>" data-confirm="حذف هذا الإجراء التأديبي نهائياً؟">
+                        <?= csrf_field() ?>
+                        <button type="submit" class="btn btn-outline btn-sm">حذف</button>
+                    </form>
+                    <?php endif; ?>
+                </div>
+            <?php endforeach; ?>
+            <?php if (!$disciplinary): ?><p class="hint">لا توجد مخالفات أو جزاءات مسجّلة.</p><?php endif; ?>
+            <?php if ($canEdit): ?>
+            <form method="post" action="<?= route('/employees/' . $employee['id'] . '/disciplinary') ?>" style="margin-top:12px;border-top:1px solid var(--border);padding-top:12px;">
+                <?= csrf_field() ?>
+                <div class="grid-2">
+                    <div class="field" style="margin:0;">
+                        <label class="hint">نوع الإجراء</label>
+                        <select name="action_type">
+                            <?php foreach ($disciplinaryTypeLabels as $key => $label): ?>
+                                <option value="<?= $key ?>"><?= e($label) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="field" style="margin:0;">
+                        <label class="hint">الجزاء (اختياري)</label>
+                        <input type="text" name="penalty" placeholder="مثال: خصم يوم، إيقاف 3 أيام">
+                    </div>
+                </div>
+                <div class="grid-2" style="margin-top:8px;">
+                    <div class="field" style="margin:0;">
+                        <label class="hint">تاريخ الواقعة</label>
+                        <input type="date" name="incident_date">
+                    </div>
+                    <div class="field" style="margin:0;">
+                        <label class="hint">تاريخ الإجراء</label>
+                        <input type="date" name="action_date">
+                    </div>
+                </div>
+                <div class="field" style="margin:8px 0 0;">
+                    <textarea name="description" placeholder="وصف المخالفة والإجراء المتخذ..." required style="min-height:60px;"></textarea>
+                </div>
+                <button class="btn btn-outline btn-sm" type="submit" style="margin-top:8px;">تسجيل الإجراء</button>
+            </form>
+            <?php endif; ?>
+        </div>
         <?php endif; ?>
 
         <?php if ($canManage && $employee['admin_notes']): ?>

@@ -24,4 +24,25 @@ return function (PDO $pdo, string $fromVersion): void {
         employees_add_column_if_missing($pdo, 'employees_profiles', 'health_cert_expiry', "DATE NULL AFTER `iqama_expiry`");
         employees_add_column_if_missing($pdo, 'employees_profiles', 'insurance_expiry', "DATE NULL AFTER `health_cert_expiry`");
     }
+
+    if (version_compare($fromVersion, '1.2.0', '<')) {
+        // سجل المخالفات والجزاءات التأديبية (حوكمة الموارد البشرية)
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS `employees_disciplinary` (
+                `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                `company_id` INT UNSIGNED NOT NULL,
+                `employee_id` INT UNSIGNED NOT NULL,
+                `action_type` ENUM('verbal','written','deduction','suspension','final_warning','other') NOT NULL DEFAULT 'written',
+                `incident_date` DATE NULL,
+                `action_date` DATE NULL,
+                `description` TEXT NOT NULL,
+                `penalty` VARCHAR(255) NULL,
+                `issued_by` INT UNSIGNED NULL,
+                `created_at` DATETIME NOT NULL,
+                KEY `employees_disciplinary_employee_index` (`employee_id`),
+                KEY `employees_disciplinary_company_index` (`company_id`),
+                CONSTRAINT `employees_disciplinary_employee_fk` FOREIGN KEY (`employee_id`) REFERENCES `employees_profiles`(`id`) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        ");
+    }
 };

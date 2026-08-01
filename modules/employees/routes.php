@@ -26,6 +26,8 @@ return function (Router $router): void {
 
     $router->post('/employees/{id}/dependents', [EmployeeController::class, 'addDependent'], [$auth]);
     $router->post('/employees/{id}/dependents/{dependentId}/delete', [EmployeeController::class, 'deleteDependent'], [$auth]);
+    $router->post('/employees/{id}/disciplinary', [EmployeeController::class, 'addDisciplinary'], [$auth]);
+    $router->post('/employees/{id}/disciplinary/{recordId}/delete', [EmployeeController::class, 'deleteDisciplinary'], [$auth]);
 
     $router->post('/employees/{id}/certifications', [EmployeeController::class, 'addCertification'], [$auth]);
     $router->post('/employees/{id}/certifications/{certId}/delete', [EmployeeController::class, 'deleteCertification'], [$auth]);
