@@ -2,14 +2,48 @@
 
 use App\Core\Database;
 use App\Core\Notification;
+use Modules\Tasks\Models\RecurringTask;
 use Modules\Tasks\Models\Task;
 
 /**
- * تصعيد المهام المتأخرة تلقائياً - مرة واحدة لكل مهمة عند تجاوز موعد استحقاقها (يُعاد
- * تفعيله إن غُيّر الموعد). يصل تذكير للمسؤول، وتصعيد للمكلِّف (المنشئ) ولمدراء الشركة.
+ * مهام الجدولة الدورية للمهام:
+ *  1) توليد المهام المتكررة المستحقة (يومي/أسبوعي/شهري).
+ *  2) تصعيد المهام المتأخرة (مرة واحدة لكل مهمة، يُعاد تفعيله إن غُيّر الموعد).
  * يُستدعى من ModuleManager::runCron() عبر cron.php بجذر المشروع.
  */
 return function (): void {
+    // ---- (1) توليد المهام المتكررة المستحقة ----
+    $today = date('Y-m-d');
+    foreach (RecurringTask::due() as $r) {
+        $creatorId = (int) ($r['created_by'] ?: $r['assignee_id']);
+        $dueDate = (int) $r['due_offset_days'] > 0
+            ? date('Y-m-d', strtotime("+{$r['due_offset_days']} days"))
+            : $today;
+
+        $taskId = Task::create([
+            'company_id' => (int) $r['company_id'],
+            'title' => $r['title'],
+            'description' => $r['description'],
+            'assignee_id' => (int) $r['assignee_id'],
+            'creator_id' => $creatorId,
+            'start_date' => $today,
+            'due_date' => $dueDate,
+            'priority' => $r['priority'],
+            'status' => 'todo',
+            'created_at' => date('Y-m-d H:i:s'),
+        ]);
+
+        // نقدّم next_run حتى يتجاوز اليوم (نولّد مهمة واحدة فقط حتى لو فات cron عدة أيام)
+        $next = $r['next_run'];
+        do {
+            $next = RecurringTask::advance($next, $r['frequency']);
+        } while ($next <= $today);
+        RecurringTask::update((int) $r['id'], ['next_run' => $next]);
+
+        Notification::send((int) $r['assignee_id'], '🔁 مهمة متكررة جديدة', $r['title'], route('/tasks/' . $taskId));
+    }
+
+    // ---- (2) تصعيد المهام المتأخرة ----
     $tasks = Task::overdueNotEscalated();
     if (!$tasks) {
         return;

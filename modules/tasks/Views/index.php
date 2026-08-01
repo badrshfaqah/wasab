@@ -32,6 +32,7 @@ $sortHead = function (string $key, string $label) use ($sort, $dir, $scope, $fil
         <a class="btn btn-outline btn-sm" href="<?= route('/tasks/export/csv?' . $exq) ?>">⬇️ Excel</a>
         <a class="btn btn-outline btn-sm" href="<?= route('/tasks/export/print?' . $exq) ?>" target="_blank" rel="noopener">🖨️ PDF</a>
         <a class="btn btn-outline" href="<?= route('/tasks/board?' . http_build_query(array_merge(['scope' => $scope], $filters))) ?>">🗂️ كانبان</a>
+        <?php if ($canManage): ?><a class="btn btn-outline" href="<?= route('/tasks/recurring') ?>">🔁 المتكررة</a><?php endif; ?>
         <?php if (can('tasks.create')): ?>
             <a class="btn" href="<?= route('/tasks/create') ?>">+ مهمة جديدة</a>
         <?php endif; ?>

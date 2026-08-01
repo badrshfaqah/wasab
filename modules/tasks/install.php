@@ -84,4 +84,23 @@ return function (PDO $pdo): void {
             CONSTRAINT `tasks_subtasks_task_fk` FOREIGN KEY (`task_id`) REFERENCES `tasks_tasks`(`id`) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     ");
+
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS `tasks_recurring` (
+            `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            `company_id` INT UNSIGNED NOT NULL,
+            `title` VARCHAR(200) NOT NULL,
+            `description` TEXT NULL,
+            `assignee_id` INT UNSIGNED NOT NULL,
+            `priority` ENUM('low','medium','high','urgent') NOT NULL DEFAULT 'medium',
+            `frequency` ENUM('daily','weekly','monthly') NOT NULL DEFAULT 'weekly',
+            `due_offset_days` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'أيام حتى الاستحقاق بعد توليد المهمة',
+            `next_run` DATE NOT NULL COMMENT 'تاريخ توليد المهمة القادمة',
+            `is_active` TINYINT(1) NOT NULL DEFAULT 1,
+            `created_by` INT UNSIGNED NULL,
+            `created_at` DATETIME NOT NULL,
+            KEY `tasks_recurring_company_index` (`company_id`),
+            KEY `tasks_recurring_next_run_index` (`next_run`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    ");
 };

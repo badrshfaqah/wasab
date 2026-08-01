@@ -10,6 +10,7 @@ use App\Core\Notification;
 use App\Core\Request;
 use App\Core\Uploads;
 use App\Core\View;
+use Modules\Tasks\Models\RecurringTask;
 use Modules\Tasks\Models\Task;
 use Modules\Tasks\Models\TaskAttachment;
 use Modules\Tasks\Models\TaskComment;
@@ -94,6 +95,106 @@ class TaskController
             'priorities' => self::PRIORITIES,
             'canManage' => $this->canManage(),
         ]);
+    }
+
+    // ---------------------------------------------------------------
+    // المهام المتكررة (إدارة القوالب - للمدراء)
+
+    public function recurring(): void
+    {
+        $companyId = $this->requireCompanyContext();
+        if (!$this->canManage()) {
+            $this->forbidden();
+            return;
+        }
+        View::render('tasks::recurring', [
+            'pageTitle' => 'المهام المتكررة',
+            'items' => RecurringTask::forCompany($companyId),
+            'companyUsers' => $this->companyUsers($companyId),
+            'priorities' => self::PRIORITIES,
+            'frequencyLabels' => RecurringTask::frequencyLabels(),
+        ]);
+    }
+
+    public function recurringStore(): void
+    {
+        $companyId = $this->requireCompanyContext();
+        if (!$this->canManage()) {
+            $this->forbidden();
+            return;
+        }
+        $this->verifyCsrf('/tasks/recurring');
+
+        $title = trim((string) Request::input('title', ''));
+        $assigneeId = (int) Request::input('assignee_id', 0);
+        $validUserIds = array_map('intval', array_column($this->companyUsers($companyId), 'id'));
+        if ($title === '' || !in_array($assigneeId, $validUserIds, true)) {
+            flash_set('error', 'العنوان والمسؤول مطلوبان.');
+            redirect('/tasks/recurring');
+        }
+        $priority = Request::input('priority', 'medium');
+        if (!in_array($priority, self::PRIORITIES, true)) {
+            $priority = 'medium';
+        }
+        $frequency = Request::input('frequency', 'weekly');
+        if (!in_array($frequency, RecurringTask::FREQUENCIES, true)) {
+            $frequency = 'weekly';
+        }
+        $startDate = Request::input('next_run');
+        if (!$startDate || !strtotime($startDate)) {
+            $startDate = date('Y-m-d');
+        }
+        $offset = max(0, min(365, (int) Request::input('due_offset_days', 0)));
+
+        RecurringTask::create([
+            'company_id' => $companyId,
+            'title' => mb_substr($title, 0, 200),
+            'description' => trim((string) Request::input('description', '')) ?: null,
+            'assignee_id' => $assigneeId,
+            'priority' => $priority,
+            'frequency' => $frequency,
+            'due_offset_days' => $offset,
+            'next_run' => date('Y-m-d', strtotime($startDate)),
+            'is_active' => 1,
+            'created_by' => Auth::id(),
+        ]);
+        ActivityLog::log('tasks.recurring_add', 'task_recurring', 0, "إضافة مهمة متكررة: {$title}");
+        flash_set('success', 'تمت إضافة المهمة المتكررة.');
+        redirect('/tasks/recurring');
+    }
+
+    public function recurringToggle(array $params): void
+    {
+        $companyId = $this->requireCompanyContext();
+        if (!$this->canManage()) {
+            $this->forbidden();
+            return;
+        }
+        $this->verifyCsrf('/tasks/recurring');
+
+        $item = RecurringTask::find((int) $params['id']);
+        if ($item && (int) $item['company_id'] === $companyId) {
+            RecurringTask::update($item['id'], ['is_active' => $item['is_active'] ? 0 : 1]);
+            flash_set('success', $item['is_active'] ? 'تم إيقاف التكرار.' : 'تم تفعيل التكرار.');
+        }
+        redirect('/tasks/recurring');
+    }
+
+    public function recurringDelete(array $params): void
+    {
+        $companyId = $this->requireCompanyContext();
+        if (!$this->canManage()) {
+            $this->forbidden();
+            return;
+        }
+        $this->verifyCsrf('/tasks/recurring');
+
+        $item = RecurringTask::find((int) $params['id']);
+        if ($item && (int) $item['company_id'] === $companyId) {
+            RecurringTask::delete($item['id']);
+            flash_set('success', 'تم حذف المهمة المتكررة.');
+        }
+        redirect('/tasks/recurring');
     }
 
     public function create(): void

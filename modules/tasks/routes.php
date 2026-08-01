@@ -14,6 +14,10 @@ return function (Router $router): void {
     $router->get('/tasks/export/{format}', [TaskController::class, 'export'], [$auth]);
     $router->get('/tasks/board', [TaskController::class, 'board'], [$auth]);
     $router->get('/tasks/create', [TaskController::class, 'create'], [$auth]);
+    $router->get('/tasks/recurring', [TaskController::class, 'recurring'], [$auth]);
+    $router->post('/tasks/recurring', [TaskController::class, 'recurringStore'], [$auth]);
+    $router->post('/tasks/recurring/{id}/toggle', [TaskController::class, 'recurringToggle'], [$auth]);
+    $router->post('/tasks/recurring/{id}/delete', [TaskController::class, 'recurringDelete'], [$auth]);
     $router->post('/tasks', [TaskController::class, 'store'], [$auth]);
     $router->get('/tasks/{id}', [TaskController::class, 'show'], [$auth]);
     $router->get('/tasks/{id}/edit', [TaskController::class, 'edit'], [$auth]);

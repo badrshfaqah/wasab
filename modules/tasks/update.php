@@ -35,4 +35,26 @@ return function (PDO $pdo, string $fromVersion): void {
             $pdo->exec("ALTER TABLE `tasks_tasks` ADD COLUMN `escalated_at` DATETIME NULL COMMENT 'وقت تصعيد التأخر' AFTER `completed_at`");
         }
     }
+
+    if (version_compare($fromVersion, '1.3.0', '<')) {
+        // المهام المتكررة (توليد دوري عبر cron)
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS `tasks_recurring` (
+                `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                `company_id` INT UNSIGNED NOT NULL,
+                `title` VARCHAR(200) NOT NULL,
+                `description` TEXT NULL,
+                `assignee_id` INT UNSIGNED NOT NULL,
+                `priority` ENUM('low','medium','high','urgent') NOT NULL DEFAULT 'medium',
+                `frequency` ENUM('daily','weekly','monthly') NOT NULL DEFAULT 'weekly',
+                `due_offset_days` INT UNSIGNED NOT NULL DEFAULT 0,
+                `next_run` DATE NOT NULL,
+                `is_active` TINYINT(1) NOT NULL DEFAULT 1,
+                `created_by` INT UNSIGNED NULL,
+                `created_at` DATETIME NOT NULL,
+                KEY `tasks_recurring_company_index` (`company_id`),
+                KEY `tasks_recurring_next_run_index` (`next_run`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        ");
+    }
 };
