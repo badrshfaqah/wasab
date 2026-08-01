@@ -113,3 +113,4 @@ $router->post('/push/test', [PushController::class, 'test'], [[Middleware::class
 
 // ---------- سجل العمليات ----------
 $router->get('/activity-log', [ActivityLogController::class, 'index'], [[Middleware::class, 'auth']]);
+$router->get('/activity-log/export', [ActivityLogController::class, 'export'], [[Middleware::class, 'auth']]);
