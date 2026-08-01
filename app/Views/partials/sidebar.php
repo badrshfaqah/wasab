@@ -23,6 +23,7 @@ if ($isSystemAdmin || $manageCore) {
     $coreItems[] = ['divider' => true];
 }
 
+$coreItems[] = ['label' => 'لوحة النظام', 'icon' => '📊', 'url' => route('/admin'), 'show' => $isSystemAdmin];
 $coreItems[] = ['label' => 'الشركات', 'icon' => '🏢', 'url' => route('/companies'), 'show' => $isSystemAdmin];
 $coreItems[] = ['label' => 'المستخدمون', 'icon' => '👥', 'url' => route('/users'), 'show' => $manageCore];
 $coreItems[] = ['label' => 'الأدوار والصلاحيات', 'icon' => '🛡️', 'url' => route('/roles'), 'show' => $manageCore];

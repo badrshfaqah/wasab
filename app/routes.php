@@ -47,6 +47,9 @@ $router->get('/reports', [ReportController::class, 'index'], [[Middleware::class
 $router->get('/profile', [ProfileController::class, 'show'], [[Middleware::class, 'auth']]);
 $router->post('/profile', [ProfileController::class, 'update'], [[Middleware::class, 'auth']]);
 
+// ---------- لوحة مدير النظام (مدير النظام فقط) ----------
+$router->get('/admin', [\App\Controllers\AdminController::class, 'dashboard'], [[Middleware::class, 'auth'], [Middleware::class, 'systemAdmin']]);
+
 // ---------- الشركات (مدير النظام فقط) ----------
 $router->get('/companies', [CompanyController::class, 'index'], [[Middleware::class, 'auth'], [Middleware::class, 'systemAdmin']]);
 $router->get('/companies/create', [CompanyController::class, 'create'], [[Middleware::class, 'auth'], [Middleware::class, 'systemAdmin']]);
