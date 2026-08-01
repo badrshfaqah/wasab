@@ -14,6 +14,8 @@ class CronRunner
     {
         self::remindCompanyEvents();
         ModuleManager::runCron();
+        // نسخة احتياطية يومية تلقائية (تتخطّى نفسها إن لم يمرّ يوم على الأحدث)
+        Backup::runIfDue();
     }
 
     /** تذكير أعضاء الشركة يوم الحدث بأحداث التقويم الخاصة بالشركة - مرة واحدة فقط لكل حدث. */

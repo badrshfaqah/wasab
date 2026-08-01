@@ -2,7 +2,10 @@
 
 namespace App\Controllers;
 
+use App\Core\Backup;
+use App\Core\Csrf;
 use App\Core\Database;
+use App\Core\Request;
 use App\Core\View;
 
 /**
@@ -63,7 +66,41 @@ class AdminController
             'companies' => $companies,
             'totalStorage' => $totalStorage,
             'recentActivity' => $recentActivity,
+            'backups' => Backup::list(),
         ]);
+    }
+
+    /** إنشاء نسخة احتياطية يدوياً الآن. */
+    public function backupRun(): void
+    {
+        if (!Csrf::verify(Request::input('_csrf'))) {
+            flash_set('error', 'انتهت صلاحية الجلسة، حاول مرة أخرى.');
+            redirect('/admin');
+        }
+        $path = Backup::run();
+        if ($path) {
+            \App\Core\ActivityLog::log('admin.backup', 'backup', 0, 'إنشاء نسخة احتياطية يدوية');
+            flash_set('success', 'تم إنشاء نسخة احتياطية: ' . basename($path));
+        } else {
+            flash_set('error', 'تعذّر إنشاء النسخة الاحتياطية.');
+        }
+        redirect('/admin');
+    }
+
+    /** تنزيل ملف نسخة احتياطية (مدير النظام فقط، اسم مُتحقَّق منه). */
+    public function backupDownload(array $params): void
+    {
+        $path = Backup::pathFor((string) ($params['name'] ?? ''));
+        if ($path === null) {
+            http_response_code(404);
+            echo 'not found';
+            return;
+        }
+        header('Content-Type: application/gzip');
+        header('Content-Disposition: attachment; filename="' . basename($path) . '"');
+        header('Content-Length: ' . filesize($path));
+        readfile($path);
+        exit; // منع أي إخراج لاحق يُفسد ملف gzip
     }
 
     /** إجمالي بايتات ملفات شركة عبر كل مجلدات الرفع storage/uploads/{module}/{companyId}. */

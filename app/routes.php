@@ -49,6 +49,8 @@ $router->post('/profile', [ProfileController::class, 'update'], [[Middleware::cl
 
 // ---------- لوحة مدير النظام (مدير النظام فقط) ----------
 $router->get('/admin', [\App\Controllers\AdminController::class, 'dashboard'], [[Middleware::class, 'auth'], [Middleware::class, 'systemAdmin']]);
+$router->post('/admin/backup/run', [\App\Controllers\AdminController::class, 'backupRun'], [[Middleware::class, 'auth'], [Middleware::class, 'systemAdmin']]);
+$router->get('/admin/backup/{name}/download', [\App\Controllers\AdminController::class, 'backupDownload'], [[Middleware::class, 'auth'], [Middleware::class, 'systemAdmin']]);
 
 // ---------- الشركات (مدير النظام فقط) ----------
 $router->get('/companies', [CompanyController::class, 'index'], [[Middleware::class, 'auth'], [Middleware::class, 'systemAdmin']]);

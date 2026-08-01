@@ -57,6 +57,36 @@ $stat = function (string $label, $value, string $icon, string $sub = '') {
 </div>
 
 <div class="card">
+    <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;">
+        <span>النسخ الاحتياطية</span>
+        <form method="post" action="<?= route('/admin/backup/run') ?>" onsubmit="return confirm('إنشاء نسخة احتياطية كاملة الآن؟');">
+            <?= csrf_field() ?>
+            <button class="btn btn-sm" type="submit">💾 إنشاء نسخة الآن</button>
+        </form>
+    </div>
+    <p class="hint" style="margin-top:0;">نسخة كاملة من قاعدة البيانات تُنشأ تلقائياً يومياً (يُحتفظ بآخر 7 نسخ). الملفات محميّة ولا تُنزَّل إلا من هنا.</p>
+    <?php if (!$backups): ?>
+        <p class="hint">لا توجد نسخ بعد — ستُنشأ أول نسخة تلقائياً عند تشغيل المجدول، أو أنشئها الآن.</p>
+    <?php else: ?>
+        <div class="table-wrap">
+        <table>
+            <thead><tr><th>الملف</th><th>الحجم</th><th>التاريخ</th><th></th></tr></thead>
+            <tbody>
+            <?php foreach ($backups as $b): ?>
+                <tr>
+                    <td dir="ltr" style="text-align:right;"><?= e($b['name']) ?></td>
+                    <td><?= $fmtSize((int) $b['size']) ?></td>
+                    <td><?= e(date('Y-m-d H:i', $b['mtime'])) ?></td>
+                    <td><a class="btn btn-outline btn-sm" href="<?= route('/admin/backup/' . rawurlencode($b['name']) . '/download') ?>">تنزيل</a></td>
+                </tr>
+            <?php endforeach; ?>
+            </tbody>
+        </table>
+        </div>
+    <?php endif; ?>
+</div>
+
+<div class="card">
     <div class="card-title"><span>آخر النشاط عبر النظام</span></div>
     <?php if (!$recentActivity): ?>
         <p class="hint">لا يوجد نشاط مسجّل.</p>
