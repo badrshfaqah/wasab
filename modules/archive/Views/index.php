@@ -15,6 +15,15 @@ $formatSize = function (int $bytes) {
     }
     return round($bytes / 1024) . ' ك.ب';
 };
+// رأس عمود قابل للفرز (قائمة العرض): ينقر ليعكس الاتجاه بين تصاعدي/تنازلي
+$curSort = $filters['sort'] ?? 'date_desc';
+$sortHead = function (string $ascKey, string $descKey, string $label) use ($curSort, $filters, $view, $filesQuery): string {
+    $isActive = in_array($curSort, [$ascKey, $descKey], true);
+    $nextKey = ($curSort === $ascKey) ? $descKey : $ascKey; // إن كنا تصاعدياً انتقل لتنازلي
+    $arrow = $isActive ? ($curSort === $ascKey ? ' ▲' : ' ▼') : '';
+    $url = $filesQuery($filters, ['sort' => $nextKey, 'view' => $view, 'page' => null]);
+    return '<a href="' . $url . '" style="color:inherit;white-space:nowrap;">' . e($label) . $arrow . '</a>';
+};
 ?>
 <div class="page-head">
     <div><h1>أرشيف الملفات</h1><p>الوثائق والملفات الرسمية للشركة، منظّمة بتصنيفات.</p></div>
@@ -106,7 +115,15 @@ $formatSize = function (int $bytes) {
     <?php else: ?>
         <div class="table-wrap">
         <table class="table-cards">
-            <thead><tr><th></th><th>الاسم</th><th>التصنيف</th><th>الحجم</th><th>الحالة</th><th>رافع الملف</th><th>تاريخ الرفع</th></tr></thead>
+            <thead><tr>
+                <th></th>
+                <th><?= $sortHead('name_asc', 'name_desc', 'الاسم') ?></th>
+                <th><?= $sortHead('cat_asc', 'cat_desc', 'التصنيف') ?></th>
+                <th><?= $sortHead('size_asc', 'size_desc', 'الحجم') ?></th>
+                <th><?= $sortHead('status_asc', 'status_desc', 'الحالة') ?></th>
+                <th><?= $sortHead('uploader_asc', 'uploader_desc', 'رافع الملف') ?></th>
+                <th><?= $sortHead('date_asc', 'date_desc', 'تاريخ الرفع') ?></th>
+            </tr></thead>
             <tbody>
             <?php foreach ($files as $f): ?>
                 <tr>

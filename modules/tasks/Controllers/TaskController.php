@@ -39,8 +39,13 @@ class TaskController
         }
 
         $filters = $this->currentFilters();
+        $sort = Request::query('sort', 'due');
+        if (!array_key_exists($sort, Task::sortColumns())) {
+            $sort = 'due';
+        }
+        $dir = strtolower((string) Request::query('dir', 'asc')) === 'desc' ? 'desc' : 'asc';
         $page = max(1, (int) Request::query('page', 1));
-        $result = Task::paginate($companyId, $scope, Auth::id(), $page, 15, $filters);
+        $result = Task::paginate($companyId, $scope, Auth::id(), $page, 15, $filters, $sort, $dir);
 
         View::render('tasks::index', [
             'pageTitle' => 'المهام',
@@ -50,6 +55,8 @@ class TaskController
             'perPage' => 15,
             'scope' => $scope,
             'filters' => $filters,
+            'sort' => $sort,
+            'dir' => $dir,
             'companyUsers' => $this->companyUsers($companyId),
             'statuses' => self::STATUSES,
             'priorities' => self::PRIORITIES,

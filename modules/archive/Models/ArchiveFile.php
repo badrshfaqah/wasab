@@ -252,6 +252,16 @@ class ArchiveFile
         return ['rows' => $rows, 'total' => (int) $total];
     }
 
+    /** مفاتيح الفرز المسموحة (قائمة بيضاء تمنع حقن SQL). */
+    public static function sortKeys(): array
+    {
+        return [
+            'name_asc', 'name_desc', 'date_asc', 'date_desc', 'size_asc', 'size_desc',
+            'modified_desc', 'cat_asc', 'cat_desc', 'status_asc', 'status_desc',
+            'uploader_asc', 'uploader_desc',
+        ];
+    }
+
     private static function sortClause(string $sort): string
     {
         return match ($sort) {
@@ -261,6 +271,12 @@ class ArchiveFile
             'size_asc' => 'f.size ASC',
             'size_desc' => 'f.size DESC',
             'modified_desc' => 'COALESCE(f.updated_at, f.created_at) DESC',
+            'cat_asc' => 'c.name ASC, f.created_at DESC',
+            'cat_desc' => 'c.name DESC, f.created_at DESC',
+            'status_asc' => 'f.status ASC, f.created_at DESC',
+            'status_desc' => 'f.status DESC, f.created_at DESC',
+            'uploader_asc' => 'u.name ASC, f.created_at DESC',
+            'uploader_desc' => 'u.name DESC, f.created_at DESC',
             default => 'f.created_at DESC',
         };
     }

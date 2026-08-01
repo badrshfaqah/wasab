@@ -566,7 +566,7 @@ class ArchiveFileController
             $filters['tag_id'] = $tagId;
         }
         $sort = Request::query('sort', 'date_desc');
-        $filters['sort'] = in_array($sort, ['name_asc', 'name_desc', 'date_asc', 'date_desc', 'size_asc', 'size_desc', 'modified_desc'], true) ? $sort : 'date_desc';
+        $filters['sort'] = in_array($sort, \Modules\Archive\Models\ArchiveFile::sortKeys(), true) ? $sort : 'date_desc';
         return $filters;
     }
 

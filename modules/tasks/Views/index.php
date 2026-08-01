@@ -12,10 +12,17 @@ if ($canManage) {
 $priorityLabels = ['low' => 'منخفضة', 'medium' => 'متوسطة', 'high' => 'عالية', 'urgent' => 'عاجلة'];
 $statusLabels = ['todo' => 'لم تبدأ', 'in_progress' => 'قيد التنفيذ', 'in_review' => 'قيد المراجعة', 'done' => 'مكتملة', 'cancelled' => 'ملغاة'];
 
-$tasksQuery = function (string $scope, array $filters, array $overrides = []): string {
-    $params = array_merge(['scope' => $scope], $filters, $overrides);
+$tasksQuery = function (string $scope, array $filters, array $overrides = []) use ($sort, $dir): string {
+    $params = array_merge(['scope' => $scope, 'sort' => $sort, 'dir' => $dir], $filters, $overrides);
     $params = array_filter($params, fn ($v) => $v !== null && $v !== '');
     return route('/tasks?' . http_build_query($params));
+};
+// رأس عمود قابل للفرز: ينقر ليعكس الاتجاه ويعرض سهماً للاتجاه الحالي
+$sortHead = function (string $key, string $label) use ($sort, $dir, $scope, $filters, $tasksQuery): string {
+    $nextDir = ($sort === $key && $dir === 'asc') ? 'desc' : 'asc';
+    $arrow = $sort === $key ? ($dir === 'asc' ? ' ▲' : ' ▼') : '';
+    $url = $tasksQuery($scope, $filters, ['sort' => $key, 'dir' => $nextDir, 'page' => null]);
+    return '<a href="' . $url . '" style="color:inherit;white-space:nowrap;">' . e($label) . $arrow . '</a>';
 };
 ?>
 <div class="page-head">
@@ -82,7 +89,13 @@ $tasksQuery = function (string $scope, array $filters, array $overrides = []): s
 
     <div class="table-wrap">
     <table class="table-cards">
-        <thead><tr><th>العنوان</th><th>المسؤول</th><th>الأولوية</th><th>الحالة</th><th>تاريخ الاستحقاق</th></tr></thead>
+        <thead><tr>
+            <th><?= $sortHead('title', 'العنوان') ?></th>
+            <th><?= $sortHead('assignee', 'المسؤول') ?></th>
+            <th><?= $sortHead('priority', 'الأولوية') ?></th>
+            <th><?= $sortHead('status', 'الحالة') ?></th>
+            <th><?= $sortHead('due', 'تاريخ الاستحقاق') ?></th>
+        </tr></thead>
         <tbody>
         <?php if (!$tasks): ?>
             <tr><td colspan="5"><div class="empty-state"><div class="ic">📋</div>لا توجد مهام مطابقة</div></td></tr>

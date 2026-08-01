@@ -87,15 +87,42 @@ class Task
         return [implode(' AND ', $where), $params];
     }
 
+    /** مفاتيح الفرز المسموحة (قائمة بيضاء تمنع حقن SQL). القيمة تعبير SQL أساسي. */
+    public static function sortColumns(): array
+    {
+        return [
+            'title' => 't.title',
+            'assignee' => 'a.name',
+            'priority' => "FIELD(t.priority,'low','medium','high','urgent')",
+            'status' => "FIELD(t.status,'todo','in_progress','in_review','done','cancelled')",
+            'due' => 't.due_date',
+            'created' => 't.id',
+        ];
+    }
+
+    /** يبني عبارة ORDER BY آمنة من مفتاح فرز موثوق واتجاه. */
+    private static function orderBy(string $sort, string $dir): string
+    {
+        $cols = self::sortColumns();
+        $expr = $cols[$sort] ?? $cols['due'];
+        $d = strtolower($dir) === 'desc' ? 'DESC' : 'ASC';
+        // تاريخ الاستحقاق: القيم الفارغة دائماً في النهاية بصرف النظر عن الاتجاه
+        if ($sort === 'due' || (!isset($cols[$sort]))) {
+            return "t.due_date IS NULL, t.due_date {$d}, t.id DESC";
+        }
+        return "{$expr} {$d}, t.id DESC";
+    }
+
     /**
      * قوائم المهام حسب النطاق: mine, created, overdue, approval, all، مع فلاتر اختيارية.
      */
-    public static function paginate(int $companyId, string $scope, int $userId, int $page, int $perPage = 15, array $filters = []): array
+    public static function paginate(int $companyId, string $scope, int $userId, int $page, int $perPage = 15, array $filters = [], string $sort = 'due', string $dir = 'asc'): array
     {
         [$whereSql, $params] = self::buildFilters($companyId, $scope, $userId, $filters);
 
         $total = (int) (Database::first("SELECT COUNT(*) AS c FROM tasks_tasks t WHERE {$whereSql}", $params)['c'] ?? 0);
 
+        $orderBy = self::orderBy($sort, $dir);
         $offset = ($page - 1) * $perPage;
         $rows = Database::select(
             "SELECT t.*, a.name AS assignee_name, c.name AS creator_name
@@ -103,7 +130,7 @@ class Task
                LEFT JOIN users a ON a.id = t.assignee_id
                LEFT JOIN users c ON c.id = t.creator_id
               WHERE {$whereSql}
-              ORDER BY t.due_date IS NULL, t.due_date ASC, t.id DESC
+              ORDER BY {$orderBy}
               LIMIT {$perPage} OFFSET {$offset}",
             $params
         );
