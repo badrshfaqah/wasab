@@ -186,6 +186,41 @@ class Task
         return (int) ($row['c'] ?? 0);
     }
 
+    /**
+     * مؤشر الالتزام بالمواعيد: من بين المهام المكتملة ذات موعد استحقاق، نسبة ما
+     * أُنجز في موعده (completed_at <= نهاية يوم due_date). يُرجع النسبة والعدّادات.
+     */
+    public static function complianceStats(int $companyId): array
+    {
+        $row = Database::first(
+            "SELECT
+                COUNT(*) AS total,
+                SUM(completed_at <= CONCAT(due_date, ' 23:59:59')) AS on_time
+             FROM tasks_tasks
+             WHERE company_id = :c AND status = 'done'
+               AND due_date IS NOT NULL AND completed_at IS NOT NULL",
+            ['c' => $companyId]
+        );
+        $total = (int) ($row['total'] ?? 0);
+        $onTime = (int) ($row['on_time'] ?? 0);
+        return [
+            'total' => $total,
+            'on_time' => $onTime,
+            'rate' => $total > 0 ? (int) round($onTime * 100 / $total) : null,
+        ];
+    }
+
+    /** المهام المتأخرة التي لم تُصعَّد بعد (لمهمة الجدولة الدورية cron). */
+    public static function overdueNotEscalated(): array
+    {
+        return Database::select(
+            "SELECT * FROM tasks_tasks
+              WHERE due_date IS NOT NULL AND due_date < CURDATE()
+                AND status NOT IN ('done','cancelled')
+                AND escalated_at IS NULL"
+        );
+    }
+
     public static function recentForUser(int $companyId, int $userId, int $limit = 5): array
     {
         $limit = max(1, min(20, $limit));

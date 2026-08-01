@@ -27,6 +27,21 @@ return function (array $user): array {
         'url' => route('/tasks?scope=overdue'),
     ];
 
+    // مؤشر الالتزام بالمواعيد (SLA) - للمدراء فقط، ويظهر عند وجود مهام مكتملة مؤرّخة
+    if (Permission::check('tasks.manage') || ($user['membership_type'] ?? '') === 'company_admin') {
+        $sla = Task::complianceStats($companyId);
+        if ($sla['rate'] !== null) {
+            $widgets[] = [
+                'type' => 'stat',
+                'label' => 'الالتزام بالمواعيد',
+                'value' => $sla['rate'] . '%',
+                'icon' => '🎯',
+                'color' => $sla['rate'] >= 80 ? 'success' : ($sla['rate'] >= 50 ? 'warning' : 'danger'),
+                'url' => route('/tasks'),
+            ];
+        }
+    }
+
     if (Permission::check('tasks.approve')) {
         $pending = Task::countPendingApproval($companyId, $userId);
         $widgets[] = [

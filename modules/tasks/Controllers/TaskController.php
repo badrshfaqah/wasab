@@ -159,6 +159,7 @@ class TaskController
             'canManageSubtasks' => $this->canManageSubtasks($task),
             'canApprove' => $this->canApproveTask($task),
             'statuses' => self::STATUSES,
+            'companyUsers' => $this->companyUsers($companyId),
         ]);
     }
 
@@ -197,6 +198,11 @@ class TaskController
         $data['updated_at'] = date('Y-m-d H:i:s');
 
         $assigneeChanged = (int) $task['assignee_id'] !== (int) $data['assignee_id'];
+
+        // تغيّر موعد الاستحقاق يعيد تفعيل التصعيد حتى يُنبَّه على الموعد الجديد إن تأخّر
+        if (($data['due_date'] ?? null) !== ($task['due_date'] ?? null)) {
+            $data['escalated_at'] = null;
+        }
 
         Task::update($task['id'], $data);
         TaskLog::add($task['id'], Auth::id(), 'updated', 'تم تعديل بيانات المهمة');
@@ -267,7 +273,15 @@ class TaskController
             redirect('/tasks/' . $task['id']);
         }
 
-        Task::update($task['id'], ['status' => $status, 'updated_at' => date('Y-m-d H:i:s')]);
+        $now = date('Y-m-d H:i:s');
+        $update = ['status' => $status, 'updated_at' => $now];
+        // ختم وقت الإتمام عند الانتقال إلى "مكتملة"، وإلغاؤه عند إعادة الفتح - لقياس الالتزام بدقّة
+        if ($status === 'done' && empty($task['completed_at'])) {
+            $update['completed_at'] = $now;
+        } elseif ($status !== 'done' && !empty($task['completed_at'])) {
+            $update['completed_at'] = null;
+        }
+        Task::update($task['id'], $update);
         $statusLabels = ['todo' => 'لم تبدأ', 'in_progress' => 'قيد التنفيذ', 'in_review' => 'قيد المراجعة', 'done' => 'مكتملة', 'cancelled' => 'ملغاة'];
         TaskLog::add($task['id'], Auth::id(), 'status_changed', 'تم تغيير الحالة إلى: ' . ($statusLabels[$status] ?? $status));
         $this->notifyOthers($task, 'تم تغيير حالة مهمة', $task['title']);
@@ -318,8 +332,48 @@ class TaskController
         TaskComment::add($task['id'], Auth::id(), $body);
         $this->notifyOthers($task, 'ملاحظة جديدة على مهمة', $task['title']);
 
+        // تنبيه من ذُكِر بالتعليق عبر @الاسم (عدا من نبّهناه أصلاً كمسند/منشئ، وعدا نفسه)
+        $alreadyNotified = [(int) $task['assignee_id'], (int) $task['creator_id'], Auth::id()];
+        foreach ($this->extractMentions($body, $this->companyUsers($companyId)) as $uid) {
+            if (!in_array($uid, $alreadyNotified, true)) {
+                Notification::send(
+                    $uid,
+                    'ذُكِرت في تعليق على مهمة',
+                    (Auth::user()['name'] ?? '') . ' ذكرك في: ' . $task['title'],
+                    route('/tasks/' . $task['id'])
+                );
+            }
+        }
+
         flash_set('success', 'تمت إضافة الملاحظة.');
         redirect('/tasks/' . $task['id']);
+    }
+
+    /**
+     * يستخرج معرّفات المستخدمين المذكورين بصيغة @الاسم داخل نص. يطابق الاسم الكامل
+     * الحرفي لمستخدمي الشركة (الأطول أولاً)، ويتحقق من حدّ بعد الاسم لتفادي مطابقة
+     * اسم هو جزء من اسم أطول. أسماء المستخدمين تأتي من القاعدة لا من إدخال المستخدم.
+     */
+    private function extractMentions(string $body, array $companyUsers): array
+    {
+        // ترتيب تنازلي بطول الاسم حتى يُطابَق "أحمد علي" قبل "أحمد"
+        usort($companyUsers, fn ($a, $b) => mb_strlen($b['name']) <=> mb_strlen($a['name']));
+        $found = [];
+        $claimed = []; // مواضع "@" استهلكها اسمٌ أطول، فلا يطابقها اسم أقصر هو بادئته
+        foreach ($companyUsers as $u) {
+            $needle = '@' . $u['name'];
+            $offset = 0;
+            while (($pos = mb_strpos($body, $needle, $offset)) !== false) {
+                $after = mb_substr($body, $pos + mb_strlen($needle), 1);
+                // حدّ صالح: نهاية النص أو محرف ليس حرفاً/رقماً عربياً أو لاتينياً
+                if (!isset($claimed[$pos]) && ($after === '' || !preg_match('/[\p{L}\p{N}_]/u', $after))) {
+                    $found[(int) $u['id']] = true;
+                    $claimed[$pos] = true;
+                }
+                $offset = $pos + mb_strlen($needle);
+            }
+        }
+        return array_keys($found);
     }
 
     public function addSubtask(array $params): void

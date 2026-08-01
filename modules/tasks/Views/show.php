@@ -125,9 +125,52 @@ $overdue = $task['due_date'] && $task['due_date'] < date('Y-m-d') && !in_array($
             <?php endif; ?>
             <form method="post" action="<?= route('/tasks/' . $task['id'] . '/comments') ?>" style="margin-top:12px;">
                 <?= csrf_field() ?>
-                <div class="field"><textarea name="body" placeholder="أضف ملاحظة..." required></textarea></div>
+                <div class="field" style="position:relative;">
+                    <textarea name="body" id="comment-body" placeholder="أضف ملاحظة... اكتب @ لذكر زميل" required></textarea>
+                    <div id="mention-menu" style="display:none;position:absolute;z-index:20;background:var(--card,#fff);border:1px solid var(--border);border-radius:8px;max-height:180px;overflow:auto;box-shadow:0 4px 16px rgba(0,0,0,.12);min-width:180px;"></div>
+                </div>
+                <p class="hint" style="margin:-4px 0 8px;">اكتب <code>@</code> ثم اسم الزميل لتنبيهه، مثل: <code>@<?= e($companyUsers[0]['name'] ?? 'الاسم') ?></code></p>
                 <button class="btn btn-sm" type="submit">إضافة</button>
             </form>
+            <script>
+            (function () {
+                var users = <?= json_encode(array_map(fn ($u) => $u['name'], $companyUsers), JSON_UNESCAPED_UNICODE) ?>;
+                var ta = document.getElementById('comment-body');
+                var menu = document.getElementById('mention-menu');
+                if (!ta || !menu) return;
+                function hide() { menu.style.display = 'none'; }
+                function tokenBefore() {
+                    var v = ta.value.substring(0, ta.selectionStart);
+                    var m = v.match(/@([^@\n]*)$/); // آخر @ وما بعده حتى المؤشر
+                    return m ? m[1] : null;
+                }
+                ta.addEventListener('input', function () {
+                    var q = tokenBefore();
+                    if (q === null) { hide(); return; }
+                    var matches = users.filter(function (n) { return q === '' || n.indexOf(q) !== -1; }).slice(0, 6);
+                    if (!matches.length) { hide(); return; }
+                    menu.innerHTML = '';
+                    matches.forEach(function (n) {
+                        var item = document.createElement('div');
+                        item.textContent = '@' + n;
+                        item.style.cssText = 'padding:8px 12px;cursor:pointer;';
+                        item.addEventListener('mousedown', function (e) {
+                            e.preventDefault();
+                            var start = ta.selectionStart;
+                            var before = ta.value.substring(0, start).replace(/@([^@\n]*)$/, '@' + n + ' ');
+                            var after = ta.value.substring(start);
+                            ta.value = before + after;
+                            ta.focus();
+                            ta.selectionStart = ta.selectionEnd = before.length;
+                            hide();
+                        });
+                        menu.appendChild(item);
+                    });
+                    menu.style.display = 'block';
+                });
+                ta.addEventListener('blur', function () { setTimeout(hide, 150); });
+            })();
+            </script>
         </div>
 
         <div class="card">

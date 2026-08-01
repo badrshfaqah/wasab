@@ -20,6 +20,8 @@ return function (PDO $pdo): void {
             `status` ENUM('todo','in_progress','in_review','done','cancelled') NOT NULL DEFAULT 'todo',
             `requires_approval` TINYINT(1) NOT NULL DEFAULT 0,
             `approved_at` DATETIME NULL,
+            `completed_at` DATETIME NULL COMMENT 'وقت إتمام المهمة (حالة done) - لقياس الالتزام بالمواعيد',
+            `escalated_at` DATETIME NULL COMMENT 'وقت تصعيد المهمة المتأخرة (مرة واحدة لكل موعد استحقاق)',
             `created_at` DATETIME NOT NULL,
             `updated_at` DATETIME NULL,
             KEY `tasks_company_index` (`company_id`),

@@ -18,4 +18,21 @@ return function (PDO $pdo, string $fromVersion): void {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
         ");
     }
+
+    if (version_compare($fromVersion, '1.2.0', '<')) {
+        $colMissing = function (string $col) use ($pdo): bool {
+            return !$pdo->query(
+                "SELECT 1 FROM information_schema.columns
+                  WHERE table_schema = DATABASE() AND table_name = 'tasks_tasks' AND column_name = " . $pdo->quote($col)
+            )->fetchColumn();
+        };
+        if ($colMissing('completed_at')) {
+            $pdo->exec("ALTER TABLE `tasks_tasks` ADD COLUMN `completed_at` DATETIME NULL COMMENT 'وقت إتمام المهمة - لقياس الالتزام' AFTER `approved_at`");
+            // تقدير وقت الإتمام للمهام المكتملة سابقاً بوقت آخر تعديل
+            $pdo->exec("UPDATE `tasks_tasks` SET `completed_at` = COALESCE(`updated_at`, `created_at`) WHERE `status` = 'done' AND `completed_at` IS NULL");
+        }
+        if ($colMissing('escalated_at')) {
+            $pdo->exec("ALTER TABLE `tasks_tasks` ADD COLUMN `escalated_at` DATETIME NULL COMMENT 'وقت تصعيد التأخر' AFTER `completed_at`");
+        }
+    }
 };
