@@ -158,6 +158,8 @@ return function (PDO $pdo): void {
             `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
             `company_id` INT UNSIGNED NOT NULL,
             `expiry_warning_days` INT UNSIGNED NOT NULL DEFAULT 7,
+            `retention_months` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'مدة الاحتفاظ بالشهور (0 = معطّل)',
+            `retention_action` ENUM('none','archive','trash') NOT NULL DEFAULT 'none' COMMENT 'الإجراء بعد انقضاء مدة الاحتفاظ',
             `created_at` DATETIME NOT NULL,
             `updated_at` DATETIME NULL,
             UNIQUE KEY `archive_settings_company_unique` (`company_id`)

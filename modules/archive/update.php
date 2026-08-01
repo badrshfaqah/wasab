@@ -49,4 +49,20 @@ return function (PDO $pdo, string $fromVersion): void {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
         ");
     }
+
+    if (version_compare($fromVersion, '1.2.0', '<')) {
+        // سياسة الاحتفاظ (retention) للامتثال: مدة + إجراء بعد انقضائها
+        $colMissing = function (string $col) use ($pdo): bool {
+            return !$pdo->query(
+                "SELECT 1 FROM information_schema.columns
+                  WHERE table_schema = DATABASE() AND table_name = 'archive_settings' AND column_name = " . $pdo->quote($col)
+            )->fetchColumn();
+        };
+        if ($colMissing('retention_months')) {
+            $pdo->exec("ALTER TABLE `archive_settings` ADD COLUMN `retention_months` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'مدة الاحتفاظ بالشهور (0 = معطّل)' AFTER `expiry_warning_days`");
+        }
+        if ($colMissing('retention_action')) {
+            $pdo->exec("ALTER TABLE `archive_settings` ADD COLUMN `retention_action` ENUM('none','archive','trash') NOT NULL DEFAULT 'none' COMMENT 'الإجراء بعد انقضاء مدة الاحتفاظ' AFTER `retention_months`");
+        }
+    }
 };

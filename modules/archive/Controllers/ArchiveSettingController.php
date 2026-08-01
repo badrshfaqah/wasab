@@ -33,7 +33,24 @@ class ArchiveSettingController
             $days = 7;
         }
 
-        ArchiveSetting::update($companyId, ['expiry_warning_days' => $days]);
+        $retentionMonths = (int) Request::input('retention_months', 0);
+        if ($retentionMonths < 0 || $retentionMonths > 600) {
+            $retentionMonths = 0;
+        }
+        $retentionAction = Request::input('retention_action', 'none');
+        if (!in_array($retentionAction, ['none', 'archive', 'trash'], true)) {
+            $retentionAction = 'none';
+        }
+        // مدة صفر تعني تعطيل السياسة بصرف النظر عن الإجراء المختار
+        if ($retentionMonths < 1) {
+            $retentionAction = 'none';
+        }
+
+        ArchiveSetting::update($companyId, [
+            'expiry_warning_days' => $days,
+            'retention_months' => $retentionMonths,
+            'retention_action' => $retentionAction,
+        ]);
         ActivityLog::log('archive.settings.update', 'archive_setting', $companyId, 'تحديث إعدادات الأرشيف');
         flash_set('success', 'تم حفظ الإعدادات.');
         redirect('/archive/settings');

@@ -413,4 +413,42 @@ class ArchiveFile
               WHERE company_id = :c AND deleted_at IS NULL AND status = 'active' AND expires_at IS NOT NULL AND expires_at < CURDATE()"
         )->execute(['c' => $companyId]);
     }
+
+    /**
+     * تطبيق سياسة الاحتفاظ (retention) للامتثال: الملفات الأقدم من مدة الاحتفاظ
+     * (منذ تاريخ الرفع) تُؤرشَف أو تُنقَل لسلة المحذوفات حسب الإجراء المحدد. النقل
+     * للسلة قابل للاسترجاع (حذف ناعم) وليس محواً نهائياً. يُرجع عدد الملفات المعالَجة.
+     */
+    public static function applyRetention(int $companyId, int $retentionMonths, string $action, int $userId = 0): int
+    {
+        if ($retentionMonths < 1 || !in_array($action, ['archive', 'trash'], true)) {
+            return 0;
+        }
+        // عدد الشهور int مُتحقَّق منه، يُدمج مباشرة (تفادياً لعدم دعم بعض المحرّكات
+        // لمعامل مربوط داخل INTERVAL) - لا مدخل مستخدم خام في SQL.
+        $months = (int) $retentionMonths;
+        $cutoff = "DATE_SUB(CURDATE(), INTERVAL {$months} MONTH)";
+
+        // نعالج فقط الملفات غير المحذوفة الأقدم من عتبة الاحتفاظ
+        if ($action === 'trash') {
+            $stmt = Database::pdo()->prepare(
+                "UPDATE archive_files
+                    SET deleted_at = NOW(), updated_by = :u
+                  WHERE company_id = :c AND deleted_at IS NULL
+                    AND created_at < {$cutoff}"
+            );
+            $stmt->execute(['c' => $companyId, 'u' => $userId ?: null]);
+            return $stmt->rowCount();
+        }
+
+        // archive: لا يمس الملفات المحذوفة، ويحوّل النشطة/المنتهية إلى "مؤرشف"
+        $stmt = Database::pdo()->prepare(
+            "UPDATE archive_files
+                SET status = 'archived', updated_by = :u
+              WHERE company_id = :c AND deleted_at IS NULL AND status IN ('active','expired')
+                AND created_at < {$cutoff}"
+        );
+        $stmt->execute(['c' => $companyId, 'u' => $userId ?: null]);
+        return $stmt->rowCount();
+    }
 }
