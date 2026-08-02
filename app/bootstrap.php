@@ -43,3 +43,6 @@ Session::start();
 Database::connect(APP_CONFIG['db']);
 View::addPath(BASE_PATH . '/app/Views');
 CoreMigrator::run();
+// ترقيات الإضافات تلقائياً بعد تحديث الملفات (ذاتياً أو يدوياً) حتى لا يسبق كود
+// الإضافة مخططها في قاعدة البيانات فتنهار الصفحات المعتمدة على أعمدة جديدة.
+\App\Core\ModuleManager::autoMigratePending();

@@ -138,6 +138,32 @@ class ModuleManager
         return count(array_filter(self::list(), fn ($m) => $m['needs_update']));
     }
 
+    /**
+     * يطبّق ترقيات قاعدة البيانات لأي إضافة رُفعت ملفاتها بإصدار أحدث من المسجّل بقاعدة
+     * البيانات (كما يحدث بعد التحديث الذاتي من GitHub الذي ينسخ الملفات دون تشغيل
+     * ترقيات الإضافات). يُستدعى مبكراً في الإقلاع فلا يبقى كود الإضافة أحدث من مخططها
+     * (وهو ما يُسقط الصفحات التي تعتمد على أعمدة جديدة). آمن ورخيص عند عدم وجود ما ينتظر،
+     * وأي فشل بترقية إضافة يُسجَّل ولا يُوقِف بقية النظام.
+     */
+    public static function autoMigratePending(): void
+    {
+        $disk = self::discover();
+        foreach (self::installedRows() as $key => $row) {
+            if (!isset($disk[$key])) {
+                continue;
+            }
+            $diskVersion = $disk[$key]['version'] ?? '1.0.0';
+            if (!version_compare($row['version'], $diskVersion, '<')) {
+                continue;
+            }
+            try {
+                self::update($key);
+            } catch (\Throwable $e) {
+                log_exception($e);
+            }
+        }
+    }
+
     public static function isActive(string $key): bool
     {
         $rows = self::installedRows();
@@ -324,9 +350,15 @@ class ModuleManager
             }
             $provider = require $widgetFile;
             if (is_callable($provider)) {
-                $result = $provider($user);
-                if (is_array($result)) {
-                    $widgets = array_merge($widgets, $result);
+                // عزل كل إضافة: فشل عناصر إضافة واحدة (خطأ استعلام، عمود ناقص...) يجب
+                // ألا يُسقط الصفحة الرئيسية بالكامل لبقية الإضافات - يُسجَّل ويُتخطّى.
+                try {
+                    $result = $provider($user);
+                    if (is_array($result)) {
+                        $widgets = array_merge($widgets, $result);
+                    }
+                } catch (\Throwable $e) {
+                    log_exception($e);
                 }
             }
         }
