@@ -173,25 +173,40 @@ class Employee
     }
 
     /** يبني استعلام UNION موحّداً لكل مصادر الانتهاء حتى تاريخ حدّي. */
-    private static function expiryUnionSql(): string
+    /**
+     * يبني استعلام اتحاد كل مصادر انتهاء الوثائق مع معاملاته. تُستخدم أسماء معاملات
+     * فريدة لكل جزء (‎:c0/:cut0, :c1/:cut1 ...) لأن PDO بوضع ‎EMULATE_PREPARES=false‎
+     * لا يسمح بإعادة استخدام نفس الاسم أكثر من مرة (وإلا: Invalid parameter number).
+     *
+     * @return array{sql:string, params:array<string,mixed>}
+     */
+    private static function expiryUnionSql(int $companyId, string $cutoff): array
     {
         $parts = [];
+        $params = [];
+        $i = 0;
         foreach (self::expirySources() as $col => $meta) {
             // الاسم من قائمة بيضاء، والتسميات ثابتة - لا مدخلات مستخدم في SQL
             $label = str_replace("'", '', $meta['label']);
             $icon = $meta['icon'];
             $parts[] = "SELECT id AS employee_id, full_name, '{$label}' AS kind, '{$icon}' AS icon, `{$col}` AS expiry_date
                           FROM employees_profiles
-                         WHERE company_id = :c AND status != 'terminated'
-                           AND `{$col}` IS NOT NULL AND `{$col}` <= :cutoff";
+                         WHERE company_id = :c{$i} AND status != 'terminated'
+                           AND `{$col}` IS NOT NULL AND `{$col}` <= :cut{$i}";
+            $params["c{$i}"] = $companyId;
+            $params["cut{$i}"] = $cutoff;
+            $i++;
         }
         // الشهادات/الدورات لها جدول منفصل
         $parts[] = "SELECT ec.employee_id, ep.full_name, CONCAT('شهادة: ', ec.title) AS kind, '🎓' AS icon, ec.expiry_date
                       FROM employees_certifications ec
                       JOIN employees_profiles ep ON ep.id = ec.employee_id
-                     WHERE ep.company_id = :c AND ep.status != 'terminated'
-                       AND ec.expiry_date IS NOT NULL AND ec.expiry_date <= :cutoff";
-        return implode("\nUNION ALL\n", $parts);
+                     WHERE ep.company_id = :c{$i} AND ep.status != 'terminated'
+                       AND ec.expiry_date IS NOT NULL AND ec.expiry_date <= :cut{$i}";
+        $params["c{$i}"] = $companyId;
+        $params["cut{$i}"] = $cutoff;
+
+        return ['sql' => implode("\nUNION ALL\n", $parts), 'params' => $params];
     }
 
     /**
@@ -201,8 +216,8 @@ class Employee
     public static function expiringDocuments(int $companyId, int $withinDays = 60): array
     {
         $cutoff = date('Y-m-d', strtotime("+{$withinDays} days"));
-        $sql = self::expiryUnionSql() . "\nORDER BY expiry_date ASC";
-        $rows = Database::select($sql, ['c' => $companyId, 'cutoff' => $cutoff]);
+        $u = self::expiryUnionSql($companyId, $cutoff);
+        $rows = Database::select($u['sql'] . "\nORDER BY expiry_date ASC", $u['params']);
 
         $today = new \DateTime('today');
         foreach ($rows as &$row) {
@@ -216,8 +231,9 @@ class Employee
     public static function countExpiringDocuments(int $companyId, int $withinDays = 60): int
     {
         $cutoff = date('Y-m-d', strtotime("+{$withinDays} days"));
-        $sql = "SELECT COUNT(*) AS c FROM (" . self::expiryUnionSql() . ") t";
-        return (int) (Database::first($sql, ['c' => $companyId, 'cutoff' => $cutoff])['c'] ?? 0);
+        $u = self::expiryUnionSql($companyId, $cutoff);
+        $sql = "SELECT COUNT(*) AS c FROM (" . $u['sql'] . ") t";
+        return (int) (Database::first($sql, $u['params'])['c'] ?? 0);
     }
 
     public static function forCalendarRange(int $companyId, string $fromDate, string $toDate): array
