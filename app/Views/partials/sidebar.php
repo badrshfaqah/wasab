@@ -37,6 +37,8 @@ $coreItems[] = [
 ];
 $coreItems[] = ['label' => 'الإعدادات', 'icon' => '⚙️', 'url' => route('/settings'), 'show' => $manageCore];
 $coreItems[] = ['label' => 'سجل العمليات', 'icon' => '📜', 'url' => route('/activity-log'), 'show' => $manageCore];
+$coreItems[] = ['divider' => true];
+$coreItems[] = ['label' => 'تثبيت التطبيق', 'icon' => '📱', 'url' => route('/get-app'), 'show' => true];
 ?>
 <aside class="sidebar">
     <div class="brand">

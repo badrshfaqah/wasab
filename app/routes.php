@@ -8,6 +8,7 @@ use App\Controllers\CalendarController;
 use App\Controllers\CompanyController;
 use App\Controllers\CronController;
 use App\Controllers\DashboardController;
+use App\Controllers\InstallController;
 use App\Controllers\ModuleController;
 use App\Controllers\NotificationController;
 use App\Controllers\ProfileController;
@@ -46,6 +47,9 @@ $router->get('/reports', [ReportController::class, 'index'], [[Middleware::class
 // ---------- الملف الشخصي ----------
 $router->get('/profile', [ProfileController::class, 'show'], [[Middleware::class, 'auth']]);
 $router->post('/profile', [ProfileController::class, 'update'], [[Middleware::class, 'auth']]);
+
+// دليل تثبيت التطبيق على الجوال (PWA)
+$router->get('/get-app', [InstallController::class, 'index'], [[Middleware::class, 'auth']]);
 
 // ---------- لوحة مدير النظام (مدير النظام فقط) ----------
 $router->get('/admin', [\App\Controllers\AdminController::class, 'dashboard'], [[Middleware::class, 'auth'], [Middleware::class, 'systemAdmin']]);
