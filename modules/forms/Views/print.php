@@ -72,6 +72,17 @@ body{margin:0;background:#e5e7eb;font-family:'Cairo','Segoe UI',Tahoma,Arial,san
                 — رمز التحقق: <strong><?= e(strtoupper(substr((string) $letter['verify_token'], 0, 8))) ?></strong>
             </div>
         <?php endif; ?>
+
+        <?php
+        if (!empty($template) && !empty($template['qr_enabled']) && !empty($verifyUrl)):
+            $qrSvg = \App\Core\QrCode::svg($verifyUrl, (int) $template['qr_size']);
+            if ($qrSvg):
+        ?>
+            <div style="position:absolute;left:<?= (int) $template['qr_x'] ?>px;bottom:<?= (int) $template['qr_y'] ?>px;
+                        width:<?= (int) $template['qr_size'] ?>px;height:<?= (int) $template['qr_size'] ?>px;
+                        color:<?= e($template['qr_color']) ?>;line-height:0;
+                        -webkit-print-color-adjust:exact;print-color-adjust:exact;"><?= $qrSvg ?></div>
+        <?php endif; endif; ?>
     </div>
 </div>
 </body>

@@ -29,6 +29,8 @@ $action = $isEdit ? route('/forms/templates/' . $template['id']) : route('/forms
                 </select>
                 <p class="hint">يُطبَّق تلقائياً على كل خطاب مُولَّد من هذا القالب. أضف الأختام من <a href="<?= route('/stamps') ?>">أختام الشركة</a>.</p>
             </div>
+
+            <?php require BASE_PATH . '/app/Views/partials/qr_fields.php'; ?>
             <div class="field">
                 <label style="display:flex;align-items:center;gap:8px;font-weight:400;">
                     <input type="checkbox" name="is_active" value="1" <?= ($template['is_active'] ?? 1) ? 'checked' : '' ?> style="width:auto;">

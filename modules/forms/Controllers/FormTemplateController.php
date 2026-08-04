@@ -128,11 +128,20 @@ class FormTemplateController
         if ($stampId && !\App\Core\CompanyStamp::findForCompany($stampId, (int) \App\Core\Auth::companyId())) {
             $stampId = null;
         }
+        $qrColor = (string) Request::input('qr_color', '#000000');
+        if (!preg_match('/^#[0-9a-fA-F]{6}$/', $qrColor)) {
+            $qrColor = '#000000';
+        }
         return [
             'name' => mb_substr($name, 0, 160),
             'body' => $body,
             'is_active' => Request::input('is_active') ? 1 : 0,
             'stamp_id' => $stampId,
+            'qr_enabled' => Request::input('qr_enabled') ? 1 : 0,
+            'qr_x' => max(0, min(2000, (int) Request::input('qr_x', 40))),
+            'qr_y' => max(0, min(2000, (int) Request::input('qr_y', 40))),
+            'qr_size' => max(40, min(400, (int) Request::input('qr_size', 90))),
+            'qr_color' => $qrColor,
         ];
     }
 

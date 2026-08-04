@@ -234,6 +234,8 @@ class FormController
             'signatureUrl' => $signatureUrl,
             'stampUrl' => $stampUrl,
             'signerName' => $signerName,
+            'template' => $template,
+            'verifyUrl' => !empty($letter['verify_token']) ? base_url('forms/verify/' . $letter['verify_token']) : null,
         ], '');
     }
 

@@ -193,7 +193,7 @@ class DocumentTemplateController
             $stampId = null;
         }
 
-        return [
+        return array_merge([
             'name' => $name,
             'number_position' => $position,
             'show_date' => $showDate,
@@ -201,6 +201,22 @@ class DocumentTemplateController
             'stamp_id' => $stampId,
             'header_html' => $headerHtml ?: null,
             'footer_html' => $footerHtml ?: null,
+        ], self::qrFields());
+    }
+
+    /** حقول رمز QR للتحقق (مشتركة الشكل بين المستندات والنماذج). */
+    public static function qrFields(): array
+    {
+        $color = (string) Request::input('qr_color', '#000000');
+        if (!preg_match('/^#[0-9a-fA-F]{6}$/', $color)) {
+            $color = '#000000';
+        }
+        return [
+            'qr_enabled' => Request::input('qr_enabled') ? 1 : 0,
+            'qr_x' => max(0, min(2000, (int) Request::input('qr_x', 40))),
+            'qr_y' => max(0, min(2000, (int) Request::input('qr_y', 40))),
+            'qr_size' => max(40, min(400, (int) Request::input('qr_size', 90))),
+            'qr_color' => $color,
         ];
     }
 }

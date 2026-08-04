@@ -54,4 +54,19 @@ return function (PDO $pdo, string $fromVersion): void {
             $pdo->exec("ALTER TABLE `forms_letters` ADD COLUMN `signature_file` VARCHAR(255) NULL COMMENT 'صورة توقيع مُصدِر الخطاب المختار (لقطة)' AFTER `body`");
         }
     }
+
+    if (version_compare($fromVersion, '1.4.0', '<')) {
+        $colMissing = fn (string $table, string $col): bool => !$pdo->query(
+            "SELECT 1 FROM information_schema.columns
+              WHERE table_schema = DATABASE() AND table_name = " . $pdo->quote($table) . " AND column_name = " . $pdo->quote($col)
+        )->fetchColumn();
+        if ($colMissing('forms_templates', 'qr_enabled')) {
+            $pdo->exec("ALTER TABLE `forms_templates`
+                ADD COLUMN `qr_enabled` TINYINT(1) NOT NULL DEFAULT 0 COMMENT 'إظهار رمز QR للتحقق على الخطاب',
+                ADD COLUMN `qr_x` INT NOT NULL DEFAULT 40 COMMENT 'بكسل من يسار الصفحة',
+                ADD COLUMN `qr_y` INT NOT NULL DEFAULT 40 COMMENT 'بكسل من أسفل الصفحة',
+                ADD COLUMN `qr_size` INT NOT NULL DEFAULT 90 COMMENT 'حجم رمز QR بالبكسل',
+                ADD COLUMN `qr_color` VARCHAR(7) NOT NULL DEFAULT '#000000' COMMENT 'لون رمز QR'");
+        }
+    }
 };

@@ -88,4 +88,20 @@ return function (PDO $pdo, string $fromVersion): void {
             $pdo->exec("ALTER TABLE `documents_templates` ADD COLUMN `stamp_id` INT UNSIGNED NULL COMMENT 'ختم افتراضي لهذا القالب من مكتبة أختام الشركة' AFTER `background_image`");
         }
     }
+
+    if (version_compare($fromVersion, '1.6.0', '<')) {
+        // رمز QR للتحقق: موضع (بكسل من الأسفل واليسار) وحجم ولون، لكل قالب
+        $tcolMissing = fn (string $c): bool => !$pdo->query(
+            "SELECT 1 FROM information_schema.columns
+              WHERE table_schema = DATABASE() AND table_name = 'documents_templates' AND column_name = " . $pdo->quote($c)
+        )->fetchColumn();
+        if ($tcolMissing('qr_enabled')) {
+            $pdo->exec("ALTER TABLE `documents_templates`
+                ADD COLUMN `qr_enabled` TINYINT(1) NOT NULL DEFAULT 0 COMMENT 'إظهار رمز QR للتحقق على المستند',
+                ADD COLUMN `qr_x` INT NOT NULL DEFAULT 40 COMMENT 'بكسل من يسار الصفحة',
+                ADD COLUMN `qr_y` INT NOT NULL DEFAULT 40 COMMENT 'بكسل من أسفل الصفحة',
+                ADD COLUMN `qr_size` INT NOT NULL DEFAULT 90 COMMENT 'حجم رمز QR بالبكسل',
+                ADD COLUMN `qr_color` VARCHAR(7) NOT NULL DEFAULT '#000000' COMMENT 'لون رمز QR'");
+        }
+    }
 };

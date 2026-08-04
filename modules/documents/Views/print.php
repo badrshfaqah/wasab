@@ -109,6 +109,19 @@ body{margin:0;background:#e5e7eb;font-family:'Cairo','Segoe UI',Tahoma,Arial,san
                 <div class="doc-verify-code">رمز التحقق: <?= e(strtoupper(substr((string) $document['verify_token'], 0, 8))) ?></div>
             </div>
         <?php endif; ?>
+
+        <?php
+        // رمز QR للتحقق بموضع/حجم/لون القالب (بكسل من أسفل ويسار الورقة) - لا يؤثر
+        // على شكل الورقة الرسمية لأنه يوضع في الفراغ الذي يحدده المدير.
+        if ($template && !empty($template['qr_enabled']) && !empty($verifyUrl)):
+            $qrSvg = \App\Core\QrCode::svg($verifyUrl, (int) $template['qr_size']);
+            if ($qrSvg):
+        ?>
+            <div style="position:absolute;left:<?= (int) $template['qr_x'] ?>px;bottom:<?= (int) $template['qr_y'] ?>px;
+                        width:<?= (int) $template['qr_size'] ?>px;height:<?= (int) $template['qr_size'] ?>px;
+                        color:<?= e($template['qr_color']) ?>;line-height:0;
+                        -webkit-print-color-adjust:exact;print-color-adjust:exact;"><?= $qrSvg ?></div>
+        <?php endif; endif; ?>
     </div>
 </div>
 </body>

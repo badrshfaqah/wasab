@@ -43,6 +43,13 @@ $positionLabels = [
             <p class="hint">يُطبَّق تلقائياً على كل مستند موقّع مُنشأ من هذا القالب. أضف الأختام من <a href="<?= route('/stamps') ?>">أختام الشركة</a>.</p>
         </div>
 
+        <?php
+        $qrBgUrl = !empty($template['background_image'])
+            ? route('/media/documents/' . $template['company_id'] . '/' . $template['background_image'])
+            : null;
+        require BASE_PATH . '/app/Views/partials/qr_fields.php';
+        ?>
+
         <div class="grid-2">
             <div class="field">
                 <label>موضع رقم المستند والتاريخ</label>
