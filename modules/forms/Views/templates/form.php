@@ -20,6 +20,16 @@ $action = $isEdit ? route('/forms/templates/' . $template['id']) : route('/forms
                 <textarea name="body" rows="16" required style="line-height:2;"><?= e($template['body'] ?? '') ?></textarea>
             </div>
             <div class="field">
+                <label>ختم القالب</label>
+                <select name="stamp_id">
+                    <option value="">— بلا ختم —</option>
+                    <?php foreach (($stamps ?? []) as $st): ?>
+                        <option value="<?= $st['id'] ?>" <?= (int) ($template['stamp_id'] ?? 0) === (int) $st['id'] ? 'selected' : '' ?>><?= e($st['name']) ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <p class="hint">يُطبَّق تلقائياً على كل خطاب مُولَّد من هذا القالب. أضف الأختام من <a href="<?= route('/stamps') ?>">أختام الشركة</a>.</p>
+            </div>
+            <div class="field">
                 <label style="display:flex;align-items:center;gap:8px;font-weight:400;">
                     <input type="checkbox" name="is_active" value="1" <?= ($template['is_active'] ?? 1) ? 'checked' : '' ?> style="width:auto;">
                     مفعّل (يظهر في قائمة التوليد)

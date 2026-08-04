@@ -84,11 +84,22 @@ $canRestore = $document['status'] === 'archived' && $canManage;
                     </form>
                 <?php endif; ?>
                 <?php if ($canSignNow): ?>
-                    <form method="post" action="<?= route('/documents/' . $document['id'] . '/status') ?>">
+                    <form method="post" action="<?= route('/documents/' . $document['id'] . '/status') ?>" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
                         <?= csrf_field() ?>
                         <input type="hidden" name="action" value="sign">
+                        <?php if (!empty($mySignatures)): ?>
+                            <select name="signature_id" style="width:auto;min-width:150px;">
+                                <?php foreach ($mySignatures as $sig): ?>
+                                    <option value="<?= $sig['id'] ?>"><?= e($sig['name']) ?></option>
+                                <?php endforeach; ?>
+                                <option value="">بلا صورة توقيع</option>
+                            </select>
+                        <?php endif; ?>
                         <button class="btn" type="submit">✍️ توقيع</button>
                     </form>
+                    <?php if (empty($mySignatures)): ?>
+                        <span class="hint">لإظهار صورة توقيعك، أضِفه من <a href="<?= route('/profile') ?>">ملفك الشخصي</a>.</span>
+                    <?php endif; ?>
                 <?php endif; ?>
                 <?php if ($canArchive): ?>
                     <form method="post" action="<?= route('/documents/' . $document['id'] . '/status') ?>" data-confirm="أرشفة هذا المستند؟">

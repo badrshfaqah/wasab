@@ -35,6 +35,7 @@ $coreItems[] = [
     'show' => $isSystemAdmin,
     'badge' => $pendingModuleUpdates > 0 ? $pendingModuleUpdates : null,
 ];
+$coreItems[] = ['label' => 'أختام الشركة', 'icon' => '🔖', 'url' => route('/stamps'), 'show' => $manageCore];
 $coreItems[] = ['label' => 'الإعدادات', 'icon' => '⚙️', 'url' => route('/settings'), 'show' => $manageCore];
 $coreItems[] = ['label' => 'سجل العمليات', 'icon' => '📜', 'url' => route('/activity-log'), 'show' => $manageCore];
 $coreItems[] = ['divider' => true];

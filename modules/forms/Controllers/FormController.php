@@ -79,6 +79,7 @@ class FormController
             'known' => $known,
             'manualFields' => $manual,
             'employeesActive' => ModuleManager::isActive('employees'),
+            'mySignatures' => \App\Core\UserSignature::forUser(Auth::id()),
         ]);
     }
 
@@ -116,6 +117,16 @@ class FormController
         $finalBody = MergeFields::render($template['body'], $values);
         $recipient = $values['الاسم'] ?? ($values['الجهة'] ?? null);
 
+        // توقيع المُصدِر: من مكتبة تواقيعه الشخصية فقط (لقطة على الخطاب)
+        $signatureFile = null;
+        $sigId = (int) Request::input('signature_id', 0);
+        if ($sigId) {
+            $sig = \App\Core\UserSignature::findForUser($sigId, Auth::id());
+            if ($sig) {
+                $signatureFile = $sig['image'];
+            }
+        }
+
         $number = FormLetter::nextNumber($companyId);
         $letterId = FormLetter::create([
             'company_id' => $companyId,
@@ -125,6 +136,7 @@ class FormController
             'employee_id' => $employeeId,
             'recipient_name' => $recipient ? mb_substr($recipient, 0, 180) : null,
             'body' => $finalBody,
+            'signature_file' => $signatureFile,
             'verify_token' => bin2hex(random_bytes(16)),
             'created_by' => Auth::id(),
             'created_at' => date('Y-m-d H:i:s'),
@@ -185,10 +197,43 @@ class FormController
         $letter = $this->findVisible((int) $params['id'], $companyId);
         $settings = FormSetting::getOrCreate($companyId);
 
+        // التوقيع: توقيع المُصدِر الشخصي المختار (لقطة)، وإلا توقيع الشركة القديم.
+        $signatureUrl = null;
+        if (!empty($letter['signature_file'])) {
+            $signatureUrl = route('/media/signatures/' . $companyId . '/' . $letter['signature_file']);
+        } elseif (!empty($settings['signature_image'])) {
+            $signatureUrl = route('/media/forms/' . $companyId . '/' . $settings['signature_image']);
+        }
+
+        // الختم: ختم قالب الخطاب من مكتبة الأختام، وإلا ختم الشركة القديم.
+        $stampUrl = null;
+        $template = !empty($letter['template_id']) ? FormTemplate::find((int) $letter['template_id']) : null;
+        if ($template && (int) $template['company_id'] === $companyId && !empty($template['stamp_id'])) {
+            $stamp = \App\Core\CompanyStamp::findForCompany((int) $template['stamp_id'], $companyId);
+            if ($stamp) {
+                $stampUrl = \App\Core\CompanyStamp::imageUrl($stamp);
+            }
+        }
+        if (!$stampUrl && !empty($settings['stamp_image'])) {
+            $stampUrl = route('/media/forms/' . $companyId . '/' . $settings['stamp_image']);
+        }
+
+        // اسم المُصدِر: من أصدر الخطاب فعلاً، وإلا الاسم المعرّف بالإعدادات.
+        $signerName = $settings['signer_name'] ?? null;
+        if (!empty($letter['created_by'])) {
+            $issuer = \App\Core\Database::first('SELECT name FROM users WHERE id = :id', ['id' => $letter['created_by']]);
+            if ($issuer) {
+                $signerName = $issuer['name'];
+            }
+        }
+
         View::render('forms::print', [
             'pageTitle' => $letter['title'],
             'letter' => $letter,
             'settings' => $settings,
+            'signatureUrl' => $signatureUrl,
+            'stampUrl' => $stampUrl,
+            'signerName' => $signerName,
         ], '');
     }
 

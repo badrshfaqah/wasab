@@ -72,3 +72,30 @@ $timezones = [
         <a href="<?= route('/get-app') ?>">اعرض خطوات التثبيت المصوّرة (آيفون وأندرويد) ←</a>
     </p>
 </div>
+
+<div class="card" style="max-width:480px;">
+    <div class="card-title"><span>✍️ توقيعاتي</span></div>
+    <p class="hint" style="margin:0 0 12px;">ارفع توقيعك ليظهر كخيار عند توقيع المستندات والخطابات. يُفضّل صورة PNG بخلفية شفافة.</p>
+
+    <?php if (!empty($signatures)): ?>
+        <div style="display:flex;flex-wrap:wrap;gap:12px;margin-bottom:14px;">
+            <?php foreach ($signatures as $sig): ?>
+                <div style="border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center;width:150px;">
+                    <img src="<?= e(\App\Core\UserSignature::imageUrl($sig)) ?>" alt="" style="max-height:56px;max-width:100%;">
+                    <div class="hint" style="margin-top:6px;word-break:break-word;"><?= e($sig['name']) ?></div>
+                    <form method="post" action="<?= route('/profile/signatures/' . $sig['id'] . '/delete') ?>" onsubmit="return confirm('حذف هذا التوقيع؟');" style="margin-top:6px;">
+                        <?= csrf_field() ?>
+                        <button class="btn btn-outline btn-sm" type="submit">حذف</button>
+                    </form>
+                </div>
+            <?php endforeach; ?>
+        </div>
+    <?php endif; ?>
+
+    <form method="post" action="<?= route('/profile/signatures') ?>" enctype="multipart/form-data">
+        <?= csrf_field() ?>
+        <div class="field"><label>اسم التوقيع (للتمييز)</label><input type="text" name="name" maxlength="120" placeholder="مثال: توقيعي الرسمي"></div>
+        <div class="field"><label>صورة التوقيع</label><input type="file" name="image" accept="image/png,image/jpeg,image/webp" required></div>
+        <button class="btn" type="submit">➕ إضافة توقيع</button>
+    </form>
+</div>

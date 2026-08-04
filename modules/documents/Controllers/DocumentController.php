@@ -115,6 +115,7 @@ class DocumentController
             'canManage' => $this->canManage(),
             'canApprove' => $this->can('documents.approve'),
             'canSign' => $this->can('documents.sign'),
+            'mySignatures' => \App\Core\UserSignature::forUser(Auth::id()),
         ]);
     }
 
@@ -297,12 +298,22 @@ class DocumentController
                     $this->forbidden();
                     return;
                 }
-                Document::update($document['id'], [
+                // التوقيع بتوقيع الموقّع نفسه فقط (المختار من مكتبة تواقيعه) - لقطة تُخزَّن
+                // على المستند فلا يتأثر لو حذف الموقّع توقيعه لاحقاً.
+                $signUpdate = [
                     'status' => 'signed',
                     'signed_by' => Auth::id(),
                     'signed_at' => date('Y-m-d H:i:s'),
                     'updated_at' => date('Y-m-d H:i:s'),
-                ]);
+                ];
+                $sigId = (int) Request::input('signature_id', 0);
+                if ($sigId) {
+                    $sig = \App\Core\UserSignature::findForUser($sigId, Auth::id());
+                    if ($sig) {
+                        $signUpdate['signature_file'] = $sig['image'];
+                    }
+                }
+                Document::update($document['id'], $signUpdate);
                 DocumentLog::add($document['id'], Auth::id(), 'signed', 'تم توقيع المستند');
                 Notification::send((int) $document['created_by'], 'تم توقيع مستندك', $document['title'], route('/documents/' . $document['id']));
                 flash_set('success', 'تم توقيع المستند.');
@@ -367,11 +378,43 @@ class DocumentController
         $settings = DocumentSetting::getOrCreate($companyId);
         $company = Database::first('SELECT * FROM companies WHERE id = :id', ['id' => $companyId]);
 
+        // التوقيع: توقيع الموقّع الشخصي المختار (لقطة على المستند)، وإلا توقيع الشركة القديم.
+        $signatureUrl = null;
+        if (!empty($document['signature_file'])) {
+            $signatureUrl = route('/media/signatures/' . $companyId . '/' . $document['signature_file']);
+        } elseif (!empty($settings['signature_image'])) {
+            $signatureUrl = route('/media/documents/' . $companyId . '/' . $settings['signature_image']);
+        }
+
+        // الختم: ختم القالب من مكتبة الأختام، وإلا ختم الشركة القديم.
+        $stampUrl = null;
+        if ($template && !empty($template['stamp_id'])) {
+            $stamp = \App\Core\CompanyStamp::findForCompany((int) $template['stamp_id'], $companyId);
+            if ($stamp) {
+                $stampUrl = \App\Core\CompanyStamp::imageUrl($stamp);
+            }
+        }
+        if (!$stampUrl && !empty($settings['stamp_image'])) {
+            $stampUrl = route('/media/documents/' . $companyId . '/' . $settings['stamp_image']);
+        }
+
+        // اسم الموقّع: المستخدم الذي وقّع فعلاً، وإلا الاسم المعرّف بالإعدادات.
+        $signerName = $settings['signer_name'] ?? null;
+        if (!empty($document['signed_by'])) {
+            $signer = Database::first('SELECT name FROM users WHERE id = :id', ['id' => $document['signed_by']]);
+            if ($signer) {
+                $signerName = $signer['name'];
+            }
+        }
+
         View::render('documents::print', [
             'document' => $document,
             'template' => $template,
             'settings' => $settings,
             'company' => $company,
+            'signatureUrl' => $signatureUrl,
+            'stampUrl' => $stampUrl,
+            'signerName' => $signerName,
             'verifyUrl' => !empty($document['verify_token']) ? base_url('documents/verify/' . $document['verify_token']) : null,
         ], '');
     }

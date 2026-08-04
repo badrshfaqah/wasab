@@ -32,6 +32,17 @@ $positionLabels = [
             <p class="hint">PNG أو JPG أو WEBP، بحد أقصى 2 ميجابايت. يُفضّل مقاس ورقة A4.</p>
         </div>
 
+        <div class="field">
+            <label>ختم القالب</label>
+            <select name="stamp_id">
+                <option value="">— بلا ختم —</option>
+                <?php foreach (($stamps ?? []) as $st): ?>
+                    <option value="<?= $st['id'] ?>" <?= (int) ($template['stamp_id'] ?? 0) === (int) $st['id'] ? 'selected' : '' ?>><?= e($st['name']) ?></option>
+                <?php endforeach; ?>
+            </select>
+            <p class="hint">يُطبَّق تلقائياً على كل مستند موقّع مُنشأ من هذا القالب. أضف الأختام من <a href="<?= route('/stamps') ?>">أختام الشركة</a>.</p>
+        </div>
+
         <div class="grid-2">
             <div class="field">
                 <label>موضع رقم المستند والتاريخ</label>

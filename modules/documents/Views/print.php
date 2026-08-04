@@ -83,16 +83,16 @@ body{margin:0;background:#e5e7eb;font-family:'Cairo','Segoe UI',Tahoma,Arial,san
 
         <div class="doc-content"><?= $document['content'] ?: '' ?></div>
 
-        <?php if ($document['status'] === 'signed' && (!empty($settings['signature_image']) || !empty($settings['stamp_image']) || !empty($settings['signer_name']))): ?>
+        <?php if ($document['status'] === 'signed' && (!empty($signatureUrl) || !empty($stampUrl) || !empty($signerName))): ?>
             <div class="doc-signature">
-                <?php if (!empty($settings['stamp_image'])): ?>
-                    <div><img src="<?= e(route('/media/documents/' . $settings['company_id'] . '/' . $settings['stamp_image'])) ?>" alt=""></div>
+                <?php if (!empty($stampUrl)): ?>
+                    <div><img src="<?= e($stampUrl) ?>" alt=""></div>
                 <?php endif; ?>
                 <div>
-                    <?php if (!empty($settings['signature_image'])): ?>
-                        <img src="<?= e(route('/media/documents/' . $settings['company_id'] . '/' . $settings['signature_image'])) ?>" alt="">
+                    <?php if (!empty($signatureUrl)): ?>
+                        <img src="<?= e($signatureUrl) ?>" alt="">
                     <?php endif; ?>
-                    <?php if (!empty($settings['signer_name'])): ?><div><strong><?= e($settings['signer_name']) ?></strong></div><?php endif; ?>
+                    <?php if (!empty($signerName)): ?><div><strong><?= e($signerName) ?></strong></div><?php endif; ?>
                     <?php if (!empty($settings['signer_title'])): ?><div style="font-size:12px;color:#6b7280;"><?= e($settings['signer_title']) ?></div><?php endif; ?>
                 </div>
             </div>

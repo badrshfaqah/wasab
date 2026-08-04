@@ -37,6 +37,7 @@ class FormTemplateController
             'pageTitle' => 'قالب جديد',
             'template' => null,
             'knownFields' => MergeFields::knownFields(),
+            'stamps' => \App\Core\CompanyStamp::forCompany((int) \App\Core\Auth::companyId()),
         ]);
     }
 
@@ -73,6 +74,7 @@ class FormTemplateController
             'pageTitle' => 'تعديل: ' . $template['name'],
             'template' => $template,
             'knownFields' => MergeFields::knownFields(),
+            'stamps' => \App\Core\CompanyStamp::forCompany((int) \App\Core\Auth::companyId()),
         ]);
     }
 
@@ -121,10 +123,16 @@ class FormTemplateController
             flash_set('error', 'اسم القالب ونصه مطلوبان.');
             return null;
         }
+        // ختم القالب: يجب أن يخصّ الشركة (وإلا يُهمَل) - null يعني بلا ختم
+        $stampId = (int) Request::input('stamp_id', 0) ?: null;
+        if ($stampId && !\App\Core\CompanyStamp::findForCompany($stampId, (int) \App\Core\Auth::companyId())) {
+            $stampId = null;
+        }
         return [
             'name' => mb_substr($name, 0, 160),
             'body' => $body,
             'is_active' => Request::input('is_active') ? 1 : 0,
+            'stamp_id' => $stampId,
         ];
     }
 

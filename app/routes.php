@@ -47,6 +47,13 @@ $router->get('/reports', [ReportController::class, 'index'], [[Middleware::class
 // ---------- الملف الشخصي ----------
 $router->get('/profile', [ProfileController::class, 'show'], [[Middleware::class, 'auth']]);
 $router->post('/profile', [ProfileController::class, 'update'], [[Middleware::class, 'auth']]);
+$router->post('/profile/signatures', [ProfileController::class, 'storeSignature'], [[Middleware::class, 'auth']]);
+$router->post('/profile/signatures/{id}/delete', [ProfileController::class, 'deleteSignature'], [[Middleware::class, 'auth']]);
+
+// أختام الشركة (مدير الشركة/النظام) - مكتبة تُربط بقوالب المستندات والنماذج
+$router->get('/stamps', [\App\Controllers\StampController::class, 'index'], [[Middleware::class, 'auth']]);
+$router->post('/stamps', [\App\Controllers\StampController::class, 'store'], [[Middleware::class, 'auth']]);
+$router->post('/stamps/{id}/delete', [\App\Controllers\StampController::class, 'destroy'], [[Middleware::class, 'auth']]);
 
 // دليل تثبيت التطبيق على الجوال (PWA)
 $router->get('/get-app', [InstallController::class, 'index'], [[Middleware::class, 'auth']]);

@@ -24,7 +24,7 @@ namespace App\Core;
  */
 class CoreMigrator
 {
-    public const CURRENT_VERSION = 15;
+    public const CURRENT_VERSION = 17;
     private const RETRY_COOLDOWN_SECONDS = 300;
 
     private static function migrations(): array
@@ -113,6 +113,14 @@ class CoreMigrator
                     'theme',
                     "VARCHAR(30) NOT NULL DEFAULT 'classic' COMMENT 'مفتاح ثيم التصميم - App\\\\Core\\\\Theme' AFTER `sidebar_color`"
                 ),
+            ],
+            16 => [
+                'label' => 'إضافة جدول تواقيع المستخدمين الشخصية (يختارها المستخدم عند التوقيع)',
+                'run' => fn () => self::createUserSignaturesTable(),
+            ],
+            17 => [
+                'label' => 'إضافة جدول أختام الشركة (يديرها المدير وتُربط بالقوالب)',
+                'run' => fn () => self::createCompanyStampsTable(),
             ],
         ];
     }
@@ -342,6 +350,38 @@ class CoreMigrator
      * جدول اشتراكات إشعارات الدفع (Web Push): كل صف جهاز/متصفح فعّل التنبيهات لمستخدم.
      * endpoint_hash (sha1) للفهرس الفريد لأن endpoint نفسه أطول من حد مفاتيح MySQL الفريدة.
      */
+    /** تواقيع المستخدمين الشخصية: كل مستخدم يرفع توقيعه (أو أكثر) ويختار عند التوقيع. */
+    private static function createUserSignaturesTable(): void
+    {
+        Database::pdo()->exec("
+            CREATE TABLE IF NOT EXISTS `user_signatures` (
+                `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                `user_id` INT UNSIGNED NOT NULL,
+                `company_id` INT UNSIGNED NULL,
+                `name` VARCHAR(120) NOT NULL,
+                `image` VARCHAR(255) NOT NULL,
+                `created_at` DATETIME NOT NULL,
+                KEY `user_signatures_user_index` (`user_id`),
+                CONSTRAINT `user_signatures_user_fk` FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        ");
+    }
+
+    /** أختام الشركة: يديرها المدير (إضافة/حذف) وتُربط بقوالب المستندات والنماذج. */
+    private static function createCompanyStampsTable(): void
+    {
+        Database::pdo()->exec("
+            CREATE TABLE IF NOT EXISTS `company_stamps` (
+                `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                `company_id` INT UNSIGNED NOT NULL,
+                `name` VARCHAR(120) NOT NULL,
+                `image` VARCHAR(255) NOT NULL,
+                `created_at` DATETIME NOT NULL,
+                KEY `company_stamps_company_index` (`company_id`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        ");
+    }
+
     private static function createPushSubscriptionsTable(): void
     {
         Database::pdo()->exec("

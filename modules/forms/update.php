@@ -39,4 +39,19 @@ return function (PDO $pdo, string $fromVersion): void {
             }
         }
     }
+
+    if (version_compare($fromVersion, '1.3.0', '<')) {
+        $colMissing = fn (string $table, string $col): bool => !$pdo->query(
+            "SELECT 1 FROM information_schema.columns
+              WHERE table_schema = DATABASE() AND table_name = " . $pdo->quote($table) . " AND column_name = " . $pdo->quote($col)
+        )->fetchColumn();
+
+        // ختم القالب من مكتبة الأختام + توقيع مُصدِر الخطاب الشخصي (لقطة)
+        if ($colMissing('forms_templates', 'stamp_id')) {
+            $pdo->exec("ALTER TABLE `forms_templates` ADD COLUMN `stamp_id` INT UNSIGNED NULL COMMENT 'ختم افتراضي لهذا القالب من مكتبة أختام الشركة' AFTER `is_active`");
+        }
+        if ($colMissing('forms_letters', 'signature_file')) {
+            $pdo->exec("ALTER TABLE `forms_letters` ADD COLUMN `signature_file` VARCHAR(255) NULL COMMENT 'صورة توقيع مُصدِر الخطاب المختار (لقطة)' AFTER `body`");
+        }
+    }
 };

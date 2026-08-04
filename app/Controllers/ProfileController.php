@@ -7,6 +7,8 @@ use App\Core\Auth;
 use App\Core\Csrf;
 use App\Core\Database;
 use App\Core\Request;
+use App\Core\Uploads;
+use App\Core\UserSignature;
 use App\Core\Validator;
 use App\Core\View;
 
@@ -14,7 +16,52 @@ class ProfileController
 {
     public function show(): void
     {
-        View::render('profile.index', ['pageTitle' => 'الملف الشخصي']);
+        View::render('profile.index', [
+            'pageTitle' => 'الملف الشخصي',
+            'signatures' => UserSignature::forUser(Auth::id()),
+        ]);
+    }
+
+    /** رفع توقيع شخصي جديد (يظهر لاحقاً كخيار عند توقيع المستندات/الخطابات). */
+    public function storeSignature(): void
+    {
+        if (!Csrf::verify(Request::input('_csrf'))) {
+            flash_set('error', 'انتهت صلاحية الجلسة، حاول مرة أخرى.');
+            redirect('/profile');
+        }
+        $companyId = Auth::companyId();
+        $name = trim((string) Request::input('name', '')) ?: 'توقيعي';
+
+        $dir = BASE_PATH . '/storage/uploads/signatures/' . ($companyId ?: 0);
+        $img = Uploads::handleImage('image', $dir);
+        if ($img['error']) {
+            flash_set('error', $img['error']);
+            redirect('/profile');
+        }
+        if (!$img['filename']) {
+            flash_set('error', 'يرجى اختيار صورة التوقيع (يُفضّل PNG بخلفية شفافة).');
+            redirect('/profile');
+        }
+
+        UserSignature::create(Auth::id(), $companyId, $name, $img['filename']);
+        ActivityLog::log('profile.signature_add', 'user', Auth::id(), 'إضافة توقيع شخصي');
+        flash_set('success', 'تمت إضافة التوقيع.');
+        redirect('/profile');
+    }
+
+    public function deleteSignature(array $params): void
+    {
+        if (!Csrf::verify(Request::input('_csrf'))) {
+            flash_set('error', 'انتهت صلاحية الجلسة، حاول مرة أخرى.');
+            redirect('/profile');
+        }
+        $sig = UserSignature::findForUser((int) $params['id'], Auth::id());
+        if ($sig) {
+            @unlink(BASE_PATH . '/storage/uploads/signatures/' . (int) $sig['company_id'] . '/' . $sig['image']);
+            UserSignature::delete((int) $sig['id'], Auth::id());
+            flash_set('success', 'تم حذف التوقيع.');
+        }
+        redirect('/profile');
     }
 
     public function update(): void

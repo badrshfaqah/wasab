@@ -36,6 +36,7 @@ class DocumentTemplateController
             'pageTitle' => 'قالب جديد',
             'template' => null,
             'positions' => self::POSITIONS,
+            'stamps' => \App\Core\CompanyStamp::forCompany((int) \App\Core\Auth::companyId()),
         ]);
     }
 
@@ -76,6 +77,7 @@ class DocumentTemplateController
             'pageTitle' => 'تعديل قالب',
             'template' => $template,
             'positions' => self::POSITIONS,
+            'stamps' => \App\Core\CompanyStamp::forCompany((int) \App\Core\Auth::companyId()),
         ]);
     }
 
@@ -185,11 +187,18 @@ class DocumentTemplateController
             $position = 'top-right';
         }
 
+        // ختم القالب: يجب أن يخصّ الشركة (وإلا يُهمَل) - null يعني بلا ختم
+        $stampId = (int) Request::input('stamp_id', 0) ?: null;
+        if ($stampId && !\App\Core\CompanyStamp::findForCompany($stampId, (int) \App\Core\Auth::companyId())) {
+            $stampId = null;
+        }
+
         return [
             'name' => $name,
             'number_position' => $position,
             'show_date' => $showDate,
             'show_number' => $showNumber,
+            'stamp_id' => $stampId,
             'header_html' => $headerHtml ?: null,
             'footer_html' => $footerHtml ?: null,
         ];

@@ -62,6 +62,20 @@ $fieldLabels = [
                 <p class="hint">كل الحقول مُعبّأة - جاهز للتوليد.</p>
             <?php endif; ?>
 
+            <div class="field">
+                <label>توقيعك على الخطاب</label>
+                <?php if (!empty($mySignatures)): ?>
+                    <select name="signature_id">
+                        <?php foreach ($mySignatures as $sig): ?>
+                            <option value="<?= $sig['id'] ?>"><?= e($sig['name']) ?></option>
+                        <?php endforeach; ?>
+                        <option value="">بلا توقيع</option>
+                    </select>
+                <?php else: ?>
+                    <p class="hint">لا توقيع محفوظ لك — أضِف توقيعك من <a href="<?= route('/profile') ?>">ملفك الشخصي</a> ليظهر على الخطاب.</p>
+                <?php endif; ?>
+            </div>
+
             <button class="btn" type="submit">توليد الخطاب وحفظه</button>
         </form>
     </div>

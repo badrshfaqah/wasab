@@ -74,4 +74,18 @@ return function (PDO $pdo, string $fromVersion): void {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
         ");
     }
+
+    if (version_compare($fromVersion, '1.5.0', '<')) {
+        // التوقيع الشخصي للموقّع (لقطة من مكتبة تواقيعه) + ختم القالب من مكتبة الأختام
+        if ($colMissing('signature_file')) {
+            $pdo->exec("ALTER TABLE `documents_documents` ADD COLUMN `signature_file` VARCHAR(255) NULL COMMENT 'صورة توقيع الموقّع المختار وقت التوقيع (لقطة)' AFTER `signed_at`");
+        }
+        $stampCol = !$pdo->query(
+            "SELECT 1 FROM information_schema.columns
+              WHERE table_schema = DATABASE() AND table_name = 'documents_templates' AND column_name = 'stamp_id'"
+        )->fetchColumn();
+        if ($stampCol) {
+            $pdo->exec("ALTER TABLE `documents_templates` ADD COLUMN `stamp_id` INT UNSIGNED NULL COMMENT 'ختم افتراضي لهذا القالب من مكتبة أختام الشركة' AFTER `background_image`");
+        }
+    }
 };
