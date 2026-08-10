@@ -112,6 +112,7 @@ class ArchiveFileController
             ArchiveFile::setAccessUsers($fileId, (array) Request::input('access_users', []));
         }
         $this->syncTagsFromRequest($companyId, $fileId);
+        $this->syncLinksFromRequest($companyId, $fileId);
 
         ArchiveFileLog::add($fileId, Auth::id(), 'uploaded', 'تم رفع الملف');
         ActivityLog::log('archive.upload', 'archive_file', $fileId, "رفع ملف: {$upload['original']}");
@@ -137,6 +138,7 @@ class ArchiveFileController
             'versions' => ArchiveFileVersion::forFile($file['id']),
             'tags' => ArchiveTag::forFile($file['id']),
             'shares' => ArchiveFileShare::forFile($file['id']),
+            'links' => ArchiveFile::links($file['id']),
             'categories' => ArchiveCategory::tree($companyId),
             'expiryWarningDays' => (int) ArchiveSetting::getOrCreate($companyId)['expiry_warning_days'],
             'canEdit' => $this->can('archive.edit'),
@@ -165,6 +167,7 @@ class ArchiveFileController
             'allTags' => ArchiveTag::forCompany($companyId),
             'fileTags' => ArchiveTag::forFile($file['id']),
             'linkables' => $this->linkableEntities($companyId),
+            'currentLinks' => array_map(fn ($l) => $l['linked_module'] . ':' . $l['linked_id'], ArchiveFile::links($file['id'])),
         ]);
     }
 
@@ -193,6 +196,7 @@ class ArchiveFileController
             $meta['visibility_type'] === 'specific_users' ? (array) Request::input('access_users', []) : []
         );
         $this->syncTagsFromRequest($companyId, $file['id']);
+        $this->syncLinksFromRequest($companyId, $file['id']);
 
         ArchiveFileLog::add($file['id'], Auth::id(), $categoryChanged ? 'category_changed' : 'updated', $categoryChanged ? 'تم تغيير تصنيف الملف' : 'تم تعديل بيانات الملف');
         ActivityLog::log('archive.update', 'archive_file', $file['id'], "تعديل ملف: {$file['original_name']}");
@@ -605,8 +609,6 @@ class ArchiveFileController
             $visibility = 'inherit';
         }
 
-        [$linkMod, $linkId, $linkLabel] = $this->parseLink($companyId, (string) Request::input('linked', ''));
-
         return [
             'category_id' => $categoryId,
             'title' => $title ?: null,
@@ -615,23 +617,29 @@ class ArchiveFileController
             'notes' => $notes ?: null,
             'visibility_type' => $visibility,
             'expires_at' => $expiresAt,
-            'linked_module' => $linkMod,
-            'linked_id' => $linkId,
-            'linked_label' => $linkLabel,
         ];
     }
 
-    /** خريطة أنواع الكيانات القابلة للربط: moduleKey => [الجدول, عمود الاسم, مسار العرض]. */
+    /**
+     * خريطة أنواع الكيانات القابلة للربط: module => [الجدول, عمود الاسم, يتطلب تفعيل إضافة؟].
+     * 'users' كيان نواة (أصحاب العضويات) لا يتبع إضافة، فلا يشترط تفعيلاً.
+     */
     private function linkableTypes(): array
     {
         return [
-            'documents' => ['documents_documents', 'title', '/documents/'],
-            'assets' => ['assets_assets', 'name', '/custody/'],
-            'employees' => ['employees_profiles', 'full_name', '/employees/'],
+            'documents' => ['documents_documents', 'title', true],
+            'assets' => ['assets_assets', 'name', true],
+            'employees' => ['employees_profiles', 'full_name', true],
+            'users' => ['users', 'name', false],
         ];
     }
 
-    /** يحلّل "module:id" ويتحقق من ملكية الشركة وتفعيل الإضافة. يُرجع [module,id,label] أو [null,null,null]. */
+    private function typeActive(string $mod, bool $needsModule): bool
+    {
+        return !$needsModule || \App\Core\ModuleManager::isActive($mod);
+    }
+
+    /** يحلّل "module:id" ويتحقق من ملكية الشركة والتفعيل. يُرجع [module,id,label] أو [null,null,null]. */
     private function parseLink(int $companyId, string $raw): array
     {
         if ($raw === '' || !str_contains($raw, ':')) {
@@ -640,31 +648,85 @@ class ArchiveFileController
         [$mod, $id] = explode(':', $raw, 2);
         $id = (int) $id;
         $types = $this->linkableTypes();
-        if (!isset($types[$mod]) || $id < 1 || !\App\Core\ModuleManager::isActive($mod)) {
+        if (!isset($types[$mod]) || $id < 1) {
             return [null, null, null];
         }
-        [$table, $nameCol] = $types[$mod];
+        [$table, $nameCol, $needsModule] = $types[$mod];
+        if (!$this->typeActive($mod, $needsModule)) {
+            return [null, null, null];
+        }
         $row = Database::first("SELECT `{$nameCol}` AS label FROM `{$table}` WHERE id = :id AND company_id = :c", ['id' => $id, 'c' => $companyId]);
         return $row ? [$mod, $id, mb_substr((string) $row['label'], 0, 200)] : [null, null, null];
     }
 
-    /** قوائم الكيانات القابلة للربط مجمّعة حسب الإضافة (للنموذج). */
+    /**
+     * الكيانات القابلة للربط مجمّعة حسب عنوان معروض، وكل عنصر يحمل إضافته الفعلية.
+     * "الأشخاص" = موظفو الملف الوظيفي + أصحاب العضويات (المستخدمون) - مع منع التكرار:
+     * المستخدم المربوط بملف وظيفي يظهر مرة واحدة كموظف فقط.
+     */
     private function linkableEntities(int $companyId): array
     {
         $out = [];
-        foreach ($this->linkableTypes() as $mod => [$table, $nameCol]) {
-            if (!\App\Core\ModuleManager::isActive($mod)) {
-                continue;
-            }
-            $out[$mod] = Database::select(
-                "SELECT id, `{$nameCol}` AS label FROM `{$table}` WHERE company_id = :c ORDER BY `{$nameCol}` LIMIT 500",
+        if (\App\Core\ModuleManager::isActive('documents')) {
+            $out['مستند'] = $this->rowsFor($companyId, 'documents', 'documents_documents', 'title');
+        }
+        if (\App\Core\ModuleManager::isActive('assets')) {
+            $out['أصل / عهدة'] = $this->rowsFor($companyId, 'assets', 'assets_assets', 'name');
+        }
+
+        // الأشخاص: موظفون (إن كانت الإضافة مفعّلة) + مستخدمون غير مربوطين بملف وظيفي
+        $persons = [];
+        $linkedUserIds = [];
+        if (\App\Core\ModuleManager::isActive('employees')) {
+            foreach (Database::select(
+                "SELECT id, full_name, linked_user_id FROM employees_profiles WHERE company_id = :c ORDER BY full_name LIMIT 1000",
                 ['c' => $companyId]
-            );
+            ) as $e) {
+                $persons[] = ['module' => 'employees', 'id' => (int) $e['id'], 'label' => $e['full_name']];
+                if (!empty($e['linked_user_id'])) {
+                    $linkedUserIds[(int) $e['linked_user_id']] = true;
+                }
+            }
+        }
+        foreach (Database::select(
+            "SELECT id, name, email FROM users WHERE company_id = :c ORDER BY name LIMIT 1000",
+            ['c' => $companyId]
+        ) as $u) {
+            if (isset($linkedUserIds[(int) $u['id']])) {
+                continue; // مربوط بملف وظيفي - ظهر كموظف
+            }
+            $persons[] = ['module' => 'users', 'id' => (int) $u['id'], 'label' => $u['name'] . ' (حساب)'];
+        }
+        if ($persons) {
+            $out['شخص'] = $persons;
         }
         return $out;
     }
 
-    /** مسار عرض الكيان المرتبط. */
+    private function rowsFor(int $companyId, string $mod, string $table, string $nameCol): array
+    {
+        $rows = Database::select(
+            "SELECT id, `{$nameCol}` AS label FROM `{$table}` WHERE company_id = :c ORDER BY `{$nameCol}` LIMIT 1000",
+            ['c' => $companyId]
+        );
+        return array_map(fn ($r) => ['module' => $mod, 'id' => (int) $r['id'], 'label' => $r['label']], $rows);
+    }
+
+    /** يقرأ روابط النموذج المتعددة (linked[]) ويستبدل روابط الملف. */
+    private function syncLinksFromRequest(int $companyId, int $fileId): void
+    {
+        $raw = (array) ($_POST['linked'] ?? []);
+        $links = [];
+        foreach ($raw as $value) {
+            [$mod, $id, $label] = $this->parseLink($companyId, (string) $value);
+            if ($mod !== null) {
+                $links[] = ['module' => $mod, 'id' => $id, 'label' => $label];
+            }
+        }
+        ArchiveFile::setLinks($fileId, $links);
+    }
+
+    /** مسار عرض الكيان المرتبط (المستخدمون بلا صفحة عرض عامة). */
     public static function linkUrl(?string $mod, $id): ?string
     {
         if (!$mod || !$id) {
@@ -672,5 +734,11 @@ class ArchiveFileController
         }
         $paths = ['documents' => '/documents/', 'assets' => '/custody/', 'employees' => '/employees/'];
         return isset($paths[$mod]) ? route($paths[$mod] . (int) $id) : null;
+    }
+
+    /** أيقونة نوع الكيان المرتبط (للعرض). */
+    public static function linkIcon(?string $mod): string
+    {
+        return ['documents' => '📄', 'assets' => '📦', 'employees' => '👤', 'users' => '👤'][$mod] ?? '🔗';
     }
 }

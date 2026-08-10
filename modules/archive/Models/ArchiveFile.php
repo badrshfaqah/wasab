@@ -138,6 +138,38 @@ class ArchiveFile
         );
     }
 
+    /** الكيانات المرتبطة بالملف (ربط متعدد). */
+    public static function links(int $fileId): array
+    {
+        return Database::select(
+            'SELECT linked_module, linked_id, linked_label FROM archive_file_links WHERE file_id = :id ORDER BY id',
+            ['id' => $fileId]
+        );
+    }
+
+    /**
+     * استبدال روابط الملف بالكامل. $links مصفوفة من ['module'=>..,'id'=>..,'label'=>..].
+     */
+    public static function setLinks(int $fileId, array $links): void
+    {
+        Database::delete('archive_file_links', 'file_id = :id', ['id' => $fileId]);
+        $seen = [];
+        foreach ($links as $l) {
+            $key = $l['module'] . ':' . $l['id'];
+            if (isset($seen[$key])) {
+                continue;
+            }
+            $seen[$key] = true;
+            Database::insert('archive_file_links', [
+                'file_id' => $fileId,
+                'linked_module' => $l['module'],
+                'linked_id' => (int) $l['id'],
+                'linked_label' => $l['label'] !== null ? mb_substr((string) $l['label'], 0, 200) : null,
+                'created_at' => date('Y-m-d H:i:s'),
+            ]);
+        }
+    }
+
     /**
      * فحص إمكانية مشاهدة مستخدم عادي لملف واحد (بعد التحقق من نفس الشركة وصلاحية
      * archive.view الأساسية في الكونترولر). system_admin يتجاوز كل شيء دائماً

@@ -76,4 +76,28 @@ return function (PDO $pdo, string $fromVersion): void {
             $pdo->exec("ALTER TABLE `archive_files` ADD COLUMN `linked_label` VARCHAR(200) NULL COMMENT 'اسم الكيان المرتبط (لقطة)' AFTER `linked_id`");
         }
     }
+
+    if (version_compare($fromVersion, '1.4.0', '<')) {
+        // ربط متعدد: جدول جديد يستوعب عدة كيانات لكل ملف، مع ترحيل الربط الأحادي القديم.
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS `archive_file_links` (
+                `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                `file_id` INT UNSIGNED NOT NULL,
+                `linked_module` VARCHAR(50) NOT NULL,
+                `linked_id` INT UNSIGNED NOT NULL,
+                `linked_label` VARCHAR(200) NULL,
+                `created_at` DATETIME NOT NULL,
+                UNIQUE KEY `archive_file_links_unique` (`file_id`, `linked_module`, `linked_id`),
+                KEY `archive_file_links_file_index` (`file_id`),
+                CONSTRAINT `archive_file_links_file_fk` FOREIGN KEY (`file_id`) REFERENCES `archive_files`(`id`) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        ");
+        // ترحيل الروابط الأحادية القائمة إلى الجدول الجديد (دون تكرار)
+        $pdo->exec("
+            INSERT IGNORE INTO `archive_file_links` (`file_id`, `linked_module`, `linked_id`, `linked_label`, `created_at`)
+            SELECT `id`, `linked_module`, `linked_id`, `linked_label`, NOW()
+              FROM `archive_files`
+             WHERE `linked_module` IS NOT NULL AND `linked_id` IS NOT NULL
+        ");
+    }
 };

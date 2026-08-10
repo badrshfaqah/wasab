@@ -76,24 +76,21 @@
         </div>
 
         <?php if (!empty($linkables)): ?>
-        <?php
-        $modLabels = ['documents' => 'مستند', 'assets' => 'أصل/عهدة', 'employees' => 'موظف'];
-        $curLink = ($file['linked_module'] ?? '') !== '' ? $file['linked_module'] . ':' . (int) ($file['linked_id'] ?? 0) : '';
-        ?>
+        <?php $curLinks = array_flip($currentLinks ?? []); ?>
         <div class="field">
-            <label>ربط بكيان (اختياري) — لتتبّع الملف</label>
-            <select name="linked">
-                <option value="">— بدون —</option>
-                <?php foreach ($linkables as $mod => $rows): ?>
+            <label>ربط بكيانات (اختياري) — لتتبّع الملف</label>
+            <select name="linked[]" multiple size="8" style="min-height:auto;">
+                <?php foreach ($linkables as $groupLabel => $rows): ?>
                     <?php if ($rows): ?>
-                    <optgroup label="<?= e($modLabels[$mod] ?? $mod) ?>">
-                        <?php foreach ($rows as $r): ?>
-                            <option value="<?= $mod . ':' . $r['id'] ?>" <?= $curLink === $mod . ':' . $r['id'] ? 'selected' : '' ?>><?= e($r['label']) ?></option>
+                    <optgroup label="<?= e($groupLabel) ?>">
+                        <?php foreach ($rows as $r): $val = $r['module'] . ':' . $r['id']; ?>
+                            <option value="<?= e($val) ?>" <?= isset($curLinks[$val]) ? 'selected' : '' ?>><?= e($r['label']) ?></option>
                         <?php endforeach; ?>
                     </optgroup>
                     <?php endif; ?>
                 <?php endforeach; ?>
             </select>
+            <p class="hint">اختيار متعدد: اضغط Ctrl (أو ⌘) لتحديد أكثر من كيان. «شخص» يشمل موظفي الملف الوظيفي وأصحاب العضويات.</p>
         </div>
         <?php endif; ?>
 

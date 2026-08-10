@@ -89,6 +89,22 @@ return function (PDO $pdo): void {
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     ");
 
+    // ربط متعدد: ملف مؤرشف واحد يُربط بعدة كيانات (مستندات/أصول/أشخاص). الاسم يُحفظ
+    // كلقطة ليبقى العرض سليماً لو حُذف الكيان الأصلي لاحقاً.
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS `archive_file_links` (
+            `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            `file_id` INT UNSIGNED NOT NULL,
+            `linked_module` VARCHAR(50) NOT NULL COMMENT 'documents/assets/employees/users',
+            `linked_id` INT UNSIGNED NOT NULL,
+            `linked_label` VARCHAR(200) NULL,
+            `created_at` DATETIME NOT NULL,
+            UNIQUE KEY `archive_file_links_unique` (`file_id`, `linked_module`, `linked_id`),
+            KEY `archive_file_links_file_index` (`file_id`),
+            CONSTRAINT `archive_file_links_file_fk` FOREIGN KEY (`file_id`) REFERENCES `archive_files`(`id`) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    ");
+
     $pdo->exec("
         CREATE TABLE IF NOT EXISTS `archive_file_shares` (
             `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,

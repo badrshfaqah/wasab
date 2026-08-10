@@ -70,14 +70,15 @@ $logLabels = [
             <tr><td class="hint">الكلمات المفتاحية</td><td><?= e($file['keywords'] ?: '—') ?></td></tr>
             <tr><td class="hint">ملاحظات</td><td><?= e($file['notes'] ?: '—') ?></td></tr>
             <tr><td class="hint">تاريخ انتهاء الصلاحية</td><td><?= $file['expires_at'] ? format_date($file['expires_at']) : '—' ?></td></tr>
-            <?php if (!empty($file['linked_module']) && !empty($file['linked_label'])): ?>
-                <?php
-                $modIcons = ['documents' => '📄', 'assets' => '📦', 'employees' => '👤'];
-                $lUrl = \Modules\Archive\Controllers\ArchiveFileController::linkUrl($file['linked_module'], $file['linked_id']);
-                ?>
-                <tr><td class="hint">مرتبط بـ</td><td>
-                    <?= $modIcons[$file['linked_module']] ?? '🔗' ?>
-                    <?php if ($lUrl): ?><a href="<?= $lUrl ?>"><?= e($file['linked_label']) ?></a><?php else: ?><?= e($file['linked_label']) ?><?php endif; ?>
+            <?php if (!empty($links)): ?>
+                <tr><td class="hint">مرتبط بـ</td><td style="display:flex;flex-wrap:wrap;gap:6px;">
+                    <?php foreach ($links as $l): ?>
+                        <?php $lUrl = \Modules\Archive\Controllers\ArchiveFileController::linkUrl($l['linked_module'], $l['linked_id']); ?>
+                        <span class="badge badge-muted" style="display:inline-flex;align-items:center;gap:4px;">
+                            <?= \Modules\Archive\Controllers\ArchiveFileController::linkIcon($l['linked_module']) ?>
+                            <?php if ($lUrl): ?><a href="<?= $lUrl ?>"><?= e($l['linked_label']) ?></a><?php else: ?><?= e($l['linked_label']) ?><?php endif; ?>
+                        </span>
+                    <?php endforeach; ?>
                 </td></tr>
             <?php endif; ?>
             <tr><td class="hint">رافع الملف</td><td><?= e($file['uploader_name'] ?? '-') ?></td></tr>
