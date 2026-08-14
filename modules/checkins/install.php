@@ -32,4 +32,18 @@ return function (PDO $pdo): void {
             CONSTRAINT `checkins_entry_tasks_entry_fk` FOREIGN KEY (`entry_id`) REFERENCES `checkins_entries`(`id`) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     ");
+
+    // سجل الحضور والانصراف: سجل واحد لكل مستخدم/يوم، النظام نفسه هو "البصمة"
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS `checkins_attendance` (
+            `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            `company_id` INT UNSIGNED NOT NULL,
+            `user_id` INT UNSIGNED NOT NULL,
+            `work_date` DATE NOT NULL,
+            `in_at` DATETIME NOT NULL,
+            `out_at` DATETIME NULL,
+            UNIQUE KEY `checkins_attendance_unique` (`company_id`, `user_id`, `work_date`),
+            KEY `checkins_attendance_date_index` (`work_date`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    ");
 };

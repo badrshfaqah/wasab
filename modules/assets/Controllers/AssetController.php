@@ -395,10 +395,23 @@ class AssetController
         }
 
         $categoryId = (int) Request::input('category_id', 0) ?: null;
+        $customJson = null;
         if ($categoryId) {
             $cat = AssetCategory::find($categoryId);
             if (!$cat || (int) $cat['company_id'] !== $companyId) {
                 $categoryId = null;
+            } else {
+                // قيم الحقول المخصصة: تُقبل فقط الحقول المعرّفة على التصنيف المختار
+                $defined = AssetCategory::fields($cat);
+                $submitted = (array) ($_POST['custom'] ?? []);
+                $values = [];
+                foreach ($defined as $fieldName) {
+                    $v = trim((string) ($submitted[$fieldName] ?? ''));
+                    if ($v !== '') {
+                        $values[$fieldName] = mb_substr($v, 0, 255);
+                    }
+                }
+                $customJson = $values ? json_encode($values, JSON_UNESCAPED_UNICODE) : null;
             }
         }
 
@@ -413,6 +426,7 @@ class AssetController
         return [
             'name' => mb_substr($name, 0, 180),
             'category_id' => $categoryId,
+            'custom_json' => $customJson,
             'asset_code' => mb_substr(trim((string) Request::input('asset_code', '')), 0, 80) ?: null,
             'serial_number' => mb_substr(trim((string) Request::input('serial_number', '')), 0, 120) ?: null,
             'status' => $status,

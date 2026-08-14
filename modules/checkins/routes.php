@@ -10,6 +10,9 @@ return function (Router $router): void {
 
     $router->get('/checkins', [CheckinController::class, 'index'], [$auth]);
     $router->post('/checkins', [CheckinController::class, 'store'], [$auth]);
+    $router->get('/checkins/attendance', [CheckinController::class, 'attendance'], [$auth]);
+    $router->post('/checkins/attendance/in', [CheckinController::class, 'attendanceIn'], [$auth]);
+    $router->post('/checkins/attendance/out', [CheckinController::class, 'attendanceOut'], [$auth]);
     $router->get('/checkins/team', [CheckinController::class, 'team'], [$auth]);
     $router->get('/checkins/report', [CheckinController::class, 'report'], [$auth]);
     $router->post('/checkins/blocker-to-task', [CheckinController::class, 'blockerToTask'], [$auth]);

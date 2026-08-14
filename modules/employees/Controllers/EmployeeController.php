@@ -201,6 +201,87 @@ class EmployeeController
         redirect('/employees/' . $employeeId);
     }
 
+    /** استيراد موظفين جماعي من ملف CSV - نموذج الرفع. */
+    public function importForm(): void
+    {
+        $this->requireCompanyContext();
+        if (!$this->can('employees.create')) {
+            $this->forbidden();
+            return;
+        }
+        View::render('employees::import', ['pageTitle' => 'استيراد موظفين']);
+    }
+
+    /** معالجة ملف الاستيراد: كل سطر ملف وظيفي جديد بحالة "نشط". */
+    public function import(): void
+    {
+        $companyId = $this->requireCompanyContext();
+        if (!$this->can('employees.create')) {
+            $this->forbidden();
+            return;
+        }
+        $this->verifyCsrf('/employees/import');
+
+        $file = $_FILES['file'] ?? null;
+        if (!$file || ($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK || !is_uploaded_file($file['tmp_name'])) {
+            flash_set('error', 'يرجى اختيار ملف CSV صالح.');
+            redirect('/employees/import');
+        }
+        if (($file['size'] ?? 0) > 2 * 1024 * 1024) {
+            flash_set('error', 'حجم الملف كبير (الحد 2 ميجابايت).');
+            redirect('/employees/import');
+        }
+
+        $handle = fopen($file['tmp_name'], 'r');
+        if ($handle === false) {
+            flash_set('error', 'تعذر قراءة الملف.');
+            redirect('/employees/import');
+        }
+
+        $now = date('Y-m-d H:i:s');
+        $imported = 0;
+        $skipped = 0;
+        $rowNum = 0;
+        while (($row = fgetcsv($handle)) !== false) {
+            $rowNum++;
+            // تخطّي سطر العناوين (إن احتوى "الاسم" أو "name")
+            if ($rowNum === 1 && (mb_stripos((string) ($row[0] ?? ''), 'الاسم') !== false || stripos((string) ($row[0] ?? ''), 'name') !== false)) {
+                continue;
+            }
+            $name = trim((string) ($row[0] ?? ''));
+            if ($name === '') {
+                $skipped++;
+                continue;
+            }
+            // الأعمدة: الاسم، الهوية، المسمى الوظيفي، القسم، الجوال، تاريخ التعيين، نوع التوظيف
+            $hireDate = trim((string) ($row[5] ?? ''));
+            $hireDate = ($hireDate !== '' && strtotime($hireDate)) ? date('Y-m-d', strtotime($hireDate)) : null;
+            $empType = strtolower(trim((string) ($row[6] ?? '')));
+            if (!in_array($empType, self::EMPLOYMENT_TYPES, true)) {
+                $empType = 'full_time';
+            }
+
+            Employee::create([
+                'company_id' => $companyId,
+                'full_name' => mb_substr($name, 0, 200),
+                'national_id' => mb_substr(trim((string) ($row[1] ?? '')), 0, 50) ?: null,
+                'job_title' => mb_substr(trim((string) ($row[2] ?? '')), 0, 150) ?: null,
+                'department' => mb_substr(trim((string) ($row[3] ?? '')), 0, 150) ?: null,
+                'phone' => mb_substr(trim((string) ($row[4] ?? '')), 0, 50) ?: null,
+                'hire_date' => $hireDate,
+                'employment_type' => $empType,
+                'status' => 'active',
+                'created_by' => Auth::id(),
+            ]);
+            $imported++;
+        }
+        fclose($handle);
+
+        ActivityLog::log('employees.import', 'employee', null, "استيراد موظفين جماعي: {$imported} ملفاً");
+        flash_set('success', "تم استيراد {$imported} موظفاً" . ($skipped > 0 ? " (تُخطّي {$skipped} سطراً فارغاً)" : '') . '.');
+        redirect('/employees');
+    }
+
     public function show(array $params): void
     {
         $companyId = $this->requireCompanyContext();
@@ -861,6 +942,7 @@ class EmployeeController
             'branch' => trim((string) Request::input('branch', '')) ?: null,
             'hire_date' => Request::input('hire_date') ?: null,
             'employment_type' => $employmentType,
+            'annual_leave_balance' => max(0, min(365, (int) Request::input('annual_leave_balance', 30))),
             'status' => $status,
             'skills' => trim((string) Request::input('skills', '')) ?: null,
             'languages' => trim((string) Request::input('languages', '')) ?: null,

@@ -30,6 +30,7 @@ return function (PDO $pdo): void {
             `branch` VARCHAR(150) NULL,
             `hire_date` DATE NULL,
             `employment_type` ENUM('full_time','part_time','contract') NOT NULL DEFAULT 'full_time',
+            `annual_leave_balance` INT NOT NULL DEFAULT 30 COMMENT 'رصيد الإجازة السنوية بالأيام - تُخصم منه الإجازات المعتمدة',
             `status` ENUM('active','on_leave','suspended','terminated') NOT NULL DEFAULT 'active',
             `contract_type` VARCHAR(100) NULL,
             `contract_start_date` DATE NULL,
@@ -155,6 +156,33 @@ return function (PDO $pdo): void {
             `created_at` DATETIME NOT NULL,
             KEY `employees_timeline_employee_index` (`employee_id`),
             CONSTRAINT `employees_timeline_employee_fk` FOREIGN KEY (`employee_id`) REFERENCES `employees_profiles`(`id`) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    ");
+
+    // طلبات الإجازات والأذونات: يقدّمها الموظف، يعتمدها/يرفضها المدير، وتُخصم
+    // الإجازة السنوية المعتمدة من رصيد الموظف تلقائياً.
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS `employees_leaves` (
+            `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            `company_id` INT UNSIGNED NOT NULL,
+            `employee_id` INT UNSIGNED NOT NULL,
+            `type` ENUM('annual','sick','hours','unpaid','other') NOT NULL DEFAULT 'annual',
+            `start_date` DATE NOT NULL,
+            `end_date` DATE NOT NULL,
+            `hours` DECIMAL(4,1) NULL COMMENT 'عدد ساعات الإذن (لنوع hours فقط)',
+            `days_count` INT UNSIGNED NOT NULL DEFAULT 1 COMMENT 'عدد الأيام شاملاً الطرفين',
+            `reason` VARCHAR(500) NULL,
+            `status` ENUM('pending','approved','rejected') NOT NULL DEFAULT 'pending',
+            `decided_by` INT UNSIGNED NULL,
+            `decided_at` DATETIME NULL,
+            `decision_note` VARCHAR(255) NULL,
+            `created_by` INT UNSIGNED NULL,
+            `created_at` DATETIME NOT NULL,
+            KEY `employees_leaves_company_index` (`company_id`),
+            KEY `employees_leaves_employee_index` (`employee_id`),
+            KEY `employees_leaves_status_index` (`status`),
+            KEY `employees_leaves_range_index` (`start_date`, `end_date`),
+            CONSTRAINT `employees_leaves_employee_fk` FOREIGN KEY (`employee_id`) REFERENCES `employees_profiles`(`id`) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     ");
 };

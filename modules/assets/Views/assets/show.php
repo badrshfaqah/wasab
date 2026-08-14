@@ -45,6 +45,11 @@ $actionLabels = ['created' => 'تسجيل', 'updated' => 'تعديل', 'assigned
             <tr><th>تاريخ الشراء</th><td><?= $asset['purchase_date'] ? format_date($asset['purchase_date']) : '—' ?></td></tr>
             <tr><th>قيمة الشراء</th><td><?= $asset['purchase_cost'] !== null ? number_format((float) $asset['purchase_cost'], 2) : '—' ?></td></tr>
             <tr><th>انتهاء الضمان</th><td><?= $asset['warranty_expiry'] ? format_date($asset['warranty_expiry']) : '—' ?></td></tr>
+            <?php
+            $customValues = !empty($asset['custom_json']) ? (json_decode((string) $asset['custom_json'], true) ?: []) : [];
+            foreach ($customValues as $cfName => $cfVal): ?>
+                <tr><th><?= e($cfName) ?></th><td><?= e((string) $cfVal) ?></td></tr>
+            <?php endforeach; ?>
             <?php if ($asset['notes']): ?><tr><th>ملاحظات</th><td><?= nl2br(e($asset['notes'])) ?></td></tr><?php endif; ?>
         </tbody></table></div>
 

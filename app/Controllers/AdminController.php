@@ -87,6 +87,25 @@ class AdminController
         redirect('/admin');
     }
 
+    /** نسخة شاملة: قاعدة البيانات + كل المرفقات في ملف ZIP واحد. */
+    public function backupFull(): void
+    {
+        if (!Csrf::verify(Request::input('_csrf'))) {
+            flash_set('error', 'انتهت صلاحية الجلسة، حاول مرة أخرى.');
+            redirect('/admin');
+        }
+        // قد تستغرق وقتاً مع مرفقات كثيرة على استضافة مشتركة
+        @set_time_limit(300);
+        $path = Backup::runFull();
+        if ($path) {
+            \App\Core\ActivityLog::log('admin.backup_full', 'backup', 0, 'إنشاء نسخة شاملة (قاعدة بيانات + مرفقات)');
+            flash_set('success', 'تم إنشاء النسخة الشاملة: ' . basename($path));
+        } else {
+            flash_set('error', 'تعذّر إنشاء النسخة الشاملة (تأكد من توفر امتداد zip).');
+        }
+        redirect('/admin');
+    }
+
     /** تنزيل ملف نسخة احتياطية (مدير النظام فقط، اسم مُتحقَّق منه). */
     public function backupDownload(array $params): void
     {
@@ -96,7 +115,7 @@ class AdminController
             echo 'not found';
             return;
         }
-        header('Content-Type: application/gzip');
+        header('Content-Type: ' . (str_ends_with($path, '.zip') ? 'application/zip' : 'application/gzip'));
         header('Content-Disposition: attachment; filename="' . basename($path) . '"');
         header('Content-Length: ' . filesize($path));
         readfile($path);

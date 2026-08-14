@@ -59,12 +59,18 @@ $stat = function (string $label, $value, string $icon, string $sub = '') {
 <div class="card">
     <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;">
         <span>النسخ الاحتياطية</span>
-        <form method="post" action="<?= route('/admin/backup/run') ?>" onsubmit="return confirm('إنشاء نسخة احتياطية كاملة الآن؟');">
-            <?= csrf_field() ?>
-            <button class="btn btn-sm" type="submit">💾 إنشاء نسخة الآن</button>
-        </form>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <form method="post" action="<?= route('/admin/backup/run') ?>" onsubmit="return confirm('إنشاء نسخة قاعدة بيانات الآن؟');">
+                <?= csrf_field() ?>
+                <button class="btn btn-sm" type="submit">💾 نسخة قاعدة البيانات</button>
+            </form>
+            <form method="post" action="<?= route('/admin/backup/full') ?>" onsubmit="return confirm('إنشاء نسخة شاملة (قاعدة البيانات + كل المرفقات)؟ قد تستغرق دقائق حسب حجم الملفات.');">
+                <?= csrf_field() ?>
+                <button class="btn btn-outline btn-sm" type="submit">🗜️ نسخة شاملة (مع المرفقات)</button>
+            </form>
+        </div>
     </div>
-    <p class="hint" style="margin-top:0;">نسخة كاملة من قاعدة البيانات تُنشأ تلقائياً يومياً (يُحتفظ بآخر 7 نسخ). الملفات محميّة ولا تُنزَّل إلا من هنا.</p>
+    <p class="hint" style="margin-top:0;">نسخة قاعدة البيانات تُنشأ تلقائياً يومياً (آخر 7 نسخ). النسخة الشاملة تضمّ المرفقات أيضاً في ملف ZIP واحد (يُحتفظ بآخر نسختين) وتُنشأ يدوياً فقط.</p>
     <?php if (!$backups): ?>
         <p class="hint">لا توجد نسخ بعد — ستُنشأ أول نسخة تلقائياً عند تشغيل المجدول، أو أنشئها الآن.</p>
     <?php else: ?>

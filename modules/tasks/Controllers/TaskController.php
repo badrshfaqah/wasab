@@ -986,7 +986,7 @@ class TaskController
         if (!$type || !$id) {
             return null;
         }
-        $paths = ['document' => '/documents/', 'asset' => '/custody/', 'employee' => '/employees/'];
+        $paths = ['document' => '/documents/', 'asset' => '/custody/', 'employee' => '/employees/', 'meeting' => '/meetings/'];
         return isset($paths[$type]) ? route($paths[$type] . (int) $id) : null;
     }
 }

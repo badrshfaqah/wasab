@@ -19,6 +19,7 @@ $renderStat = function (array $s): string {
 ?>
 <div class="page-head">
     <div><h1>التقارير</h1><p>أرقام الشركة من كل الإضافات المفعّلة في مكان واحد.</p></div>
+    <a class="btn" href="<?= route('/reports/monthly') ?>" target="_blank" rel="noopener">🖨️ التقرير الشهري (PDF)</a>
 </div>
 
 <?php if (!$grouped && !$coreStats): ?>

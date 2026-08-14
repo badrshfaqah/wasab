@@ -70,6 +70,11 @@ $e = $employee ?? [];
             </div>
         </div>
         <div class="field">
+            <label>رصيد الإجازة السنوية (أيام)</label>
+            <input type="number" name="annual_leave_balance" min="0" max="365" value="<?= (int) ($e['annual_leave_balance'] ?? 30) ?>">
+            <p class="hint">تُخصم منه الإجازات السنوية المعتمدة تلقائياً.</p>
+        </div>
+        <div class="field">
             <label>حالة الموظف</label>
             <select name="status">
                 <?php foreach ($statusLabels as $key => $label): ?>

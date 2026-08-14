@@ -28,15 +28,33 @@ return function (array $user): array {
         'url' => route('/employees'),
     ];
 
-    $onLeave = Employee::countByStatus($companyId, 'on_leave');
+    // يشمل من لديهم إجازة معتمدة تغطي اليوم + من حالتهم "بإجازة" يدوياً
+    $onLeave = \Modules\Employees\Models\EmployeeLeave::onLeaveTodayCount($companyId);
     $widgets[] = [
         'type' => 'stat',
         'label' => 'موظفون بإجازة حالياً',
         'value' => $onLeave,
         'icon' => '🌴',
         'color' => $onLeave > 0 ? 'warning' : 'success',
-        'url' => route('/employees?status=on_leave'),
+        'url' => route('/employees/leaves'),
     ];
+
+    // طلبات الإجازة المعلّقة - لمن يقرر فيها فقط
+    $canDecide = Permission::check('employees.manage') || Permission::check('employees.edit')
+        || $user['membership_type'] === 'system_admin' || $user['membership_type'] === 'company_admin';
+    if ($canDecide) {
+        $pendingLeaves = \Modules\Employees\Models\EmployeeLeave::countPending($companyId);
+        if ($pendingLeaves > 0) {
+            $widgets[] = [
+                'type' => 'stat',
+                'label' => 'طلبات إجازة بانتظارك',
+                'value' => $pendingLeaves,
+                'icon' => '📨',
+                'color' => 'warning',
+                'url' => route('/employees/leaves'),
+            ];
+        }
+    }
 
     // تنبيه الوثائق المنتهية/القريبة - بيانات حسّاسة فتُعرض لمن يملك صلاحية ذلك فقط
     if (Permission::check('employees.view_sensitive') || Permission::check('employees.manage')) {

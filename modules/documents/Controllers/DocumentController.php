@@ -116,7 +116,51 @@ class DocumentController
             'canApprove' => $this->can('documents.approve'),
             'canSign' => $this->can('documents.sign'),
             'mySignatures' => \App\Core\UserSignature::forUser(Auth::id()),
+            'approvals' => Database::select(
+                'SELECT a.*, u.name AS approver_name FROM documents_approvals a LEFT JOIN users u ON u.id = a.approved_by WHERE a.document_id = :d ORDER BY a.step_no',
+                ['d' => $document['id']]
+            ),
+            'approvalSteps' => max(1, min(2, (int) (DocumentSetting::getOrCreate($companyId)['approval_steps'] ?? 1))),
+            'comments' => Database::select(
+                'SELECT c.*, u.name AS user_name FROM documents_comments c LEFT JOIN users u ON u.id = c.user_id WHERE c.document_id = :d ORDER BY c.id',
+                ['d' => $document['id']]
+            ),
         ]);
+    }
+
+    /** إضافة تعليق على المستند + تنبيه المنشئ والمشاركين السابقين بالنقاش. */
+    public function comment(array $params): void
+    {
+        $companyId = $this->requireCompanyContext();
+        $document = $this->findVisible((int) $params['id'], $companyId);
+        $this->verifyCsrf('/documents/' . $document['id']);
+
+        $body = trim((string) Request::input('body', ''));
+        if ($body === '') {
+            flash_set('error', 'اكتب نص التعليق.');
+            redirect('/documents/' . $document['id']);
+        }
+
+        Database::insert('documents_comments', [
+            'document_id' => $document['id'],
+            'user_id' => Auth::id(),
+            'body' => mb_substr($body, 0, 2000),
+            'created_at' => date('Y-m-d H:i:s'),
+        ]);
+
+        // تنبيه المنشئ + كل من علّق سابقاً (عدا كاتب التعليق نفسه)
+        $notify = [(int) $document['created_by'] => true];
+        foreach (Database::select('SELECT DISTINCT user_id FROM documents_comments WHERE document_id = :d', ['d' => $document['id']]) as $c) {
+            $notify[(int) $c['user_id']] = true;
+        }
+        unset($notify[Auth::id()]);
+        foreach (array_keys($notify) as $uid) {
+            Notification::send($uid, '💬 تعليق جديد على مستند', $document['title'], route('/documents/' . $document['id']));
+        }
+
+        DocumentLog::add($document['id'], Auth::id(), 'commented', 'إضافة تعليق');
+        flash_set('success', 'أُضيف تعليقك.');
+        redirect('/documents/' . $document['id']);
     }
 
     public function edit(array $params): void
@@ -274,6 +318,46 @@ class DocumentController
                     $this->forbidden();
                     return;
                 }
+
+                // اعتماد متعدد المراحل: عدد المراحل من الإعدادات، وكل معتمِد مرة واحدة،
+                // والمرحلة الأخيرة (عند تعدد المراحل) لمدير الشركة/النظام حصراً.
+                $steps = max(1, min(2, (int) (DocumentSetting::getOrCreate($companyId)['approval_steps'] ?? 1)));
+                $done = Database::select(
+                    'SELECT * FROM documents_approvals WHERE document_id = :d ORDER BY step_no',
+                    ['d' => $document['id']]
+                );
+                foreach ($done as $ap) {
+                    if ((int) $ap['approved_by'] === Auth::id()) {
+                        flash_set('error', 'سبق أن اعتمدتَ هذا المستند في مرحلة سابقة — الاعتماد التالي لشخص آخر.');
+                        redirect('/documents/' . $document['id']);
+                    }
+                }
+                $currentStep = count($done) + 1;
+                if ($steps > 1 && $currentStep >= $steps && !Auth::isCompanyAdmin() && !Auth::isSystemAdmin()) {
+                    flash_set('error', 'الاعتماد النهائي (المرحلة ' . $steps . ') يتطلب مدير الشركة.');
+                    redirect('/documents/' . $document['id']);
+                }
+
+                Database::insert('documents_approvals', [
+                    'document_id' => $document['id'],
+                    'step_no' => $currentStep,
+                    'approved_by' => Auth::id(),
+                    'approved_at' => date('Y-m-d H:i:s'),
+                ]);
+
+                if ($currentStep < $steps) {
+                    // مرحلة وسطى: يبقى المستند بانتظار الاعتماد النهائي
+                    DocumentLog::add($document['id'], Auth::id(), 'approved', "اعتماد المرحلة {$currentStep} من {$steps}");
+                    foreach (Database::select(
+                        "SELECT id FROM users WHERE company_id = :c AND membership_type = 'company_admin' AND status = 'active' AND id != :me",
+                        ['c' => $companyId, 'me' => Auth::id()]
+                    ) as $admin) {
+                        Notification::send((int) $admin['id'], '📄 مستند بانتظار اعتمادك النهائي', $document['title'], route('/documents/' . $document['id']));
+                    }
+                    flash_set('success', "تم اعتماد المرحلة {$currentStep} — بانتظار الاعتماد النهائي من مدير الشركة.");
+                    break;
+                }
+
                 $update = [
                     'status' => 'approved',
                     'approved_by' => Auth::id(),
@@ -284,7 +368,7 @@ class DocumentController
                     $update['number'] = DocumentSetting::generateNumber($companyId);
                 }
                 Document::update($document['id'], $update);
-                DocumentLog::add($document['id'], Auth::id(), 'approved', 'تم اعتماد المستند');
+                DocumentLog::add($document['id'], Auth::id(), 'approved', $steps > 1 ? "اعتماد نهائي (المرحلة {$steps} من {$steps})" : 'تم اعتماد المستند');
                 Notification::send((int) $document['created_by'], 'تم اعتماد مستندك', $document['title'], route('/documents/' . $document['id']));
                 flash_set('success', 'تم اعتماد المستند.');
                 break;

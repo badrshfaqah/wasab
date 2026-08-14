@@ -8,6 +8,7 @@ $manageCore = $isSystemAdmin || $isCompanyAdmin;
 
 $coreItems = [
     ['label' => 'الرئيسية', 'icon' => '🏠', 'url' => route('/'), 'show' => true],
+    ['label' => 'ملفي', 'icon' => '👤', 'url' => route('/me'), 'show' => true],
     ['label' => 'التقويم', 'icon' => '📅', 'url' => route('/calendar'), 'show' => true],
     ['label' => 'التقارير', 'icon' => '📊', 'url' => route('/reports'), 'show' => $isCompanyAdmin],
 ];

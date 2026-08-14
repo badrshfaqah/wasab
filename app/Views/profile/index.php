@@ -71,6 +71,25 @@ $timezones = [
         لأفضل تجربة على الجوال: ثبّت النظام كتطبيق مستقل على شاشتك.
         <a href="<?= route('/get-app') ?>">اعرض خطوات التثبيت المصوّرة (آيفون وأندرويد) ←</a>
     </p>
+
+    <div class="form-section">🔕 ماذا يصلك كإشعار جوال؟</div>
+    <?php
+    $savedPrefs = !empty($u['push_prefs']) ? (json_decode((string) $u['push_prefs'], true) ?: []) : [];
+    ?>
+    <form method="post" action="<?= route('/profile/push-prefs') ?>">
+        <?= csrf_field() ?>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;margin-bottom:10px;">
+            <?php foreach (\App\Core\Notification::pushCategories() as $key => $label): ?>
+                <label style="display:flex;align-items:center;gap:8px;font-weight:400;margin:0;">
+                    <input type="checkbox" name="push_categories[]" value="<?= $key ?>" style="width:auto;"
+                        <?= (!array_key_exists($key, $savedPrefs) || $savedPrefs[$key] !== false) ? 'checked' : '' ?>>
+                    <?= e($label) ?>
+                </label>
+            <?php endforeach; ?>
+        </div>
+        <p class="hint" style="margin:0 0 10px;">الفئات غير المحددة تبقى تصلك داخل النظام لكنها لا تُرسل لجوالك.</p>
+        <button class="btn btn-outline btn-sm" type="submit">حفظ التفضيلات</button>
+    </form>
 </div>
 
 <div class="card" style="max-width:480px;">

@@ -10,7 +10,8 @@ $currentMood = (int) ($entry['mood'] ?? 0);
         <h1>المتابعة اليومية</h1>
         <p><?= $entry ? '✓ سجلت متابعة اليوم - تقدر تعدلها حتى نهاية اليوم.' : 'دقيقتان تكفي: ماذا أنجزت؟ ماذا ستعمل؟ هل من معوقات؟' ?></p>
     </div>
-    <div style="display:flex;gap:8px;">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <a class="btn btn-outline" href="<?= route('/checkins/attendance') ?>">🕐 سجل الحضور</a>
         <?php if ($canViewTeam): ?>
             <a class="btn btn-outline" href="<?= route('/checkins/team') ?>">👥 لوحة الفريق</a>
             <a class="btn btn-outline" href="<?= route('/checkins/report') ?>">📊 التقرير الأسبوعي</a>
@@ -18,6 +19,30 @@ $currentMood = (int) ($entry['mood'] ?? 0);
         <?php if ($canManage): ?>
             <a class="btn btn-outline" href="<?= route('/checkins/settings') ?>">⚙️ الإعدادات</a>
         <?php endif; ?>
+    </div>
+</div>
+
+<div class="card" style="max-width:680px;border-inline-start:4px solid var(--primary);">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+        <div>
+            <strong>🕐 حضور اليوم</strong>
+            <div class="hint" style="margin-top:2px;">
+                <?php if (empty($attendance)): ?>
+                    لم تسجّل حضورك بعد.
+                <?php elseif (empty($attendance['out_at'])): ?>
+                    حضرت الساعة <?= format_date($attendance['in_at'], 'H:i') ?> — يوم عمل موفق! 💪
+                <?php else: ?>
+                    حضرت <?= format_date($attendance['in_at'], 'H:i') ?> وانصرفت <?= format_date($attendance['out_at'], 'H:i') ?>.
+                <?php endif; ?>
+            </div>
+        </div>
+        <div style="display:flex;gap:8px;">
+            <?php if (empty($attendance)): ?>
+                <form method="post" action="<?= route('/checkins/attendance/in') ?>"><?= csrf_field() ?><button class="btn" type="submit">✅ تسجيل حضور</button></form>
+            <?php elseif (empty($attendance['out_at'])): ?>
+                <form method="post" action="<?= route('/checkins/attendance/out') ?>"><?= csrf_field() ?><button class="btn btn-outline" type="submit">👋 تسجيل انصراف</button></form>
+            <?php endif; ?>
+        </div>
     </div>
 </div>
 

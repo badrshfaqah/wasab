@@ -32,6 +32,7 @@ return function (Router $router): void {
     $router->post('/meetings/{id}/respond', [MeetingController::class, 'respond'], [$auth]);
     $router->post('/meetings/{id}/attendees/{attendeeId}/respond', [MeetingController::class, 'respondFor'], [$auth]);
     $router->post('/meetings/{id}/notes', [MeetingController::class, 'addNote'], [$auth]);
+    $router->post('/meetings/{id}/notes/{noteId}/task', [MeetingController::class, 'noteToTask'], [$auth]);
     $router->post('/meetings/{id}/outcomes', [MeetingController::class, 'updateOutcomes'], [$auth]);
     $router->post('/meetings/{id}/status', [MeetingController::class, 'statusAction'], [$auth]);
     $router->post('/meetings/{id}/stop-recurrence', [MeetingController::class, 'stopRecurrence'], [$auth]);

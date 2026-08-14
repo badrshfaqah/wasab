@@ -29,6 +29,7 @@ CREATE TABLE IF NOT EXISTS `users` (
     `membership_type` ENUM('system_admin','company_admin','user') NOT NULL DEFAULT 'user',
     `avatar` VARCHAR(255) NULL,
     `timezone` VARCHAR(50) NULL COMMENT 'منطقة زمنية للعرض فقط - NULL تعني توقيت النظام الافتراضي',
+    `push_prefs` TEXT NULL COMMENT 'تفضيلات إشعارات الجوال حسب الفئة (JSON) - NULL يعني الكل مفعّل',
     `status` ENUM('active','inactive') NOT NULL DEFAULT 'active',
     `last_login_at` DATETIME NULL,
     `last_activity_at` DATETIME NULL COMMENT 'آخر طلب مصادق للمستخدم - يُحدَّث بتهدئة دقيقة من Auth::user()',

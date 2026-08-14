@@ -186,7 +186,22 @@ $isRecurring = ($meeting['recurrence_rule'] ?? 'none') !== 'none';
             <?php foreach ($afterNotes as $n): ?>
                 <div class="doc-log">
                     <div><?= nl2br(e($n['body'])) ?></div>
-                    <div class="doc-log-meta"><?= e($n['user_name'] ?? 'النظام') ?> · <?= format_date($n['created_at'], 'Y-m-d H:i') ?></div>
+                    <div class="doc-log-meta" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+                        <span><?= e($n['user_name'] ?? 'النظام') ?> · <?= format_date($n['created_at'], 'Y-m-d H:i') ?></span>
+                        <?php if (!empty($canMakeTask)): ?>
+                        <form method="post" action="<?= route('/meetings/' . $meeting['id'] . '/notes/' . $n['id'] . '/task') ?>" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                            <?= csrf_field() ?>
+                            <select name="assignee_id" style="width:auto;min-width:130px;padding:4px 8px;font-size:12.5px;">
+                                <option value="">— المسؤول —</option>
+                                <?php foreach ($companyUsers as $cu): ?>
+                                    <option value="<?= $cu['id'] ?>"><?= e($cu['name']) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                            <input type="date" name="due_date" style="width:auto;padding:4px 8px;font-size:12.5px;" title="تاريخ الاستحقاق (اختياري)">
+                            <button class="btn btn-outline btn-sm" type="submit">📋 تحويل لمهمة</button>
+                        </form>
+                        <?php endif; ?>
+                    </div>
                 </div>
             <?php endforeach; ?>
             <?php if (!$afterNotes): ?><p class="hint">لا توجد ملاحظات بعد.</p><?php endif; ?>

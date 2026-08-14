@@ -89,6 +89,40 @@ return function (PDO $pdo, string $fromVersion): void {
         }
     }
 
+    if (version_compare($fromVersion, '1.7.0', '<')) {
+        // اعتماد متعدد المراحل + تعليقات المستندات
+        $sMissing = !$pdo->query(
+            "SELECT 1 FROM information_schema.columns
+              WHERE table_schema = DATABASE() AND table_name = 'documents_settings' AND column_name = 'approval_steps'"
+        )->fetchColumn();
+        if ($sMissing) {
+            $pdo->exec("ALTER TABLE `documents_settings` ADD COLUMN `approval_steps` TINYINT UNSIGNED NOT NULL DEFAULT 1 COMMENT 'عدد مراحل الاعتماد قبل التوقيع (1 أو 2)' AFTER `last_sequence`");
+        }
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS `documents_approvals` (
+                `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                `document_id` INT UNSIGNED NOT NULL,
+                `step_no` TINYINT UNSIGNED NOT NULL DEFAULT 1,
+                `approved_by` INT UNSIGNED NOT NULL,
+                `approved_at` DATETIME NOT NULL,
+                `note` VARCHAR(255) NULL,
+                KEY `documents_approvals_document_index` (`document_id`),
+                CONSTRAINT `documents_approvals_document_fk` FOREIGN KEY (`document_id`) REFERENCES `documents_documents`(`id`) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        ");
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS `documents_comments` (
+                `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                `document_id` INT UNSIGNED NOT NULL,
+                `user_id` INT UNSIGNED NOT NULL,
+                `body` TEXT NOT NULL,
+                `created_at` DATETIME NOT NULL,
+                KEY `documents_comments_document_index` (`document_id`),
+                CONSTRAINT `documents_comments_document_fk` FOREIGN KEY (`document_id`) REFERENCES `documents_documents`(`id`) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        ");
+    }
+
     if (version_compare($fromVersion, '1.6.0', '<')) {
         // رمز QR للتحقق: موضع (بكسل من الأسفل واليسار) وحجم ولون، لكل قالب
         $tcolMissing = fn (string $c): bool => !$pdo->query(

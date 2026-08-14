@@ -3,6 +3,7 @@
 use App\Core\Middleware;
 use App\Core\Router;
 use Modules\Employees\Controllers\EmployeeController;
+use Modules\Employees\Controllers\EmployeeLeaveController;
 
 /**
  * يُحمَّل فقط عندما تكون إضافة الملف الوظيفي مفعّلة. لا علاقة له بملفات النواة.
@@ -17,6 +18,17 @@ return function (Router $router): void {
     $router->get('/employees/orgchart', [EmployeeController::class, 'orgChart'], [$auth]);
     $router->get('/employees/create', [EmployeeController::class, 'create'], [$auth]);
     $router->post('/employees', [EmployeeController::class, 'store'], [$auth]);
+
+    // الإجازات والأذونات (مسارات ثابتة قبل /{id})
+    $router->get('/employees/leaves', [EmployeeLeaveController::class, 'index'], [$auth]);
+    $router->get('/employees/leaves/request', [EmployeeLeaveController::class, 'create'], [$auth]);
+    $router->post('/employees/leaves', [EmployeeLeaveController::class, 'store'], [$auth]);
+    $router->post('/employees/leaves/{id}/approve', [EmployeeLeaveController::class, 'approve'], [$auth]);
+    $router->post('/employees/leaves/{id}/reject', [EmployeeLeaveController::class, 'reject'], [$auth]);
+
+    // الاستيراد الجماعي من CSV
+    $router->get('/employees/import', [EmployeeController::class, 'importForm'], [$auth]);
+    $router->post('/employees/import', [EmployeeController::class, 'import'], [$auth]);
 
     $router->get('/employees/{id}', [EmployeeController::class, 'show'], [$auth]);
     $router->get('/employees/{id}/eosb', [EmployeeController::class, 'endOfService'], [$auth]);

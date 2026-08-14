@@ -67,6 +67,106 @@ class CheckinController
             'canSubmit' => $this->canSubmit(),
             'canViewTeam' => $this->canViewTeam(),
             'canManage' => $this->canManage(),
+            'attendance' => Database::first(
+                'SELECT * FROM checkins_attendance WHERE company_id = :c AND user_id = :u AND work_date = :d',
+                ['c' => $companyId, 'u' => Auth::id(), 'd' => $today]
+            ),
+        ]);
+    }
+
+    /** تسجيل حضور اليوم (مرة واحدة لكل يوم). */
+    public function attendanceIn(): void
+    {
+        $companyId = $this->requireCompanyContext();
+        $this->verifyCsrf('/checkins');
+        $today = date('Y-m-d');
+
+        $existing = Database::first(
+            'SELECT id FROM checkins_attendance WHERE company_id = :c AND user_id = :u AND work_date = :d',
+            ['c' => $companyId, 'u' => Auth::id(), 'd' => $today]
+        );
+        if ($existing) {
+            flash_set('error', 'سبق أن سجّلت حضورك اليوم.');
+            redirect('/checkins');
+        }
+
+        Database::insert('checkins_attendance', [
+            'company_id' => $companyId,
+            'user_id' => Auth::id(),
+            'work_date' => $today,
+            'in_at' => date('Y-m-d H:i:s'),
+        ]);
+        flash_set('success', '✅ سُجّل حضورك الساعة ' . date('H:i') . '.');
+        redirect('/checkins');
+    }
+
+    /** تسجيل انصراف اليوم (بعد تسجيل الحضور). */
+    public function attendanceOut(): void
+    {
+        $companyId = $this->requireCompanyContext();
+        $this->verifyCsrf('/checkins');
+        $today = date('Y-m-d');
+
+        $row = Database::first(
+            'SELECT * FROM checkins_attendance WHERE company_id = :c AND user_id = :u AND work_date = :d',
+            ['c' => $companyId, 'u' => Auth::id(), 'd' => $today]
+        );
+        if (!$row) {
+            flash_set('error', 'سجّل حضورك أولاً.');
+            redirect('/checkins');
+        }
+        if ($row['out_at']) {
+            flash_set('error', 'سبق أن سجّلت انصرافك اليوم.');
+            redirect('/checkins');
+        }
+
+        Database::update('checkins_attendance', ['out_at' => date('Y-m-d H:i:s')], 'id = :id', ['id' => $row['id']]);
+        flash_set('success', '👋 سُجّل انصرافك الساعة ' . date('H:i') . '.');
+        redirect('/checkins');
+    }
+
+    /** تقرير الحضور الشهري: الموظف يرى سجلّه، ولوحة الفريق لمن يملك صلاحيتها. */
+    public function attendance(): void
+    {
+        $companyId = $this->requireCompanyContext();
+        $month = (string) Request::query('month', date('Y-m'));
+        if (!preg_match('/^\d{4}-\d{2}$/', $month)) {
+            $month = date('Y-m');
+        }
+        $from = $month . '-01';
+        $to = date('Y-m-t', strtotime($from));
+
+        // مستخدم آخر: لمن يشاهد الفريق فقط
+        $userId = Auth::id();
+        $requested = (int) Request::query('user_id', 0);
+        if ($requested && $requested !== $userId && $this->canViewTeam()) {
+            $userId = $requested;
+        }
+
+        $rows = Database::select(
+            'SELECT * FROM checkins_attendance
+              WHERE company_id = :c AND user_id = :u AND work_date BETWEEN :from AND :to
+              ORDER BY work_date',
+            ['c' => $companyId, 'u' => $userId, 'from' => $from, 'to' => $to]
+        );
+
+        // ملخص الفريق لنفس الشهر (أيام حضور كل مستخدم) - لمن يشاهد الفريق
+        $teamSummary = $this->canViewTeam() ? Database::select(
+            'SELECT a.user_id, u.name, COUNT(*) AS days_present,
+                    SUM(CASE WHEN a.out_at IS NOT NULL THEN TIMESTAMPDIFF(MINUTE, a.in_at, a.out_at) ELSE 0 END) AS total_minutes
+               FROM checkins_attendance a JOIN users u ON u.id = a.user_id
+              WHERE a.company_id = :c AND a.work_date BETWEEN :from AND :to
+              GROUP BY a.user_id, u.name ORDER BY u.name',
+            ['c' => $companyId, 'from' => $from, 'to' => $to]
+        ) : [];
+
+        View::render('checkins::attendance', [
+            'pageTitle' => 'سجل الحضور',
+            'rows' => $rows,
+            'month' => $month,
+            'viewedUser' => Database::first('SELECT id, name FROM users WHERE id = :id', ['id' => $userId]),
+            'teamSummary' => $teamSummary,
+            'canViewTeam' => $this->canViewTeam(),
         ]);
     }
 

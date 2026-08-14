@@ -171,6 +171,9 @@ class MeetingController
             $myAttendee = MeetingAttendee::findForUser($meeting['id'], Auth::id());
         }
 
+        // تحويل القرارات لمهام: متاح إن كانت إضافة المهام مفعّلة ولمن يملك إنشاء مهمة
+        $canMakeTask = \App\Core\ModuleManager::isActive('tasks') && \App\Core\Permission::check('tasks.create');
+
         View::render('meetings::show', [
             'pageTitle' => $meeting['title'],
             'meeting' => $meeting,
@@ -180,7 +183,65 @@ class MeetingController
             'canEdit' => $this->canEditMeeting($meeting),
             'canDelete' => $this->canDeleteMeeting($meeting),
             'canManage' => $this->canManage(),
+            'canMakeTask' => $canMakeTask,
+            'companyUsers' => $canMakeTask
+                ? Database::select("SELECT id, name FROM users WHERE company_id = :c AND status = 'active' ORDER BY name", ['c' => $companyId])
+                : [],
         ]);
+    }
+
+    /** تحويل ملاحظة/قرار اجتماع إلى مهمة مسندة ومربوطة بالاجتماع (ميزة القرارات → مهام). */
+    public function noteToTask(array $params): void
+    {
+        $companyId = $this->requireCompanyContext();
+        $meeting = $this->findVisible((int) $params['id'], $companyId);
+        $this->verifyCsrf('/meetings/' . $meeting['id']);
+
+        if (!\App\Core\ModuleManager::isActive('tasks') || !\App\Core\Permission::check('tasks.create')) {
+            $this->forbidden();
+            return;
+        }
+
+        $note = Database::first(
+            'SELECT * FROM meetings_notes WHERE id = :n AND meeting_id = :m',
+            ['n' => (int) $params['noteId'], 'm' => $meeting['id']]
+        );
+        if (!$note) {
+            flash_set('error', 'الملاحظة غير موجودة.');
+            redirect('/meetings/' . $meeting['id']);
+        }
+
+        $assigneeId = (int) Request::input('assignee_id', 0);
+        $assignee = $assigneeId
+            ? Database::first("SELECT id, name FROM users WHERE id = :id AND company_id = :c AND status = 'active'", ['id' => $assigneeId, 'c' => $companyId])
+            : null;
+        if (!$assignee) {
+            flash_set('error', 'اختر الموظف المسؤول عن المهمة.');
+            redirect('/meetings/' . $meeting['id']);
+        }
+
+        $dueDate = Request::input('due_date') ?: null;
+        $body = trim((string) $note['body']);
+        $taskId = Database::insert('tasks_tasks', [
+            'company_id' => $companyId,
+            'title' => mb_substr($body, 0, 200),
+            'description' => "قرار من اجتماع «{$meeting['title']}» بتاريخ " . format_date($meeting['starts_at'], 'Y-m-d') . ":\n\n" . $body,
+            'assignee_id' => (int) $assignee['id'],
+            'creator_id' => Auth::id(),
+            'due_date' => $dueDate,
+            'priority' => 'medium',
+            'status' => 'todo',
+            'requires_approval' => 0,
+            'linked_type' => 'meeting',
+            'linked_id' => $meeting['id'],
+            'linked_label' => mb_substr($meeting['title'], 0, 200),
+            'created_at' => date('Y-m-d H:i:s'),
+        ]);
+
+        Notification::send((int) $assignee['id'], '📋 مهمة جديدة من اجتماع', mb_substr($body, 0, 120), route('/tasks/' . $taskId));
+        ActivityLog::log('meetings.note_to_task', 'task', $taskId, "تحويل قرار اجتماع لمهمة: {$meeting['title']}");
+        flash_set('success', 'تم إنشاء المهمة وإسنادها لـ' . $assignee['name'] . '.');
+        redirect('/meetings/' . $meeting['id']);
     }
 
     /** محضر الاجتماع بصيغة صفحة قابلة للطباعة (تصدير PDF عبر "طباعة" بالمتصفح) - بلا تخطيط النظام العادي. */

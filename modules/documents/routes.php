@@ -35,6 +35,7 @@ return function (Router $router): void {
     $router->post('/documents/{id}', [DocumentController::class, 'update'], [$auth]);
     $router->post('/documents/{id}/delete', [DocumentController::class, 'destroy'], [$auth]);
     $router->post('/documents/{id}/status', [DocumentController::class, 'updateStatus'], [$auth]);
+    $router->post('/documents/{id}/comments', [DocumentController::class, 'comment'], [$auth]);
     $router->get('/documents/{id}/print', [DocumentController::class, 'print'], [$auth]);
     $router->get('/documents/{id}/versions/{versionId}', [DocumentController::class, 'viewVersion'], [$auth]);
     $router->post('/documents/{id}/versions/{versionId}/restore', [DocumentController::class, 'restoreVersion'], [$auth]);

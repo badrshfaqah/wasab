@@ -11,6 +11,7 @@ return function (PDO $pdo): void {
             `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
             `company_id` INT UNSIGNED NOT NULL,
             `name` VARCHAR(120) NOT NULL,
+            `fields_json` TEXT NULL COMMENT 'أسماء الحقول المخصصة لهذا التصنيف (JSON)',
             `created_at` DATETIME NOT NULL,
             KEY `assets_categories_company_index` (`company_id`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -31,6 +32,7 @@ return function (PDO $pdo): void {
             `warranty_expiry` DATE NULL COMMENT 'يظهر كتنبيه بالتقويم الموحّد',
             `photo` VARCHAR(255) NULL,
             `notes` TEXT NULL,
+            `custom_json` TEXT NULL COMMENT 'قيم الحقول المخصصة (JSON)',
             `current_holder_type` ENUM('employee','user','manual') NULL,
             `current_holder_ref` INT UNSIGNED NULL COMMENT 'معرّف الموظف/المستخدم (فارغ للـ manual)',
             `current_holder_name` VARCHAR(180) NULL COMMENT 'لقطة اسم الحامل الحالي للعرض السريع',

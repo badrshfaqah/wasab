@@ -43,11 +43,13 @@ $router->get('/search', [SearchController::class, 'index'], [[Middleware::class,
 
 // ---------- التقارير (خاصة بمدير الشركة) ----------
 $router->get('/reports', [ReportController::class, 'index'], [[Middleware::class, 'auth']]);
+$router->get('/reports/monthly', [ReportController::class, 'monthly'], [[Middleware::class, 'auth']]);
 
 // ---------- الملف الشخصي ----------
 $router->get('/profile', [ProfileController::class, 'show'], [[Middleware::class, 'auth']]);
 $router->post('/profile', [ProfileController::class, 'update'], [[Middleware::class, 'auth']]);
 $router->post('/profile/signatures', [ProfileController::class, 'storeSignature'], [[Middleware::class, 'auth']]);
+$router->post('/profile/push-prefs', [ProfileController::class, 'updatePushPrefs'], [[Middleware::class, 'auth']]);
 $router->post('/profile/signatures/{id}/delete', [ProfileController::class, 'deleteSignature'], [[Middleware::class, 'auth']]);
 
 // أختام الشركة (مدير الشركة/النظام) - مكتبة تُربط بقوالب المستندات والنماذج
@@ -58,9 +60,13 @@ $router->post('/stamps/{id}/delete', [\App\Controllers\StampController::class, '
 // دليل تثبيت التطبيق على الجوال (PWA)
 $router->get('/get-app', [InstallController::class, 'index'], [[Middleware::class, 'auth']]);
 
+// صفحة «ملفي»: بوابة الموظف الشخصية (تجمع ما يخصّه من الإضافات المفعّلة)
+$router->get('/me', [\App\Controllers\MeController::class, 'index'], [[Middleware::class, 'auth']]);
+
 // ---------- لوحة مدير النظام (مدير النظام فقط) ----------
 $router->get('/admin', [\App\Controllers\AdminController::class, 'dashboard'], [[Middleware::class, 'auth'], [Middleware::class, 'systemAdmin']]);
 $router->post('/admin/backup/run', [\App\Controllers\AdminController::class, 'backupRun'], [[Middleware::class, 'auth'], [Middleware::class, 'systemAdmin']]);
+$router->post('/admin/backup/full', [\App\Controllers\AdminController::class, 'backupFull'], [[Middleware::class, 'auth'], [Middleware::class, 'systemAdmin']]);
 $router->get('/admin/backup/{name}/download', [\App\Controllers\AdminController::class, 'backupDownload'], [[Middleware::class, 'auth'], [Middleware::class, 'systemAdmin']]);
 
 // ---------- الشركات (مدير النظام فقط) ----------

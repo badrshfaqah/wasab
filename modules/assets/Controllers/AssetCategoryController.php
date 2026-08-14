@@ -39,9 +39,32 @@ class AssetCategoryController
             flash_set('error', 'اسم التصنيف مطلوب.');
             redirect('/custody/categories');
         }
-        $id = AssetCategory::create($companyId, $name);
+        $fields = AssetCategory::parseFieldsInput((string) Request::input('fields', ''));
+        $id = AssetCategory::create($companyId, $name, $fields);
         ActivityLog::log('assets.category_create', 'asset_category', $id, "إضافة تصنيف أصول: {$name}");
         flash_set('success', 'تمت إضافة التصنيف.');
+        redirect('/custody/categories');
+    }
+
+    /** تحديث الحقول المخصصة لتصنيف (مثال: رقم اللوحة للسيارات، IMEI للجوالات). */
+    public function updateFields(array $params): void
+    {
+        $companyId = $this->requireCompanyContext();
+        if (!$this->canManage()) {
+            $this->forbidden();
+            return;
+        }
+        $cat = AssetCategory::find((int) $params['id']);
+        if (!$cat || (int) $cat['company_id'] !== $companyId) {
+            flash_set('error', 'التصنيف غير موجود.');
+            redirect('/custody/categories');
+        }
+        $this->verifyCsrf('/custody/categories');
+
+        $fields = AssetCategory::parseFieldsInput((string) Request::input('fields', ''));
+        AssetCategory::updateFields((int) $cat['id'], $fields);
+        ActivityLog::log('assets.category_fields', 'asset_category', (int) $cat['id'], "تحديث حقول تصنيف: {$cat['name']}");
+        flash_set('success', 'حُدّثت حقول التصنيف.');
         redirect('/custody/categories');
     }
 

@@ -24,5 +24,8 @@ return function (array $user): array {
         return [];
     }
 
-    return [['label' => 'ملفي الوظيفي', 'icon' => '🪪', 'url' => route('/employees/' . $own['id'])]];
+    return [
+        ['label' => 'ملفي الوظيفي', 'icon' => '🪪', 'url' => route('/employees/' . $own['id'])],
+        ['label' => 'إجازاتي', 'icon' => '🌴', 'url' => route('/employees/leaves')],
+    ];
 };

@@ -83,6 +83,7 @@ return function (PDO $pdo): void {
             `company_id` INT UNSIGNED NOT NULL,
             `number_prefix` VARCHAR(20) NOT NULL DEFAULT 'DOC',
             `last_sequence` INT UNSIGNED NOT NULL DEFAULT 0,
+            `approval_steps` TINYINT UNSIGNED NOT NULL DEFAULT 1 COMMENT 'عدد مراحل الاعتماد قبل التوقيع (1 أو 2)',
             `signature_image` VARCHAR(255) NULL,
             `stamp_image` VARCHAR(255) NULL,
             `signer_name` VARCHAR(150) NULL,
@@ -105,6 +106,33 @@ return function (PDO $pdo): void {
             `created_at` DATETIME NOT NULL,
             KEY `documents_logs_document_index` (`document_id`),
             CONSTRAINT `documents_logs_document_fk` FOREIGN KEY (`document_id`) REFERENCES `documents_documents`(`id`) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    ");
+
+    // مراحل الاعتماد (سجل من اعتمد وفي أي مرحلة) - للاعتماد متعدد المراحل
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS `documents_approvals` (
+            `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            `document_id` INT UNSIGNED NOT NULL,
+            `step_no` TINYINT UNSIGNED NOT NULL DEFAULT 1,
+            `approved_by` INT UNSIGNED NOT NULL,
+            `approved_at` DATETIME NOT NULL,
+            `note` VARCHAR(255) NULL,
+            KEY `documents_approvals_document_index` (`document_id`),
+            CONSTRAINT `documents_approvals_document_fk` FOREIGN KEY (`document_id`) REFERENCES `documents_documents`(`id`) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    ");
+
+    // نقاش المستند: تعليقات داخل النظام بدل المراجعات خارج النظام
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS `documents_comments` (
+            `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            `document_id` INT UNSIGNED NOT NULL,
+            `user_id` INT UNSIGNED NOT NULL,
+            `body` TEXT NOT NULL,
+            `created_at` DATETIME NOT NULL,
+            KEY `documents_comments_document_index` (`document_id`),
+            CONSTRAINT `documents_comments_document_fk` FOREIGN KEY (`document_id`) REFERENCES `documents_documents`(`id`) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     ");
 };

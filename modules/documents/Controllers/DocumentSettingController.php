@@ -37,6 +37,7 @@ class DocumentSettingController
 
         $data = [
             'number_prefix' => $prefix,
+            'approval_steps' => in_array((int) Request::input('approval_steps', 1), [1, 2], true) ? (int) Request::input('approval_steps', 1) : 1,
             'signer_name' => trim((string) Request::input('signer_name', '')) ?: null,
             'signer_title' => trim((string) Request::input('signer_title', '')) ?: null,
             'header_html' => HtmlSanitizer::sanitize(Request::input('header_html', '')) ?: null,

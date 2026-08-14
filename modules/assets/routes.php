@@ -29,6 +29,7 @@ return function (Router $router): void {
     $router->get('/custody/categories', [AssetCategoryController::class, 'index'], [$auth]);
     $router->post('/custody/categories', [AssetCategoryController::class, 'store'], [$auth]);
     $router->post('/custody/categories/{id}/delete', [AssetCategoryController::class, 'destroy'], [$auth]);
+    $router->post('/custody/categories/{id}/fields', [AssetCategoryController::class, 'updateFields'], [$auth]);
 
     // محاضر التسليم
     $router->get('/custody/handovers', [AssetHandoverController::class, 'index'], [$auth]);

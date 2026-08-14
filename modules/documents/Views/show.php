@@ -143,6 +143,38 @@ $canRestore = $document['status'] === 'archived' && $canManage;
     </div>
     <?php endif; ?>
 
+    <?php if (($approvalSteps ?? 1) > 1 || !empty($approvals)): ?>
+    <div class="card">
+        <div class="card-title"><span>🪜 مراحل الاعتماد (<?= count($approvals ?? []) ?>/<?= (int) ($approvalSteps ?? 1) ?>)</span></div>
+        <?php for ($s = 1; $s <= ($approvalSteps ?? 1); $s++): ?>
+            <?php $ap = null; foreach (($approvals ?? []) as $a) { if ((int) $a['step_no'] === $s) { $ap = $a; break; } } ?>
+            <div class="doc-log" style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+                <div>
+                    <?= $ap ? '✅' : '⏳' ?> المرحلة <?= $s ?><?= $s === ($approvalSteps ?? 1) && ($approvalSteps ?? 1) > 1 ? ' (نهائية — مدير الشركة)' : '' ?>
+                </div>
+                <div class="doc-log-meta">
+                    <?= $ap ? e($ap['approver_name'] ?? '') . ' · ' . format_date($ap['approved_at'], 'Y-m-d H:i') : ($document['status'] === 'pending_approval' ? 'بالانتظار' : '—') ?>
+                </div>
+            </div>
+        <?php endfor; ?>
+    </div>
+    <?php endif; ?>
+
+    <div class="card">
+        <div class="card-title"><span>💬 التعليقات (<?= count($comments ?? []) ?>)</span></div>
+        <?php foreach (($comments ?? []) as $c): ?>
+            <div class="doc-log">
+                <div style="white-space:pre-wrap;"><?= e($c['body']) ?></div>
+                <div class="doc-log-meta"><?= e($c['user_name'] ?? '') ?> · <?= format_date($c['created_at'], 'Y-m-d H:i') ?></div>
+            </div>
+        <?php endforeach; ?>
+        <form method="post" action="<?= route('/documents/' . $document['id'] . '/comments') ?>" style="margin-top:10px;display:flex;gap:8px;align-items:flex-start;">
+            <?= csrf_field() ?>
+            <textarea name="body" rows="2" required placeholder="اكتب تعليقاً أو ملاحظة مراجعة..." style="flex:1;"></textarea>
+            <button class="btn btn-sm" type="submit">إرسال</button>
+        </form>
+    </div>
+
     <div class="card">
         <div class="card-title"><span>سجل العمليات</span></div>
         <?php if (!$logs): ?>

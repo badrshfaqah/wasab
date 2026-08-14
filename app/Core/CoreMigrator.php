@@ -24,7 +24,7 @@ namespace App\Core;
  */
 class CoreMigrator
 {
-    public const CURRENT_VERSION = 17;
+    public const CURRENT_VERSION = 18;
     private const RETRY_COOLDOWN_SECONDS = 300;
 
     private static function migrations(): array
@@ -121,6 +121,14 @@ class CoreMigrator
             17 => [
                 'label' => 'إضافة جدول أختام الشركة (يديرها المدير وتُربط بالقوالب)',
                 'run' => fn () => self::createCompanyStampsTable(),
+            ],
+            18 => [
+                'label' => 'إضافة تفضيلات إشعارات الجوال لكل مستخدم',
+                'run' => fn () => self::addColumnIfMissing(
+                    'users',
+                    'push_prefs',
+                    "TEXT NULL COMMENT 'تفضيلات إشعارات الجوال حسب الفئة (JSON) - NULL يعني الكل مفعّل' AFTER `timezone`"
+                ),
             ],
         ];
     }

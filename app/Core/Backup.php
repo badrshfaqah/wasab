@@ -97,9 +97,58 @@ class Backup
     }
 
     /** قائمة النسخ الحالية (الأحدث أولاً): [name, size, mtime]. */
+    /**
+     * نسخة شاملة: قاعدة البيانات (تفريغ جديد) + كل مرفقات storage/uploads في
+     * ملف ZIP واحد قابل للاستعادة الكاملة. تُنشأ يدوياً فقط (قد تكون كبيرة)،
+     * ويُحتفظ بآخر نسختين شاملتين.
+     */
+    public static function runFull(): ?string
+    {
+        if (!class_exists(\ZipArchive::class)) {
+            return null;
+        }
+        $sqlPath = self::run();
+        if (!$sqlPath) {
+            return null;
+        }
+
+        $file = self::dir() . '/full-' . self::stamp() . '.zip';
+        $zip = new \ZipArchive();
+        if ($zip->open($file, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== true) {
+            return null;
+        }
+        $zip->addFile($sqlPath, 'database/' . basename($sqlPath));
+
+        $uploads = BASE_PATH . '/storage/uploads';
+        if (is_dir($uploads)) {
+            $iterator = new \RecursiveIteratorIterator(
+                new \RecursiveDirectoryIterator($uploads, \FilesystemIterator::SKIP_DOTS)
+            );
+            foreach ($iterator as $item) {
+                if ($item->isFile()) {
+                    $relative = substr($item->getPathname(), strlen($uploads) + 1);
+                    $zip->addFile($item->getPathname(), 'uploads/' . $relative);
+                }
+            }
+        }
+        $zip->close();
+
+        // إبقاء آخر نسختين شاملتين فقط (أحجامها أكبر بكثير من تفريغ القاعدة)
+        $fulls = glob(self::dir() . '/full-*.zip') ?: [];
+        usort($fulls, fn ($a, $b) => filemtime($b) <=> filemtime($a));
+        foreach (array_slice($fulls, 2) as $old) {
+            @unlink($old);
+        }
+
+        return $file;
+    }
+
     public static function list(): array
     {
-        $files = glob(self::dir() . '/backup-*.sql.gz') ?: [];
+        $files = array_merge(
+            glob(self::dir() . '/backup-*.sql.gz') ?: [],
+            glob(self::dir() . '/full-*.zip') ?: []
+        );
         $out = [];
         foreach ($files as $f) {
             $out[] = ['name' => basename($f), 'size' => (int) @filesize($f), 'mtime' => (int) @filemtime($f)];
@@ -111,7 +160,7 @@ class Backup
     /** مسار ملف نسخة بالاسم (بعد التحقق من صحة الاسم لمنع اجتياز المسارات). */
     public static function pathFor(string $name): ?string
     {
-        if (!preg_match('/^backup-\d{8}-\d{6}\.sql\.gz$/', $name)) {
+        if (!preg_match('/^(backup-\d{8}-\d{6}\.sql\.gz|full-\d{8}-\d{6}\.zip)$/', $name)) {
             return null;
         }
         $path = self::dir() . '/' . $name;

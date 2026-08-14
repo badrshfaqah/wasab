@@ -22,6 +22,25 @@ class ProfileController
         ]);
     }
 
+    /** حفظ تفضيلات إشعارات الجوال: الفئات غير المحددة تُسكَت عن الجوال فقط. */
+    public function updatePushPrefs(): void
+    {
+        if (!Csrf::verify(Request::input('_csrf'))) {
+            flash_set('error', 'انتهت صلاحية الجلسة، حاول مرة أخرى.');
+            redirect('/profile');
+        }
+
+        $enabled = (array) Request::input('push_categories', []);
+        $prefs = [];
+        foreach (array_keys(\App\Core\Notification::pushCategories()) as $key) {
+            $prefs[$key] = in_array($key, $enabled, true);
+        }
+
+        Database::update('users', ['push_prefs' => json_encode($prefs)], 'id = :id', ['id' => Auth::id()]);
+        flash_set('success', 'حُفظت تفضيلات الإشعارات.');
+        redirect('/profile');
+    }
+
     /** رفع توقيع شخصي جديد (يظهر لاحقاً كخيار عند توقيع المستندات/الخطابات). */
     public function storeSignature(): void
     {
