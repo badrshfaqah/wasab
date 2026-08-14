@@ -65,6 +65,26 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
 
+  // إغلاق تلقائي لرسائل النجاح بعد لحظات (رسائل الخطأ تبقى حتى يقرأها المستخدم)
+  document.querySelectorAll('.alert-success').forEach(function (al) {
+    setTimeout(function () {
+      al.classList.add('fade-out');
+      setTimeout(function () { al.remove(); }, 450);
+    }, 4500);
+  });
+
+  // مؤشر تحميل على زر الإرسال عند إرسال أي نموذج - تأكيد بصري أن الطلب جارٍ ومنع
+  // النقر المزدوج. لا نعطّل الزر (حتى لا تُفقد قيمته عند الإرسال) بل نضيف صنفاً بصرياً.
+  document.querySelectorAll('form').forEach(function (form) {
+    form.addEventListener('submit', function () {
+      var btn = form.querySelector('button[type="submit"], button:not([type])');
+      if (btn && !btn.classList.contains('is-loading')) {
+        btn.classList.add('is-loading');
+        setTimeout(function () { btn.classList.remove('is-loading'); }, 8000);
+      }
+    });
+  });
+
   document.querySelectorAll('[data-copy]').forEach(function (btn) {
     btn.addEventListener('click', function (e) {
       e.preventDefault();
