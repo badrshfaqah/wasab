@@ -149,9 +149,10 @@ $logLabels = [
                 <?php foreach ($shares as $s): ?>
                     <?php $usable = \Modules\Archive\Models\ArchiveFileShare::isUsable($s); ?>
                     <div class="doc-log">
-                        <div style="word-break:break-all;">
+                        <div style="display:flex;gap:6px;align-items:center;word-break:break-all;flex-wrap:wrap;">
                             <?php if ($usable): ?>
-                                <a href="<?= e(base_url('archive/share/' . $s['token'])) ?>" target="_blank"><?= e(base_url('archive/share/' . $s['token'])) ?></a>
+                                <a href="<?= e(base_url('archive/share/' . $s['token'])) ?>" target="_blank" style="flex:1;min-width:180px;"><?= e(base_url('archive/share/' . $s['token'])) ?></a>
+                                <button type="button" class="btn btn-outline btn-sm" data-copy="<?= e(base_url('archive/share/' . $s['token'])) ?>">📋 نسخ</button>
                             <?php else: ?>
                                 <span class="hint">(منتهي/ملغى) <?= e(base_url('archive/share/' . $s['token'])) ?></span>
                             <?php endif; ?>

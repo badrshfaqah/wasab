@@ -123,6 +123,7 @@ $sortHead = function (string $ascKey, string $descKey, string $label) use ($curS
                 <th><?= $sortHead('status_asc', 'status_desc', 'الحالة') ?></th>
                 <th><?= $sortHead('uploader_asc', 'uploader_desc', 'رافع الملف') ?></th>
                 <th><?= $sortHead('date_asc', 'date_desc', 'تاريخ الرفع') ?></th>
+                <th style="text-align:end;">إجراءات</th>
             </tr></thead>
             <tbody>
             <?php foreach ($files as $f): ?>
@@ -134,6 +135,17 @@ $sortHead = function (string $ascKey, string $descKey, string $label) use ($curS
                     <td><?= status_badge($f['status']) ?></td>
                     <td><?= e($f['uploader_name'] ?? '-') ?></td>
                     <td><?= format_date($f['created_at'], 'Y-m-d') ?></td>
+                    <td style="text-align:end;white-space:nowrap;">
+                        <?php if ($canDownload): ?>
+                            <a class="btn btn-ghost btn-sm" href="<?= route('/archive/' . $f['id'] . '/download') ?>" title="تنزيل">⬇️</a>
+                        <?php endif; ?>
+                        <?php if ($canShare): ?>
+                            <form method="post" action="<?= route('/archive/' . $f['id'] . '/share') ?>" style="display:inline;" title="إنشاء رابط مشاركة (٧ أيام)">
+                                <?= csrf_field() ?>
+                                <button class="btn btn-ghost btn-sm" type="submit">🔗</button>
+                            </form>
+                        <?php endif; ?>
+                    </td>
                 </tr>
             <?php endforeach; ?>
             </tbody>

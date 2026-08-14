@@ -50,6 +50,8 @@ class ArchiveFileController
             'tags' => ArchiveTag::forCompany($companyId),
             'canCreate' => $this->can('archive.create'),
             'canManage' => $this->canManage(),
+            'canShare' => $this->can('archive.share'),
+            'canDownload' => $this->can('archive.download'),
         ]);
     }
 
@@ -70,6 +72,7 @@ class ArchiveFileController
             'allTags' => ArchiveTag::forCompany($companyId),
             'fileTags' => [],
             'linkables' => $this->linkableEntities($companyId),
+            'canShare' => $this->can('archive.share'),
         ]);
     }
 
@@ -116,7 +119,21 @@ class ArchiveFileController
 
         ArchiveFileLog::add($fileId, Auth::id(), 'uploaded', 'تم رفع الملف');
         ActivityLog::log('archive.upload', 'archive_file', $fileId, "رفع ملف: {$upload['original']}");
-        flash_set('success', 'تم رفع الملف بنجاح.');
+
+        // مشاركة مباشرة: إنشاء رابط مشاركة فور الرفع (إن طُلب وللمصرّح لهم)
+        $shared = false;
+        if (Request::input('create_share') && $this->can('archive.share')) {
+            $days = (int) Request::input('share_expires_in_days', 7);
+            if ($days < 1 || $days > 90) {
+                $days = 7;
+            }
+            $maxDownloads = (int) Request::input('share_max_downloads', 0) ?: null;
+            ArchiveFileShare::create($fileId, Auth::id(), date('Y-m-d H:i:s', strtotime("+{$days} days")), $maxDownloads);
+            ArchiveFileLog::add($fileId, Auth::id(), 'shared', 'تم إنشاء رابط مشاركة مباشر عند الرفع');
+            $shared = true;
+        }
+
+        flash_set('success', $shared ? 'تم رفع الملف وإنشاء رابط المشاركة — انسخه من الأسفل.' : 'تم رفع الملف بنجاح.');
         redirect('/archive/' . $fileId);
     }
 
