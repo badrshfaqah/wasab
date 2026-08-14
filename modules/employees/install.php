@@ -185,4 +185,34 @@ return function (PDO $pdo): void {
             CONSTRAINT `employees_leaves_employee_fk` FOREIGN KEY (`employee_id`) REFERENCES `employees_profiles`(`id`) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     ");
+
+    // مسير الرواتب المبسّط: مسير شهري واحد لكل شركة/شهر وبنوده لكل موظف
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS `employees_payroll_runs` (
+            `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            `company_id` INT UNSIGNED NOT NULL,
+            `month` CHAR(7) NOT NULL COMMENT 'YYYY-MM',
+            `status` ENUM('draft','approved') NOT NULL DEFAULT 'draft',
+            `created_by` INT UNSIGNED NULL,
+            `created_at` DATETIME NOT NULL,
+            `approved_by` INT UNSIGNED NULL,
+            `approved_at` DATETIME NULL,
+            UNIQUE KEY `employees_payroll_runs_unique` (`company_id`, `month`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    ");
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS `employees_payroll_items` (
+            `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            `run_id` INT UNSIGNED NOT NULL,
+            `employee_id` INT UNSIGNED NOT NULL,
+            `base_salary` DECIMAL(10,2) NOT NULL DEFAULT 0,
+            `allowances` DECIMAL(10,2) NOT NULL DEFAULT 0,
+            `deductions` DECIMAL(10,2) NOT NULL DEFAULT 0,
+            `deduction_note` VARCHAR(255) NULL,
+            `net` DECIMAL(10,2) NOT NULL DEFAULT 0,
+            KEY `employees_payroll_items_run_index` (`run_id`),
+            KEY `employees_payroll_items_employee_index` (`employee_id`),
+            CONSTRAINT `employees_payroll_items_run_fk` FOREIGN KEY (`run_id`) REFERENCES `employees_payroll_runs`(`id`) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    ");
 };

@@ -28,6 +28,7 @@ $router->post('/logout', [AuthController::class, 'logout'], [[Middleware::class,
 
 // ---------- الرئيسية ----------
 $router->get('/', [DashboardController::class, 'index'], [[Middleware::class, 'auth']]);
+$router->post('/dashboard/prefs', [DashboardController::class, 'savePrefs'], [[Middleware::class, 'auth']]);
 
 // ---------- صفحة "وصاب" العامة عن المنتج (بلا تسجيل دخول عمداً - مخصصة للنشر
 // كصفحة تعريفية بموقع الشركة، تشمل وصف المنتج وقائمة ميزاته وسجل تحديثاته) ----------
@@ -62,6 +63,9 @@ $router->get('/get-app', [InstallController::class, 'index'], [[Middleware::clas
 
 // صفحة «ملفي»: بوابة الموظف الشخصية (تجمع ما يخصّه من الإضافات المفعّلة)
 $router->get('/me', [\App\Controllers\MeController::class, 'index'], [[Middleware::class, 'auth']]);
+
+// مركز الموافقات: كل ما ينتظر قرار المستخدم في مكان واحد
+$router->get('/approvals', [\App\Controllers\ApprovalsController::class, 'index'], [[Middleware::class, 'auth']]);
 
 // ---------- لوحة مدير النظام (مدير النظام فقط) ----------
 $router->get('/admin', [\App\Controllers\AdminController::class, 'dashboard'], [[Middleware::class, 'auth'], [Middleware::class, 'systemAdmin']]);

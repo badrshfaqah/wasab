@@ -41,7 +41,11 @@ return function (PDO $pdo): void {
             `user_id` INT UNSIGNED NOT NULL,
             `work_date` DATE NOT NULL,
             `in_at` DATETIME NOT NULL,
+            `in_lat` DECIMAL(10,7) NULL,
+            `in_lng` DECIMAL(10,7) NULL,
             `out_at` DATETIME NULL,
+            `out_lat` DECIMAL(10,7) NULL,
+            `out_lng` DECIMAL(10,7) NULL,
             UNIQUE KEY `checkins_attendance_unique` (`company_id`, `user_id`, `work_date`),
             KEY `checkins_attendance_date_index` (`work_date`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

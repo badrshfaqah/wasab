@@ -80,9 +80,24 @@ $leaveSt = ['pending' => 'بالانتظار', 'approved' => 'معتمدة', 're
     </div>
 <?php endif; ?>
 
+<?php if (!empty($sections['payslips'])): $ps = $sections['payslips']; ?>
+    <div class="card" style="margin-bottom:0;">
+        <div class="card-title divided"><span>💵 كشوف رواتبي</span></div>
+        <?php foreach ($ps['rows'] as $p): ?>
+            <div style="padding:7px 0;border-top:1px solid var(--border);font-size:13px;">
+                <div style="display:flex;justify-content:space-between;gap:8px;">
+                    <strong>شهر <?= e($p['month']) ?></strong>
+                    <strong><?= number_format((float) $p['net'], 2) ?></strong>
+                </div>
+                <div class="hint">أساسي <?= number_format((float) $p['base_salary'], 2) ?> + بدلات <?= number_format((float) $p['allowances'], 2) ?> − خصومات <?= number_format((float) $p['deductions'], 2) ?><?= $p['deduction_note'] ? ' (' . e($p['deduction_note']) . ')' : '' ?></div>
+            </div>
+        <?php endforeach; ?>
+    </div>
+<?php endif; ?>
+
 <?php if (!empty($sections['letters'])): $lt = $sections['letters']; ?>
     <div class="card" style="margin-bottom:0;">
-        <div class="card-title divided"><span>📨 خطاباتي</span></div>
+        <div class="card-title divided"><span>📨 خطاباتي</span><a class="btn btn-ghost btn-sm" href="<?= route('/forms/requests/new') ?>">+ طلب خطاب</a></div>
         <?php if (!$lt['rows']): ?><p class="hint" style="margin:0;">لا خطابات صادرة باسمك.</p><?php endif; ?>
         <?php foreach ($lt['rows'] as $l): ?>
             <div style="display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-top:1px solid var(--border);font-size:13px;">

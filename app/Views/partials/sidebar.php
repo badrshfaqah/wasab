@@ -6,9 +6,17 @@ $isSystemAdmin = Auth::isSystemAdmin();
 $isCompanyAdmin = Auth::isCompanyAdmin();
 $manageCore = $isSystemAdmin || $isCompanyAdmin;
 
+// عدّاد الموافقات المنتظرة - أفضل جهد: أي خطأ لا يمنع رسم القائمة
+try {
+    $approvalsCount = \App\Controllers\ApprovalsController::pendingCount();
+} catch (\Throwable $e) {
+    $approvalsCount = 0;
+}
+
 $coreItems = [
     ['label' => 'الرئيسية', 'icon' => '🏠', 'url' => route('/'), 'show' => true],
     ['label' => 'ملفي', 'icon' => '👤', 'url' => route('/me'), 'show' => true],
+    ['label' => 'بانتظار قرارك', 'icon' => '✅', 'url' => route('/approvals'), 'show' => true, 'badge' => $approvalsCount > 0 ? $approvalsCount : null],
     ['label' => 'التقويم', 'icon' => '📅', 'url' => route('/calendar'), 'show' => true],
     ['label' => 'التقارير', 'icon' => '📊', 'url' => route('/reports'), 'show' => $isCompanyAdmin],
 ];

@@ -648,6 +648,7 @@ class ArchiveFileController
             'assets' => ['assets_assets', 'name', true],
             'employees' => ['employees_profiles', 'full_name', true],
             'users' => ['users', 'name', false],
+            'clients' => ['clients_clients', 'name', true],
         ];
     }
 
@@ -689,6 +690,9 @@ class ArchiveFileController
         }
         if (\App\Core\ModuleManager::isActive('assets')) {
             $out['أصل / عهدة'] = $this->rowsFor($companyId, 'assets', 'assets_assets', 'name');
+        }
+        if (\App\Core\ModuleManager::isActive('clients')) {
+            $out['عميل'] = $this->rowsFor($companyId, 'clients', 'clients_clients', 'name');
         }
 
         // الأشخاص: موظفون (إن كانت الإضافة مفعّلة) + مستخدمون غير مربوطين بملف وظيفي
@@ -749,13 +753,13 @@ class ArchiveFileController
         if (!$mod || !$id) {
             return null;
         }
-        $paths = ['documents' => '/documents/', 'assets' => '/custody/', 'employees' => '/employees/'];
+        $paths = ['documents' => '/documents/', 'assets' => '/custody/', 'employees' => '/employees/', 'clients' => '/clients/'];
         return isset($paths[$mod]) ? route($paths[$mod] . (int) $id) : null;
     }
 
     /** أيقونة نوع الكيان المرتبط (للعرض). */
     public static function linkIcon(?string $mod): string
     {
-        return ['documents' => '📄', 'assets' => '📦', 'employees' => '👤', 'users' => '👤'][$mod] ?? '🔗';
+        return ['documents' => '📄', 'assets' => '📦', 'employees' => '👤', 'users' => '👤', 'clients' => '👔'][$mod] ?? '🔗';
     }
 }

@@ -4,6 +4,7 @@ use App\Core\Middleware;
 use App\Core\Router;
 use Modules\Employees\Controllers\EmployeeController;
 use Modules\Employees\Controllers\EmployeeLeaveController;
+use Modules\Employees\Controllers\EmployeePayrollController;
 
 /**
  * يُحمَّل فقط عندما تكون إضافة الملف الوظيفي مفعّلة. لا علاقة له بملفات النواة.
@@ -29,6 +30,15 @@ return function (Router $router): void {
     // الاستيراد الجماعي من CSV
     $router->get('/employees/import', [EmployeeController::class, 'importForm'], [$auth]);
     $router->post('/employees/import', [EmployeeController::class, 'import'], [$auth]);
+
+    // مسير الرواتب (مسارات ثابتة قبل /{id})
+    $router->get('/employees/payroll', [EmployeePayrollController::class, 'index'], [$auth]);
+    $router->post('/employees/payroll/generate', [EmployeePayrollController::class, 'generate'], [$auth]);
+    $router->get('/employees/payroll/{id}', [EmployeePayrollController::class, 'show'], [$auth]);
+    $router->get('/employees/payroll/{id}/print', [EmployeePayrollController::class, 'print'], [$auth]);
+    $router->post('/employees/payroll/{id}/items/{itemId}', [EmployeePayrollController::class, 'updateItem'], [$auth]);
+    $router->post('/employees/payroll/{id}/approve', [EmployeePayrollController::class, 'approve'], [$auth]);
+    $router->post('/employees/payroll/{id}/delete', [EmployeePayrollController::class, 'destroy'], [$auth]);
 
     $router->get('/employees/{id}', [EmployeeController::class, 'show'], [$auth]);
     $router->get('/employees/{id}/eosb', [EmployeeController::class, 'endOfService'], [$auth]);

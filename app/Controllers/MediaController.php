@@ -12,7 +12,7 @@ namespace App\Controllers;
  */
 class MediaController
 {
-    private const COMPANY_AREAS = ['documents', 'employees', 'forms', 'signatures', 'stamps'];
+    private const COMPANY_AREAS = ['documents', 'employees', 'forms', 'signatures', 'stamps', 'expenses'];
 
     private const MIME_TYPES = [
         'png' => 'image/png',

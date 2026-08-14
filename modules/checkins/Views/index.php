@@ -38,13 +38,26 @@ $currentMood = (int) ($entry['mood'] ?? 0);
         </div>
         <div style="display:flex;gap:8px;">
             <?php if (empty($attendance)): ?>
-                <form method="post" action="<?= route('/checkins/attendance/in') ?>"><?= csrf_field() ?><button class="btn" type="submit">✅ تسجيل حضور</button></form>
+                <form method="post" action="<?= route('/checkins/attendance/in') ?>" class="att-form"><?= csrf_field() ?><input type="hidden" name="lat"><input type="hidden" name="lng"><button class="btn" type="submit">✅ تسجيل حضور</button></form>
             <?php elseif (empty($attendance['out_at'])): ?>
-                <form method="post" action="<?= route('/checkins/attendance/out') ?>"><?= csrf_field() ?><button class="btn btn-outline" type="submit">👋 تسجيل انصراف</button></form>
+                <form method="post" action="<?= route('/checkins/attendance/out') ?>" class="att-form"><?= csrf_field() ?><input type="hidden" name="lat"><input type="hidden" name="lng"><button class="btn btn-outline" type="submit">👋 تسجيل انصراف</button></form>
             <?php endif; ?>
         </div>
     </div>
 </div>
+<script>
+// تعبئة إحداثيات الجهاز بصمت إن وافق المستخدم - التسجيل يعمل حتى بدون موقع
+(function () {
+    var forms = document.querySelectorAll('.att-form');
+    if (!forms.length || !navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(function (pos) {
+        forms.forEach(function (f) {
+            f.querySelector('[name=lat]').value = pos.coords.latitude.toFixed(7);
+            f.querySelector('[name=lng]').value = pos.coords.longitude.toFixed(7);
+        });
+    }, function () {}, {timeout: 5000, maximumAge: 60000});
+})();
+</script>
 
 <?php if ($canSubmit): ?>
 <div class="card" style="max-width:680px;">

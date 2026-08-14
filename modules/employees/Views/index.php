@@ -22,6 +22,7 @@ $empQuery = function (array $filters, array $overrides = []): string {
         <?php endif; ?>
         <a class="btn btn-outline" href="<?= route('/employees/orgchart') ?>">🏢 الهيكل التنظيمي</a>
         <a class="btn btn-outline" href="<?= route('/employees/leaves') ?>">🌴 الإجازات</a>
+        <?php if (!empty($canViewSensitive)): ?><a class="btn btn-outline" href="<?= route('/employees/payroll') ?>">💵 الرواتب</a><?php endif; ?>
         <?php if ($canCreate): ?>
             <a class="btn btn-outline" href="<?= route('/employees/import') ?>">⬆️ استيراد</a>
             <a class="btn" href="<?= route('/employees/create') ?>">+ ملف وظيفي جديد</a>

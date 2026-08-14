@@ -90,11 +90,14 @@ class CheckinController
             redirect('/checkins');
         }
 
+        [$lat, $lng] = $this->coords();
         Database::insert('checkins_attendance', [
             'company_id' => $companyId,
             'user_id' => Auth::id(),
             'work_date' => $today,
             'in_at' => date('Y-m-d H:i:s'),
+            'in_lat' => $lat,
+            'in_lng' => $lng,
         ]);
         flash_set('success', '✅ سُجّل حضورك الساعة ' . date('H:i') . '.');
         redirect('/checkins');
@@ -120,9 +123,27 @@ class CheckinController
             redirect('/checkins');
         }
 
-        Database::update('checkins_attendance', ['out_at' => date('Y-m-d H:i:s')], 'id = :id', ['id' => $row['id']]);
+        [$lat, $lng] = $this->coords();
+        Database::update('checkins_attendance', [
+            'out_at' => date('Y-m-d H:i:s'),
+            'out_lat' => $lat,
+            'out_lng' => $lng,
+        ], 'id = :id', ['id' => $row['id']]);
         flash_set('success', '👋 سُجّل انصرافك الساعة ' . date('H:i') . '.');
         redirect('/checkins');
+    }
+
+    /** إحداثيات الجهاز من النموذج (اختيارية - تُملأ بالمتصفح إن وافق المستخدم). */
+    private function coords(): array
+    {
+        $lat = Request::input('lat');
+        $lng = Request::input('lng');
+        if ($lat === null || $lng === null || $lat === '' || $lng === ''
+            || !is_numeric($lat) || !is_numeric($lng)
+            || abs((float) $lat) > 90 || abs((float) $lng) > 180) {
+            return [null, null];
+        }
+        return [round((float) $lat, 7), round((float) $lng, 7)];
     }
 
     /** تقرير الحضور الشهري: الموظف يرى سجلّه، ولوحة الفريق لمن يملك صلاحيتها. */

@@ -38,7 +38,7 @@ $overdue = $task['due_date'] && $task['due_date'] < date('Y-m-d') && !in_array($
                 <?php endif; ?>
                 <?php if (!empty($task['linked_type']) && !empty($task['linked_label'])): ?>
                     <?php
-                    $typeIcons = ['document' => '📄', 'asset' => '📦', 'employee' => '👤', 'meeting' => '📅'];
+                    $typeIcons = ['document' => '📄', 'asset' => '📦', 'employee' => '👤', 'meeting' => '📅', 'client' => '👔'];
                     $linkUrl = \Modules\Tasks\Controllers\TaskController::linkUrl($task['linked_type'], $task['linked_id']);
                     ?>
                     <tr><th>مرتبطة بـ</th><td>

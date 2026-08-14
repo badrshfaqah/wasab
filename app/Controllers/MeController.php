@@ -27,6 +27,7 @@ class MeController
             $sections['letters'] = $this->safe(fn () => $this->lettersSection($companyId, $userId));
             $sections['attendance'] = $this->safe(fn () => $this->attendanceSection($companyId, $userId));
             $sections['meetings'] = $this->safe(fn () => $this->meetingsSection($companyId, $userId));
+            $sections['payslips'] = $this->safe(fn () => $this->payslipSection($companyId, $userId));
         }
 
         View::render('me.index', [
@@ -129,6 +130,22 @@ class MeController
                 ['c' => $companyId, 'u' => $userId, 'm' => date('Y-m-01')]
             ),
         ];
+    }
+
+    private function payslipSection(int $companyId, int $userId): ?array
+    {
+        if (!ModuleManager::isActive('employees')) {
+            return null;
+        }
+        $rows = Database::select(
+            "SELECT i.*, r.month FROM employees_payroll_items i
+               JOIN employees_payroll_runs r ON r.id = i.run_id
+               JOIN employees_profiles e ON e.id = i.employee_id
+              WHERE r.company_id = :c AND r.status = 'approved' AND e.linked_user_id = :u
+              ORDER BY r.month DESC LIMIT 3",
+            ['c' => $companyId, 'u' => $userId]
+        );
+        return $rows ? ['rows' => $rows] : null;
     }
 
     private function meetingsSection(int $companyId, int $userId): ?array

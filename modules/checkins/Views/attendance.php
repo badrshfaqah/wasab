@@ -40,8 +40,14 @@ foreach ($rows as $r) {
             <?php foreach ($rows as $r): ?>
                 <tr>
                     <td><?= format_date($r['work_date']) ?></td>
-                    <td><?= format_date($r['in_at'], 'H:i') ?></td>
-                    <td><?= $r['out_at'] ? format_date($r['out_at'], 'H:i') : '<span class="hint">—</span>' ?></td>
+                    <td>
+                        <?= format_date($r['in_at'], 'H:i') ?>
+                        <?php if (!empty($r['in_lat'])): ?><a href="https://maps.google.com/?q=<?= e($r['in_lat']) ?>,<?= e($r['in_lng']) ?>" target="_blank" rel="noopener" title="موقع الحضور">📍</a><?php endif; ?>
+                    </td>
+                    <td>
+                        <?= $r['out_at'] ? format_date($r['out_at'], 'H:i') : '<span class="hint">—</span>' ?>
+                        <?php if (!empty($r['out_lat'])): ?><a href="https://maps.google.com/?q=<?= e($r['out_lat']) ?>,<?= e($r['out_lng']) ?>" target="_blank" rel="noopener" title="موقع الانصراف">📍</a><?php endif; ?>
+                    </td>
                     <td><?= $r['out_at'] ? $fmtMin((int) ((strtotime($r['out_at']) - strtotime($r['in_at'])) / 60)) : '—' ?></td>
                 </tr>
             <?php endforeach; ?>

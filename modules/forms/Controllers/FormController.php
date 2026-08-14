@@ -257,6 +257,235 @@ class FormController
 
     // ---------------------------------------------------------------
 
+    // ---------------- طلبات الخطابات (الخدمة الذاتية) ----------------
+
+    /** قائمة الطلبات: المدير يرى الكل (المعلّقة أولاً)، والموظف طلباته فقط. */
+    public function requests(): void
+    {
+        $companyId = $this->requireCompanyContext();
+        $own = $this->ownEmployee($companyId);
+        $canManage = $this->canManage();
+        if (!$canManage && !$own) {
+            $this->forbidden();
+            return;
+        }
+
+        $where = $canManage ? 'r.company_id = :c' : 'r.company_id = :c AND r.employee_id = ' . (int) $own['id'];
+        View::render('forms::requests', [
+            'pageTitle' => 'طلبات الخطابات',
+            'requests' => Database::select(
+                "SELECT r.*, e.full_name, t.name AS template_name, u.name AS decided_by_name
+                   FROM forms_requests r
+                   JOIN employees_profiles e ON e.id = r.employee_id
+                   JOIN forms_templates t ON t.id = r.template_id
+                   LEFT JOIN users u ON u.id = r.decided_by
+                  WHERE {$where}
+                  ORDER BY (r.status = 'pending') DESC, r.id DESC LIMIT 200",
+                ['c' => $companyId]
+            ),
+            'own' => $own,
+            'canManage' => $canManage,
+        ]);
+    }
+
+    /** نموذج طلب خطاب (للموظف المربوط بملف وظيفي). */
+    public function requestForm(): void
+    {
+        $companyId = $this->requireCompanyContext();
+        $own = $this->ownEmployee($companyId);
+        if (!$own) {
+            flash_set('error', 'حسابك غير مربوط بملف وظيفي — اطلب من الإدارة ربطه أولاً.');
+            redirect('/forms/requests');
+        }
+        View::render('forms::request_form', [
+            'pageTitle' => 'طلب خطاب',
+            'own' => $own,
+            'templates' => FormTemplate::forCompany($companyId, true),
+        ]);
+    }
+
+    public function storeRequest(): void
+    {
+        $companyId = $this->requireCompanyContext();
+        $own = $this->ownEmployee($companyId);
+        if (!$own) {
+            $this->forbidden();
+            return;
+        }
+        $this->verifyCsrf('/forms/requests/new');
+
+        $template = FormTemplate::find((int) Request::input('template_id', 0));
+        if (!$template || (int) $template['company_id'] !== $companyId || !$template['is_active']) {
+            flash_set('error', 'اختر قالباً صحيحاً.');
+            redirect('/forms/requests/new');
+        }
+
+        $requestId = Database::insert('forms_requests', [
+            'company_id' => $companyId,
+            'employee_id' => (int) $own['id'],
+            'template_id' => (int) $template['id'],
+            'note' => mb_substr(trim((string) Request::input('note', '')), 0, 500) ?: null,
+            'created_at' => date('Y-m-d H:i:s'),
+        ]);
+
+        // تنبيه مدراء الشركة ومديري النماذج
+        foreach (Database::select(
+            "SELECT id FROM users WHERE company_id = :c AND membership_type = 'company_admin' AND status = 'active' AND id != :me",
+            ['c' => $companyId, 'me' => Auth::id()]
+        ) as $admin) {
+            \App\Core\Notification::send((int) $admin['id'], '📨 طلب خطاب جديد', $own['full_name'] . ' يطلب: ' . $template['name'], route('/forms/requests'));
+        }
+
+        ActivityLog::log('forms.request', 'form_request', $requestId, "طلب خطاب: {$template['name']} - {$own['full_name']}");
+        flash_set('success', 'أُرسل طلبك — سيصلك إشعار عند إصدار الخطاب.');
+        redirect('/forms/requests');
+    }
+
+    /** اعتماد الطلب: يولّد الخطاب تلقائياً بالحقول المعروفة ويُشعر الموظف. */
+    public function approveRequest(array $params): void
+    {
+        $companyId = $this->requireCompanyContext();
+        if (!$this->canManage()) {
+            $this->forbidden();
+            return;
+        }
+        $this->verifyCsrf('/forms/requests');
+
+        $req = Database::first('SELECT * FROM forms_requests WHERE id = :id AND company_id = :c', ['id' => (int) $params['id'], 'c' => $companyId]);
+        if (!$req || $req['status'] !== 'pending') {
+            flash_set('error', 'الطلب غير موجود أو سبق البتّ فيه.');
+            redirect('/forms/requests');
+        }
+        $template = FormTemplate::find((int) $req['template_id']);
+        $employee = Database::first('SELECT * FROM employees_profiles WHERE id = :id', ['id' => (int) $req['employee_id']]);
+        if (!$template || !$employee) {
+            flash_set('error', 'القالب أو الموظف لم يعد موجوداً.');
+            redirect('/forms/requests');
+        }
+
+        // توليد بالحقول المعروفة تلقائياً (حقول يدوية غير معروفة تبقى كما هي بالنص)
+        $values = MergeFields::knownValues($companyId, (int) $employee['id'], $this->companyName($companyId));
+        $finalBody = MergeFields::render($template['body'], $values);
+        $number = FormLetter::nextNumber($companyId);
+        $letterId = FormLetter::create([
+            'company_id' => $companyId,
+            'template_id' => (int) $template['id'],
+            'title' => $template['name'],
+            'number' => $number,
+            'employee_id' => (int) $employee['id'],
+            'recipient_name' => mb_substr($employee['full_name'], 0, 180),
+            'body' => $finalBody,
+            'verify_token' => bin2hex(random_bytes(16)),
+            'created_by' => Auth::id(),
+            'created_at' => date('Y-m-d H:i:s'),
+        ]);
+
+        Database::update('forms_requests', [
+            'status' => 'done',
+            'letter_id' => $letterId,
+            'decided_by' => Auth::id(),
+            'decided_at' => date('Y-m-d H:i:s'),
+        ], 'id = :id', ['id' => $req['id']]);
+
+        if (ModuleManager::isActive('employees') && !empty($employee['linked_user_id'])) {
+            \App\Core\Notification::send((int) $employee['linked_user_id'], '📄 صدر خطابك', $template['name'] . ' (رقم ' . $number . ')', route('/forms/' . $letterId));
+        }
+
+        ActivityLog::log('forms.request_approve', 'form_letter', $letterId, "إصدار خطاب بطلب ذاتي: {$template['name']} - {$employee['full_name']}");
+        flash_set('success', 'صدر الخطاب برقم ' . $number . ' وأُشعر الموظف.');
+        redirect('/forms/' . $letterId);
+    }
+
+    public function rejectRequest(array $params): void
+    {
+        $companyId = $this->requireCompanyContext();
+        if (!$this->canManage()) {
+            $this->forbidden();
+            return;
+        }
+        $this->verifyCsrf('/forms/requests');
+
+        $req = Database::first(
+            'SELECT r.*, e.linked_user_id, t.name AS template_name FROM forms_requests r
+               JOIN employees_profiles e ON e.id = r.employee_id
+               JOIN forms_templates t ON t.id = r.template_id
+              WHERE r.id = :id AND r.company_id = :c',
+            ['id' => (int) $params['id'], 'c' => $companyId]
+        );
+        if (!$req || $req['status'] !== 'pending') {
+            flash_set('error', 'الطلب غير موجود أو سبق البتّ فيه.');
+            redirect('/forms/requests');
+        }
+        $note = mb_substr(trim((string) Request::input('note', '')), 0, 255) ?: null;
+        Database::update('forms_requests', [
+            'status' => 'rejected',
+            'decided_by' => Auth::id(),
+            'decided_at' => date('Y-m-d H:i:s'),
+            'decision_note' => $note,
+        ], 'id = :id', ['id' => $req['id']]);
+        if (!empty($req['linked_user_id'])) {
+            \App\Core\Notification::send((int) $req['linked_user_id'], '❌ رُفض طلب الخطاب', $req['template_name'] . ($note ? ' — ' . $note : ''), route('/forms/requests'));
+        }
+        flash_set('success', 'رُفض الطلب.');
+        redirect('/forms/requests');
+    }
+
+    /** إرسال الخطاب بالبريد للموظف المعني (بريده الشخصي أو بريد حسابه). */
+    public function emailLetter(array $params): void
+    {
+        $companyId = $this->requireCompanyContext();
+        if (!$this->can('forms.generate') && !$this->canManage()) {
+            $this->forbidden();
+            return;
+        }
+        $letter = $this->findVisible((int) $params['id'], $companyId);
+        $this->verifyCsrf('/forms/' . $letter['id']);
+
+        // بريد المستلم: الشخصي من الملف الوظيفي، وإلا بريد حسابه المربوط
+        $email = null;
+        if (!empty($letter['employee_id'])) {
+            $emp = Database::first('SELECT personal_email, linked_user_id FROM employees_profiles WHERE id = :id', ['id' => $letter['employee_id']]);
+            $email = $emp['personal_email'] ?? null;
+            if (!$email && !empty($emp['linked_user_id'])) {
+                $email = Database::first('SELECT email FROM users WHERE id = :id', ['id' => $emp['linked_user_id']])['email'] ?? null;
+            }
+        }
+        if (!$email || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            flash_set('error', 'لا يوجد بريد صالح للموظف — أضف بريده الشخصي في ملفه الوظيفي.');
+            redirect('/forms/' . $letter['id']);
+        }
+
+        $verifyUrl = base_url('forms/verify/' . $letter['verify_token']);
+        $subject = '=?UTF-8?B?' . base64_encode($letter['title'] . ' - ' . ($letter['number'] ?? '')) . '?=';
+        $html = '<div dir="rtl" style="font-family:Tahoma,Arial,sans-serif;line-height:2;max-width:640px;">'
+            . '<h3>' . e($letter['title']) . ($letter['number'] ? ' — رقم ' . e($letter['number']) : '') . '</h3>'
+            . '<div style="white-space:pre-wrap;border:1px solid #e5e7eb;border-radius:8px;padding:16px;">' . e($letter['body']) . '</div>'
+            . '<p style="color:#6b7280;font-size:12px;">للتحقق من صحة هذا الخطاب: <a href="' . e($verifyUrl) . '">' . e($verifyUrl) . '</a></p>'
+            . '</div>';
+        $headers = "MIME-Version: 1.0\r\nContent-Type: text/html; charset=UTF-8\r\n";
+
+        if (@mail($email, $subject, $html, $headers)) {
+            ActivityLog::log('forms.email', 'form_letter', (int) $letter['id'], "إرسال خطاب بالبريد إلى {$email}");
+            flash_set('success', 'أُرسل الخطاب إلى ' . $email . '.');
+        } else {
+            flash_set('error', 'تعذّر الإرسال — تأكد أن الاستضافة تدعم إرسال البريد.');
+        }
+        redirect('/forms/' . $letter['id']);
+    }
+
+    /** ملف الموظف المربوط بحساب المستخدم الحالي (للخدمة الذاتية). */
+    private function ownEmployee(int $companyId): ?array
+    {
+        if (!ModuleManager::isActive('employees')) {
+            return null;
+        }
+        try {
+            return Database::first('SELECT * FROM employees_profiles WHERE company_id = :c AND linked_user_id = :u', ['c' => $companyId, 'u' => Auth::id()]);
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
     private function companyName(int $companyId): string
     {
         $c = Database::first('SELECT name FROM companies WHERE id = :id', ['id' => $companyId]);

@@ -30,6 +30,14 @@ return function (Router $router): void {
     $router->post('/forms/settings', [FormSettingController::class, 'update'], [$auth]);
 
     // صفحة تحقّق عامة بلا مصادقة (رمز عشوائي طويل غير قابل للتخمين) - قبل /forms/{id}
+    // طلبات الخطابات (الخدمة الذاتية) - مسارات ثابتة قبل /{id}
+    $router->get('/forms/requests', [FormController::class, 'requests'], [$auth]);
+    $router->get('/forms/requests/new', [FormController::class, 'requestForm'], [$auth]);
+    $router->post('/forms/requests', [FormController::class, 'storeRequest'], [$auth]);
+    $router->post('/forms/requests/{id}/approve', [FormController::class, 'approveRequest'], [$auth]);
+    $router->post('/forms/requests/{id}/reject', [FormController::class, 'rejectRequest'], [$auth]);
+    $router->post('/forms/{id}/email', [FormController::class, 'emailLetter'], [$auth]);
+
     $router->get('/forms/verify/{token}', [FormController::class, 'verify'], []);
 
     // الخطابات المولّدة

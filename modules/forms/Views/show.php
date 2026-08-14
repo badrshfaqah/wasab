@@ -5,6 +5,11 @@
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <a class="btn btn-outline" href="<?= route('/forms') ?>">← القائمة</a>
+        <?php if (!empty($letter['employee_id'])): ?>
+        <form method="post" action="<?= route('/forms/' . $letter['id'] . '/email') ?>" onsubmit="return confirm('إرسال الخطاب لبريد الموظف؟');">
+            <?= csrf_field() ?><button class="btn btn-outline" type="submit">📧 إرسال بالبريد</button>
+        </form>
+        <?php endif; ?>
         <a class="btn" href="<?= route('/forms/' . $letter['id'] . '/print') ?>" target="_blank" rel="noopener">🖨️ طباعة / حفظ PDF</a>
         <?php if ($canDelete): ?>
         <form method="post" action="<?= route('/forms/' . $letter['id'] . '/delete') ?>" onsubmit="return confirm('حذف هذا الخطاب؟');">

@@ -13,10 +13,30 @@ foreach ($widgets as $w) {
 }
 $name = current_user()['name'] ?? '';
 ?>
-<div class="dash-greeting">
+<div class="dash-greeting" style="position:relative;">
     <h1>مرحباً، <?= e($name) ?> 👋</h1>
     <p>هذه لوحتك الرئيسية، تعرض ما يخصك حسب صلاحياتك والإضافات المفعلة.</p>
 </div>
+
+<?php if (!empty($allLabels)): ?>
+<details class="filters-collapse" style="margin-bottom:14px;">
+    <summary>⚙️ تخصيص البطاقات<?= !empty($hiddenLabels) ? ' <span class="badge badge-info">' . count($hiddenLabels) . ' مخفية</span>' : '' ?></summary>
+    <form method="post" action="<?= route('/dashboard/prefs') ?>" style="margin-top:12px;">
+        <?= csrf_field() ?>
+        <p class="hint" style="margin-top:0;">أزل تحديد ما لا يهمك — يُخفى من لوحتك أنت فقط.</p>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:6px 14px;margin-bottom:10px;">
+            <?php foreach ($allLabels as $lbl): ?>
+                <label style="display:flex;align-items:center;gap:8px;font-weight:400;margin:0;">
+                    <input type="hidden" name="all_labels[]" value="<?= e($lbl) ?>">
+                    <input type="checkbox" name="visible[]" value="<?= e($lbl) ?>" style="width:auto;" <?= in_array($lbl, $hiddenLabels ?? [], true) ? '' : 'checked' ?>>
+                    <?= e($lbl) ?>
+                </label>
+            <?php endforeach; ?>
+        </div>
+        <button class="btn btn-outline btn-sm" type="submit">💾 حفظ التخصيص</button>
+    </form>
+</details>
+<?php endif; ?>
 
 <?php if ($stats): ?>
 <div class="cards-row">

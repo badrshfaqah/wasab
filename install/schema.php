@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS `users` (
     `avatar` VARCHAR(255) NULL,
     `timezone` VARCHAR(50) NULL COMMENT 'منطقة زمنية للعرض فقط - NULL تعني توقيت النظام الافتراضي',
     `push_prefs` TEXT NULL COMMENT 'تفضيلات إشعارات الجوال حسب الفئة (JSON) - NULL يعني الكل مفعّل',
+    `dashboard_prefs` TEXT NULL COMMENT 'أسماء بطاقات الرئيسية المخفية (JSON) - NULL يعني إظهار الكل',
     `status` ENUM('active','inactive') NOT NULL DEFAULT 'active',
     `last_login_at` DATETIME NULL,
     `last_activity_at` DATETIME NULL COMMENT 'آخر طلب مصادق للمستخدم - يُحدَّث بتهدئة دقيقة من Auth::user()',

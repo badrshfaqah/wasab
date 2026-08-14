@@ -76,4 +76,24 @@ return function (PDO $pdo): void {
             $stmt->execute(['c' => $cid, 'n' => $tpl['name'], 'b' => $tpl['body'], 't' => $now]);
         }
     }
+
+    // طلبات الخطابات: الموظف يطلب خطاباً واعتماد المدير يولّده تلقائياً
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS `forms_requests` (
+            `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            `company_id` INT UNSIGNED NOT NULL,
+            `employee_id` INT UNSIGNED NOT NULL,
+            `template_id` INT UNSIGNED NOT NULL,
+            `note` VARCHAR(500) NULL,
+            `status` ENUM('pending','done','rejected') NOT NULL DEFAULT 'pending',
+            `letter_id` INT UNSIGNED NULL,
+            `decided_by` INT UNSIGNED NULL,
+            `decided_at` DATETIME NULL,
+            `decision_note` VARCHAR(255) NULL,
+            `created_at` DATETIME NOT NULL,
+            KEY `forms_requests_company_index` (`company_id`),
+            KEY `forms_requests_status_index` (`status`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+");
+
 };

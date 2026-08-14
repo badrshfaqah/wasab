@@ -24,7 +24,7 @@ namespace App\Core;
  */
 class CoreMigrator
 {
-    public const CURRENT_VERSION = 18;
+    public const CURRENT_VERSION = 19;
     private const RETRY_COOLDOWN_SECONDS = 300;
 
     private static function migrations(): array
@@ -128,6 +128,14 @@ class CoreMigrator
                     'users',
                     'push_prefs',
                     "TEXT NULL COMMENT 'تفضيلات إشعارات الجوال حسب الفئة (JSON) - NULL يعني الكل مفعّل' AFTER `timezone`"
+                ),
+            ],
+            19 => [
+                'label' => 'إضافة تخصيص بطاقات الرئيسية لكل مستخدم',
+                'run' => fn () => self::addColumnIfMissing(
+                    'users',
+                    'dashboard_prefs',
+                    "TEXT NULL COMMENT 'أسماء بطاقات الرئيسية المخفية (JSON) - NULL يعني إظهار الكل' AFTER `push_prefs`"
                 ),
             ],
         ];
