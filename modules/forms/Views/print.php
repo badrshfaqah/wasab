@@ -75,7 +75,8 @@ body{background:#9ca3af;}
         <?php endif; ?>
 
         <?php if ($footer): ?><div class="doc-footer"><?= $footer ?></div><?php endif; ?>
-        <?php if (!empty($letter['verify_token'])): ?>
+        <?php // عبارة التحقق النصية تُخفى عندما يكون رمز QR مفعّلاً بالقالب (الرمز يغني عنها) ?>
+        <?php if (!empty($letter['verify_token']) && empty($template['qr_enabled'])): ?>
             <div style="margin-top:18px;padding-top:8px;border-top:1px dashed #cbd5e1;font-size:11px;color:#6b7280;text-align:center;">
                 للتحقق من صحة هذا الخطاب: <?= e(base_url('forms/verify/' . $letter['verify_token'])) ?>
                 — رمز التحقق: <strong><?= e(strtoupper(substr((string) $letter['verify_token'], 0, 8))) ?></strong>

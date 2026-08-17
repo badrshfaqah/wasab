@@ -113,7 +113,8 @@ body{background:#9ca3af;}
             <div class="doc-footer"><?= $footerHtml ?></div>
         <?php endif; ?>
 
-        <?php if (!empty($verifyUrl)): ?>
+        <?php // عبارة التحقق النصية تُخفى عندما يكون رمز QR مفعّلاً بالقالب (الرمز يغني عنها) ?>
+        <?php if (!empty($verifyUrl) && empty($template['qr_enabled'])): ?>
             <div class="doc-verify">
                 <span>🔎 للتحقق من صحة هذا المستند، امسح الرمز أو افتح الرابط:</span>
                 <div class="doc-verify-url"><?= e($verifyUrl) ?></div>
