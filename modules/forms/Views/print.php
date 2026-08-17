@@ -1,4 +1,6 @@
 <?php
+// وضع المعاينة المدمجة (داخل iframe بصفحة الخطاب): بلا شريط أدوات
+$embedded = !empty($_GET['embed']);
 $companyId = $letter['company_id'];
 $bg = $settings['background_image'] ? route('/media/forms/' . $companyId . '/' . $settings['background_image']) : null;
 $header = $settings['header_html'] ?? '';
@@ -33,9 +35,15 @@ body{margin:0;background:#e5e7eb;font-family:'Cairo','Segoe UI',Tahoma,Arial,san
   .page-wrap{padding:0;}
   .doc-page{box-shadow:none;width:210mm;min-height:297mm;margin:0;}
 }
+<?php if ($embedded): ?>
+body{background:#9ca3af;}
+.page-wrap{padding:10px 6px;}
+.doc-page{box-shadow:0 1px 8px rgba(0,0,0,.25);}
+<?php endif; ?>
 </style>
 </head>
 <body>
+<?php if (!$embedded): ?>
 <div class="toolbar">
     <span><?= e($letter['title']) ?> - <?= e($letter['number']) ?></span>
     <div style="display:flex;gap:8px;">
@@ -43,6 +51,7 @@ body{margin:0;background:#e5e7eb;font-family:'Cairo','Segoe UI',Tahoma,Arial,san
         <a href="javascript:window.close()">إغلاق</a>
     </div>
 </div>
+<?php endif; ?>
 <div class="page-wrap">
     <div class="doc-page">
         <div class="doc-number">رقم: <?= e($letter['number']) ?></div>

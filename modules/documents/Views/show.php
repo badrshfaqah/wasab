@@ -33,6 +33,7 @@ $canRestore = $document['status'] === 'archived' && $canManage;
         </p>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <a class="btn" href="#doc-pdf-preview">👁️ عرض PDF</a>
         <a class="btn btn-outline" href="<?= route('/documents/' . $document['id'] . '/print') ?>" target="_blank">🖨️ طباعة / حفظ PDF</a>
         <?php if ($canEdit): ?>
             <a class="btn btn-outline" href="<?= route('/documents/' . $document['id'] . '/edit') ?>">تعديل</a>
@@ -57,6 +58,18 @@ $canRestore = $document['status'] === 'archived' && $canManage;
         <p class="hint" style="margin:6px 0 0;">يمكن لأي شخص فتح هذا الرابط للتأكد من أصالة المستند دون الاطلاع على محتواه. يظهر أيضاً على النسخة المطبوعة.</p>
     </div>
 <?php endif; ?>
+
+<!-- معاينة PDF داخل الموقع: الورقة النهائية (بالقالب والتوقيع والختم وQR) دون مغادرة الصفحة -->
+<div class="card" id="doc-pdf-preview">
+    <div class="card-title divided">
+        <span>📄 معاينة المستند (PDF)</span>
+        <a class="btn btn-ghost btn-sm" href="<?= route('/documents/' . $document['id'] . '/print') ?>" target="_blank" rel="noopener">⛶ ملء الشاشة</a>
+    </div>
+    <iframe src="<?= route('/documents/' . $document['id'] . '/print?embed=1') ?>"
+            style="width:100%;height:75vh;min-height:420px;border:1px solid var(--border);border-radius:10px;background:#9ca3af;"
+            loading="lazy" title="معاينة المستند"></iframe>
+    <p class="hint" style="margin:8px 0 0;">هذه هي الورقة النهائية كما ستُطبع — بالقالب والتوقيع والختم ورمز التحقق. للحفظ كملف PDF استخدم «🖨️ طباعة / حفظ PDF».</p>
+</div>
 
 <div class="grid-2" style="align-items:start;">
     <div class="card">

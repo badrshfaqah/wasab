@@ -19,7 +19,19 @@
     </div>
 </div>
 
+<!-- معاينة PDF داخل الموقع: الخطاب النهائي بترويسته وتوقيعه وختمه -->
 <div class="card">
+    <div class="card-title divided">
+        <span>📄 معاينة الخطاب (PDF)</span>
+        <a class="btn btn-ghost btn-sm" href="<?= route('/forms/' . $letter['id'] . '/print') ?>" target="_blank" rel="noopener">⛶ ملء الشاشة</a>
+    </div>
+    <iframe src="<?= route('/forms/' . $letter['id'] . '/print?embed=1') ?>"
+            style="width:100%;height:75vh;min-height:420px;border:1px solid var(--border);border-radius:10px;background:#9ca3af;"
+            loading="lazy" title="معاينة الخطاب"></iframe>
+</div>
+
+<div class="card">
+    <div class="card-title divided"><span>النص</span></div>
     <div style="white-space:pre-wrap;line-height:2.1;font-size:15px;"><?= e($letter['body']) ?></div>
 </div>
 

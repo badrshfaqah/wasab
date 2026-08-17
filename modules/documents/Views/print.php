@@ -1,6 +1,9 @@
 <?php
 use Modules\Documents\Models\Document;
 
+// وضع المعاينة المدمجة (داخل iframe بصفحة المستند): بلا شريط أدوات ولا خلفية رمادية
+$embedded = !empty($_GET['embed']);
+
 $typeLabels = Document::typeLabels();
 $headerHtml = ($template['header_html'] ?? '') ?: ($settings['header_html'] ?? '');
 $footerHtml = ($template['footer_html'] ?? '') ?: ($settings['footer_html'] ?? '');
@@ -56,9 +59,16 @@ body{margin:0;background:#e5e7eb;font-family:'Cairo','Segoe UI',Tahoma,Arial,san
   .page-wrap{padding:0;display:block;overflow:visible;}
   .doc-page{box-shadow:none;width:210mm;min-height:297mm;margin:0;}
 }
+<?php if ($embedded): ?>
+/* معاينة مدمجة: صفحة نظيفة بلا شريط ولا خلفية - تُعرض داخل iframe */
+body{background:#9ca3af;}
+.page-wrap{padding:10px 6px;}
+.doc-page{box-shadow:0 1px 8px rgba(0,0,0,.25);}
+<?php endif; ?>
 </style>
 </head>
 <body>
+<?php if (!$embedded): ?>
 <div class="toolbar no-print">
     <span><?= e($document['title']) ?></span>
     <div style="display:flex;gap:8px;">
@@ -66,6 +76,7 @@ body{margin:0;background:#e5e7eb;font-family:'Cairo','Segoe UI',Tahoma,Arial,san
         <a href="javascript:window.close()">إغلاق</a>
     </div>
 </div>
+<?php endif; ?>
 <div class="page-wrap">
     <div class="doc-page">
         <?php if ($showNumber || $showDate): ?>
