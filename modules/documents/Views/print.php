@@ -10,9 +10,9 @@ $footerHtml = ($template['footer_html'] ?? '') ?: ($settings['footer_html'] ?? '
 $numberPosition = $template['number_position'] ?? 'top-right';
 $showNumber = $template ? (bool) $template['show_number'] : true;
 $showDate = $template ? (bool) $template['show_date'] : true;
-$bgUrl = $template && $template['background_image']
+$bgUrl = $bgUrl ?? ($template && $template['background_image']
     ? route('/media/documents/' . $template['company_id'] . '/' . $template['background_image'])
-    : null;
+    : null);
 ?>
 <!doctype html>
 <html lang="ar" dir="rtl">

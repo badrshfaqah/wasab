@@ -2,7 +2,7 @@
 // وضع المعاينة المدمجة (داخل iframe بصفحة الخطاب): بلا شريط أدوات
 $embedded = !empty($_GET['embed']);
 $companyId = $letter['company_id'];
-$bg = $settings['background_image'] ? route('/media/forms/' . $companyId . '/' . $settings['background_image']) : null;
+$bg = $bgUrl ?? ($settings['background_image'] ? route('/media/forms/' . $companyId . '/' . $settings['background_image']) : null);
 $header = $settings['header_html'] ?? '';
 $footer = $settings['footer_html'] ?? '';
 ?>

@@ -10,6 +10,22 @@ namespace App\Core;
  */
 class Uploads
 {
+    /**
+     * يحوّل صورة مخزّنة إلى data URI لتضمينها بصفحات عامة (كصفحة التحقق) حيث لا
+     * تعمل مسارات /media المحمية بتسجيل الدخول. يعيد null إن غاب الملف أو كبر (2MB).
+     */
+    public static function dataUri(?string $path): ?string
+    {
+        if (!$path || !is_file($path) || filesize($path) > 2 * 1024 * 1024) {
+            return null;
+        }
+        $mime = ['png' => 'image/png', 'jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'webp' => 'image/webp'][strtolower(pathinfo($path, PATHINFO_EXTENSION))] ?? null;
+        if (!$mime) {
+            return null;
+        }
+        return 'data:' . $mime . ';base64,' . base64_encode((string) file_get_contents($path));
+    }
+
     private const ALLOWED = ['image/png' => 'png', 'image/jpeg' => 'jpg', 'image/webp' => 'webp'];
     private const MAX_BYTES = 2 * 1024 * 1024;
 

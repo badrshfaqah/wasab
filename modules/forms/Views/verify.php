@@ -1,5 +1,8 @@
 <?php
-/** صفحة تحقّق عامة مستقلة (بلا تخطيط النظام). لا تعرض نص الخطاب إطلاقاً. */
+/**
+ * صفحة تحقّق عامة مستقلة (بلا تخطيط النظام): تعرض ورقة الخطاب نفسها أولاً
+ * (حاملها يملكها أصلاً، فالعرض يتيح المطابقة البصرية) ثم بيانات التأكيد.
+ */
 $found = $letter !== null;
 ?>
 <!doctype html>
@@ -11,8 +14,11 @@ $found = $letter !== null;
 <title>التحقق من خطاب</title>
 <style>
 *{box-sizing:border-box;}
-body{margin:0;font-family:'Segoe UI',Tahoma,Arial,sans-serif;background:#f3f4f6;color:#1f2937;display:flex;min-height:100vh;align-items:center;justify-content:center;padding:20px;}
+body{margin:0;font-family:'Segoe UI',Tahoma,Arial,sans-serif;background:#f3f4f6;color:#1f2937;display:flex;min-height:100vh;flex-direction:column;align-items:center;justify-content:flex-start;padding:20px;gap:16px;}
 .card{background:#fff;border-radius:14px;box-shadow:0 4px 24px rgba(0,0,0,.08);max-width:520px;width:100%;overflow:hidden;}
+.paper-wrap{max-width:840px;width:100%;}
+.paper-wrap iframe{width:100%;height:78vh;min-height:420px;border:0;border-radius:14px;box-shadow:0 4px 24px rgba(0,0,0,.08);background:#9ca3af;}
+.paper-title{text-align:center;font-size:13px;color:#6b7280;margin:0 0 8px;}
 .head{padding:28px 24px;text-align:center;color:#fff;}
 .head.ok{background:linear-gradient(135deg,#059669,#10b981);}
 .head.bad{background:linear-gradient(135deg,#dc2626,#ef4444);}
@@ -27,6 +33,12 @@ body{margin:0;font-family:'Segoe UI',Tahoma,Arial,sans-serif;background:#f3f4f6;
 </style>
 </head>
 <body>
+<?php if ($found && !empty($paperUrl)): ?>
+<div class="paper-wrap">
+    <p class="paper-title">📄 هذه صورة الخطاب الأصلية من النظام — طابقها مع الورقة التي بين يديك</p>
+    <iframe src="<?= e($paperUrl) ?>" title="الخطاب" loading="lazy"></iframe>
+</div>
+<?php endif; ?>
 <div class="card">
     <?php if (!$found): ?>
         <div class="head bad">
@@ -51,7 +63,7 @@ body{margin:0;font-family:'Segoe UI',Tahoma,Arial,sans-serif;background:#f3f4f6;
                 <div class="row"><span class="k">المستفيد</span><span class="v"><?= e($letter['recipient_name']) ?></span></div>
             <?php endif; ?>
             <div class="row"><span class="k">تاريخ الإصدار</span><span class="v"><?= e(date('Y-m-d', strtotime($letter['created_at']))) ?></span></div>
-            <p class="note">هذه الصفحة تؤكد وجود الخطاب وبياناته الأساسية في النظام. نص الخطاب لا يُعرض هنا حفاظاً على الخصوصية.</p>
+            <p class="note">هذه الصفحة تؤكد صدور الخطاب من النظام — طابق الصورة أعلاه مع الورقة التي بين يديك، فإن اختلفتا فالورقة معدَّلة.</p>
         </div>
     <?php endif; ?>
 </div>

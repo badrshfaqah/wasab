@@ -39,6 +39,7 @@ return function (Router $router): void {
     $router->post('/forms/{id}/email', [FormController::class, 'emailLetter'], [$auth]);
 
     $router->get('/forms/verify/{token}', [FormController::class, 'verify'], []);
+    $router->get('/forms/verify/{token}/view', [FormController::class, 'verifyView'], []);
 
     // الخطابات المولّدة
     $router->get('/forms/{id}', [FormController::class, 'show'], [$auth]);

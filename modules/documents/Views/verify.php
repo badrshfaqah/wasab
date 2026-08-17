@@ -16,7 +16,10 @@ $expired = $found && !empty($document['expiry_date']) && $document['expiry_date'
 <title>التحقق من مستند</title>
 <style>
 *{box-sizing:border-box;}
-body{margin:0;font-family:'Segoe UI',Tahoma,Arial,sans-serif;background:#f3f4f6;color:#1f2937;display:flex;min-height:100vh;align-items:center;justify-content:center;padding:20px;}
+body{margin:0;font-family:'Segoe UI',Tahoma,Arial,sans-serif;background:#f3f4f6;color:#1f2937;display:flex;min-height:100vh;flex-direction:column;align-items:center;justify-content:flex-start;padding:20px;gap:16px;}
+.paper-wrap{max-width:840px;width:100%;}
+.paper-wrap iframe{width:100%;height:78vh;min-height:420px;border:0;border-radius:14px;box-shadow:0 4px 24px rgba(0,0,0,.08);background:#9ca3af;}
+.paper-title{text-align:center;font-size:13px;color:#6b7280;margin:0 0 8px;}
 .card{background:#fff;border-radius:14px;box-shadow:0 4px 24px rgba(0,0,0,.08);max-width:520px;width:100%;overflow:hidden;}
 .head{padding:28px 24px;text-align:center;color:#fff;}
 .head.ok{background:linear-gradient(135deg,#059669,#10b981);}
@@ -33,6 +36,12 @@ body{margin:0;font-family:'Segoe UI',Tahoma,Arial,sans-serif;background:#f3f4f6;
 </style>
 </head>
 <body>
+<?php if (!empty($paperUrl)): ?>
+<div class="paper-wrap">
+    <p class="paper-title">📄 هذه صورة المستند الأصلية من النظام — طابقها مع الورقة التي بين يديك</p>
+    <iframe src="<?= e($paperUrl) ?>" title="المستند" loading="lazy"></iframe>
+</div>
+<?php endif; ?>
 <div class="card">
     <?php if (!$found): ?>
         <div class="head bad">

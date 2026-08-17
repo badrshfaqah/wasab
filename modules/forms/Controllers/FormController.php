@@ -158,7 +158,7 @@ class FormController
         redirect('/forms/' . $letterId);
     }
 
-    /** صفحة تحقّق عامة من صحة خطاب عبر رمزه (بلا مصادقة، بلا عرض المحتوى). */
+    /** صفحة تحقّق عامة من صحة خطاب عبر رمزه (بلا مصادقة) - تعرض الخطاب ثم بيانات التأكيد. */
     public function verify(array $params): void
     {
         $token = (string) ($params['token'] ?? '');
@@ -167,6 +167,68 @@ class FormController
         View::render('forms::verify', [
             'pageTitle' => 'التحقق من خطاب',
             'letter' => $letter,
+            'paperUrl' => $letter ? base_url('forms/verify/' . $token . '/view?embed=1') : null,
+        ], '');
+    }
+
+    /**
+     * عرض ورقة الخطاب نفسها لحامل رمز التحقق (بلا مصادقة): من يمسح الرمز يحمل
+     * الورقة أصلاً، فعرضها يتيح المطابقة البصرية مع الأصل. الصور (توقيع/ختم/خلفية)
+     * تُضمَّن data URI لأن مسارات /media المحمية لا تعمل لزائر غير مسجّل.
+     */
+    public function verifyView(array $params): void
+    {
+        $token = (string) ($params['token'] ?? '');
+        $letter = ctype_xdigit($token) ? FormLetter::findByToken($token) : null;
+        if (!$letter) {
+            http_response_code(404);
+            exit;
+        }
+        $companyId = (int) $letter['company_id'];
+        $settings = FormSetting::getOrCreate($companyId);
+
+        $signatureUrl = null;
+        if (!empty($letter['signature_file'])) {
+            $signatureUrl = \App\Core\Uploads::dataUri(BASE_PATH . '/storage/uploads/signatures/' . $companyId . '/' . $letter['signature_file']);
+        } elseif (!empty($settings['signature_image'])) {
+            $signatureUrl = \App\Core\Uploads::dataUri(BASE_PATH . '/storage/uploads/forms/' . $companyId . '/' . $settings['signature_image']);
+        }
+
+        $stampUrl = null;
+        $template = !empty($letter['template_id']) ? FormTemplate::find((int) $letter['template_id']) : null;
+        if ($template && (int) $template['company_id'] !== $companyId) {
+            $template = null;
+        }
+        if ($template && !empty($template['stamp_id'])) {
+            $stamp = \App\Core\CompanyStamp::findForCompany((int) $template['stamp_id'], $companyId);
+            if ($stamp) {
+                $stampUrl = \App\Core\Uploads::dataUri(BASE_PATH . '/storage/uploads/stamps/' . $companyId . '/' . $stamp['image']);
+            }
+        }
+        if (!$stampUrl && !empty($settings['stamp_image'])) {
+            $stampUrl = \App\Core\Uploads::dataUri(BASE_PATH . '/storage/uploads/forms/' . $companyId . '/' . $settings['stamp_image']);
+        }
+
+        $signerName = $settings['signer_name'] ?? null;
+        if (!empty($letter['created_by'])) {
+            $issuer = Database::first('SELECT name FROM users WHERE id = :id', ['id' => $letter['created_by']]);
+            if ($issuer) {
+                $signerName = $issuer['name'];
+            }
+        }
+
+        View::render('forms::print', [
+            'pageTitle' => $letter['title'],
+            'letter' => $letter,
+            'settings' => $settings,
+            'signatureUrl' => $signatureUrl,
+            'stampUrl' => $stampUrl,
+            'signerName' => $signerName,
+            'template' => $template,
+            'verifyUrl' => base_url('forms/verify/' . $token),
+            'bgUrl' => !empty($settings['background_image'])
+                ? \App\Core\Uploads::dataUri(BASE_PATH . '/storage/uploads/forms/' . $companyId . '/' . $settings['background_image'])
+                : null,
         ], '');
     }
 

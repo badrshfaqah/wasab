@@ -29,6 +29,7 @@ return function (Router $router): void {
 
     // صفحة تحقّق عامة بلا مصادقة (رمز عشوائي طويل غير قابل للتخمين) - قبل /documents/{id}
     $router->get('/documents/verify/{token}', [DocumentController::class, 'verify'], []);
+    $router->get('/documents/verify/{token}/view', [DocumentController::class, 'verifyView'], []);
 
     $router->get('/documents/{id}', [DocumentController::class, 'show'], [$auth]);
     $router->get('/documents/{id}/edit', [DocumentController::class, 'edit'], [$auth]);

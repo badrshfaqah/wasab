@@ -551,11 +551,77 @@ class DocumentController
         $token = (string) ($params['token'] ?? '');
         $document = ctype_xdigit($token) ? Document::findByToken($token) : null;
 
+        // ورقة المستند تُعرض لحامل الرمز فقط عندما يكون تصنيفه "عادي" - المستندات
+        // الداخلية/السرية تبقى بيانات تأكيد فقط دون محتوى.
+        $showPaper = $document && ($document['confidentiality'] ?? 'normal') === 'normal';
+
         View::render('documents::verify', [
             'pageTitle' => 'التحقق من مستند',
             'document' => $document,
             'typeLabels' => Document::typeLabels(),
             'statusLabels' => Document::statusLabels(),
+            'paperUrl' => $showPaper ? base_url('documents/verify/' . $token . '/view?embed=1') : null,
+        ], '');
+    }
+
+    /**
+     * عرض ورقة المستند لحامل رمز التحقق (بلا مصادقة) - للتصنيف "عادي" فقط.
+     * الصور تُضمَّن data URI لأن مسارات /media المحمية لا تعمل لزائر غير مسجّل.
+     */
+    public function verifyView(array $params): void
+    {
+        $token = (string) ($params['token'] ?? '');
+        $document = ctype_xdigit($token) ? Document::findByToken($token) : null;
+        if (!$document || ($document['confidentiality'] ?? 'normal') !== 'normal') {
+            http_response_code(404);
+            exit;
+        }
+        $companyId = (int) $document['company_id'];
+
+        $template = $document['template_id'] ? DocumentTemplate::find((int) $document['template_id']) : null;
+        if ($template && (int) $template['company_id'] !== $companyId) {
+            $template = null;
+        }
+        $settings = DocumentSetting::getOrCreate($companyId);
+
+        $signatureUrl = null;
+        if (!empty($document['signature_file'])) {
+            $signatureUrl = \App\Core\Uploads::dataUri(BASE_PATH . '/storage/uploads/signatures/' . $companyId . '/' . $document['signature_file']);
+        } elseif (!empty($settings['signature_image'])) {
+            $signatureUrl = \App\Core\Uploads::dataUri(BASE_PATH . '/storage/uploads/documents/' . $companyId . '/' . $settings['signature_image']);
+        }
+
+        $stampUrl = null;
+        if ($template && !empty($template['stamp_id'])) {
+            $stamp = \App\Core\CompanyStamp::findForCompany((int) $template['stamp_id'], $companyId);
+            if ($stamp) {
+                $stampUrl = \App\Core\Uploads::dataUri(BASE_PATH . '/storage/uploads/stamps/' . $companyId . '/' . $stamp['image']);
+            }
+        }
+        if (!$stampUrl && !empty($settings['stamp_image'])) {
+            $stampUrl = \App\Core\Uploads::dataUri(BASE_PATH . '/storage/uploads/documents/' . $companyId . '/' . $settings['stamp_image']);
+        }
+
+        $signerName = $settings['signer_name'] ?? null;
+        if (!empty($document['signed_by'])) {
+            $signer = Database::first('SELECT name FROM users WHERE id = :id', ['id' => $document['signed_by']]);
+            if ($signer) {
+                $signerName = $signer['name'];
+            }
+        }
+
+        View::render('documents::print', [
+            'document' => $document,
+            'template' => $template,
+            'settings' => $settings,
+            'company' => Database::first('SELECT * FROM companies WHERE id = :id', ['id' => $companyId]),
+            'signatureUrl' => $signatureUrl,
+            'stampUrl' => $stampUrl,
+            'signerName' => $signerName,
+            'verifyUrl' => base_url('documents/verify/' . $token),
+            'bgUrl' => ($template && !empty($template['background_image']))
+                ? \App\Core\Uploads::dataUri(BASE_PATH . '/storage/uploads/documents/' . $companyId . '/' . $template['background_image'])
+                : null,
         ], '');
     }
 
