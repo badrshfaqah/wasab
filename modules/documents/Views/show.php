@@ -35,6 +35,11 @@ $canRestore = $document['status'] === 'archived' && $canManage;
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <a class="btn" href="#doc-pdf-preview">👁️ عرض PDF</a>
         <a class="btn btn-outline" href="<?= route('/documents/' . $document['id'] . '/print') ?>" target="_blank">🖨️ طباعة / حفظ PDF</a>
+        <?php if (!empty($canDuplicate)): ?>
+        <form method="post" action="<?= route('/documents/' . $document['id'] . '/duplicate') ?>" onsubmit="return confirm('نسخ هذا المستند كمسودة جديدة؟ تمر بالاعتماد من أوله وتأخذ رقماً جديداً.');">
+            <?= csrf_field() ?><button class="btn btn-outline" type="submit">📋 نسخ كمسودة</button>
+        </form>
+        <?php endif; ?>
         <?php if ($canEdit): ?>
             <a class="btn btn-outline" href="<?= route('/documents/' . $document['id'] . '/edit') ?>">تعديل</a>
         <?php endif; ?>

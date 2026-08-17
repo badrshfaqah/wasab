@@ -115,6 +115,7 @@ class DocumentController
             'canManage' => $this->canManage(),
             'canApprove' => $this->can('documents.approve'),
             'canSign' => $this->can('documents.sign'),
+            'canDuplicate' => $this->can('documents.create') || $this->canManage(),
             'mySignatures' => \App\Core\UserSignature::forUser(Auth::id()),
             'approvals' => Database::select(
                 'SELECT a.*, u.name AS approver_name FROM documents_approvals a LEFT JOIN users u ON u.id = a.approved_by WHERE a.document_id = :d ORDER BY a.step_no',
@@ -161,6 +162,43 @@ class DocumentController
         DocumentLog::add($document['id'], Auth::id(), 'commented', 'إضافة تعليق');
         flash_set('success', 'أُضيف تعليقك.');
         redirect('/documents/' . $document['id']);
+    }
+
+    /**
+     * نسخ المستند كمسودة جديدة: المسار الصحيح "لتعديل" مستند معتمد/موقّع دون كسر
+     * أصالته - تُنسخ البيانات والمحتوى، وتُصفَّر الحالة والرقم والاعتمادات والتوقيع،
+     * وتأخذ النسخة رمز تحقق جديداً وتمر بدورة الاعتماد من أولها.
+     */
+    public function duplicate(array $params): void
+    {
+        $companyId = $this->requireCompanyContext();
+        if (!$this->can('documents.create') && !$this->canManage()) {
+            $this->forbidden();
+            return;
+        }
+        $document = $this->findVisible((int) $params['id'], $companyId);
+        $this->verifyCsrf('/documents/' . $document['id']);
+
+        $newId = Database::insert('documents_documents', [
+            'company_id' => $companyId,
+            'type' => $document['type'],
+            'visibility' => $document['visibility'],
+            'confidentiality' => $document['confidentiality'] ?? 'normal',
+            'status' => 'draft',
+            'title' => mb_substr($document['title'], 0, 240) . ' (نسخة)',
+            'content' => $document['content'],
+            'template_id' => $document['template_id'],
+            'verify_token' => bin2hex(random_bytes(16)),
+            'created_by' => Auth::id(),
+            'created_at' => date('Y-m-d H:i:s'),
+        ]);
+
+        DocumentLog::add($newId, Auth::id(), 'created', 'أُنشئ نسخةً من المستند #' . $document['id'] . ($document['number'] ? ' (رقم ' . $document['number'] . ')' : ''));
+        DocumentLog::add($document['id'], Auth::id(), 'duplicated', 'نُسخ المستند كمسودة جديدة #' . $newId);
+        ActivityLog::log('documents.duplicate', 'document', $newId, "نسخ مستند: {$document['title']}");
+
+        flash_set('success', 'أُنشئت نسخة مسودة جديدة — عدّلها ثم أرسلها للاعتماد لتأخذ رقماً جديداً.');
+        redirect('/documents/' . $newId . '/edit');
     }
 
     public function edit(array $params): void
