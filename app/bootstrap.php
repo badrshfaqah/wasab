@@ -43,6 +43,9 @@ Session::start();
 Database::connect(APP_CONFIG['db']);
 View::addPath(BASE_PATH . '/app/Views');
 CoreMigrator::run();
+// الإكمال التلقائي بعد كل سحب من الاستضافة: عند تغيّر رقم إصدار الملفات تُطبَّق كل
+// الترقيات فوراً ويُسجَّل الرقم الجديد ويُشعر مدراء النظام (رخيص جداً عند عدم التغيّر).
+\App\Core\ModuleManager::finalizeIfVersionChanged();
 // ترقيات الإضافات تلقائياً بعد تحديث الملفات (ذاتياً أو يدوياً) حتى لا يسبق كود
 // الإضافة مخططها في قاعدة البيانات فتنهار الصفحات المعتمدة على أعمدة جديدة.
 \App\Core\ModuleManager::autoMigratePending();

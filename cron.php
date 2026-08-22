@@ -35,6 +35,9 @@ use App\Core\Database;
 
 try {
     Database::connect(APP_CONFIG['db']);
+    // اكتمال التحديث تلقائياً حتى بلا زوّار: لو سحبت الاستضافة ملفات جديدة، يكتشف
+    // الكرون تغيّر رقم الإصدار ويطبّق الترقيات خلال دورته التالية.
+    \App\Core\ModuleManager::finalizeIfVersionChanged();
     CronRunner::run();
     echo 'تم تشغيل مهام الجدولة بنجاح - ' . date('Y-m-d H:i:s') . "\n";
 } catch (\Throwable $e) {

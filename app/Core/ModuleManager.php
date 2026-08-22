@@ -139,6 +139,63 @@ class ModuleManager
     }
 
     /**
+     * الإكمال التلقائي بعد كل سحب من الاستضافة: يقارن رقم إصدار الملفات (changelog)
+     * بآخر رقم مسجّل بقاعدة البيانات، وعند اختلافهما (وصلت ملفات جديدة عبر Git
+     * الاستضافة أو أي رفع) يطبّق كل شيء فوراً: ترقيات النواة (متجاوزاً تهدئة إعادة
+     * المحاولة) + ترقيات الإضافات + مزامنة صلاحيات كل الإضافات، ثم يسجّل الرقم
+     * الجديد ويوثّق العملية ويُشعر مدراء النظام. رخيص جداً عند عدم التغيّر (مقارنة
+     * نصية واحدة) فيُستدعى بكل طلب ومن cron.
+     */
+    public static function finalizeIfVersionChanged(): void
+    {
+        try {
+            $fileVersion = Wasab::currentVersion();
+            $dbVersion = (string) (Setting::get('system_version', null, '') ?? '');
+            if ($fileVersion === '' || $dbVersion === $fileVersion) {
+                return;
+            }
+
+            // ترقيات النواة كاملة (تتجاهل التهدئة - وصول نسخة جديدة سبب كافٍ للمحاولة فوراً)
+            try {
+                CoreMigrator::applyAll();
+            } catch (\Throwable $e) {
+                log_exception($e);
+            }
+
+            // ترقيات الإضافات التي ملفاتها أحدث
+            self::autoMigratePending();
+
+            // مزامنة صلاحيات كل الإضافات المثبتة (احتياطاً حتى لغير المرقّاة)
+            foreach (array_keys(self::installedRows()) as $key) {
+                try {
+                    self::syncPermissions($key);
+                } catch (\Throwable $e) {
+                    log_exception($e);
+                }
+            }
+
+            Setting::set('system_version', $fileVersion);
+            Setting::set('system_version_updated_at', date('Y-m-d H:i:s'));
+
+            $label = $dbVersion !== '' ? "{$dbVersion} ← {$fileVersion}" : $fileVersion;
+            ActivityLog::log('system.update_finalized', 'system', null, "اكتمال تحديث تلقائي بعد وصول ملفات جديدة: {$label}");
+
+            // إشعار مدراء النظام بأن التحديث اكتمل وقاعدة البيانات مواكبة
+            foreach (Database::select("SELECT id FROM users WHERE membership_type = 'system_admin' AND status = 'active'") as $admin) {
+                Notification::send(
+                    (int) $admin['id'],
+                    '⬆️ اكتمل تحديث النظام تلقائياً',
+                    "وصلت ملفات جديدة وطُبِّقت الترقيات — النظام الآن على {$fileVersion}.",
+                    route('/extensions')
+                );
+            }
+        } catch (\Throwable $e) {
+            // لا يُسمح لأي فشل هنا بإسقاط الطلب - يُسجَّل ويُعاد في الطلب التالي
+            log_exception($e);
+        }
+    }
+
+    /**
      * يطبّق ترقيات قاعدة البيانات لأي إضافة رُفعت ملفاتها بإصدار أحدث من المسجّل بقاعدة
      * البيانات (كما يحدث بعد التحديث الذاتي من GitHub الذي ينسخ الملفات دون تشغيل
      * ترقيات الإضافات). يُستدعى مبكراً في الإقلاع فلا يبقى كود الإضافة أحدث من مخططها

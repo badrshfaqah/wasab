@@ -2,16 +2,34 @@
     <div><h1>إدارة الإضافات</h1><p>ثبّت وفعّل الإضافات لتوسيع قدرات النظام دون المساس بالنواة.</p></div>
 </div>
 
+<?php
+$fileVersion = \App\Core\Wasab::currentVersion();
+$dbVersion = (string) (\App\Core\Setting::get('system_version', null, '') ?? '');
+$finalizedAt = (string) (\App\Core\Setting::get('system_version_updated_at', null, '') ?? '');
+$versionSynced = $dbVersion === $fileVersion;
+?>
 <div class="card">
     <div class="card-title">
         <span>⬇️ تحديث النظام</span>
-        <span class="badge badge-info">الإصدار الحالي: <?= e(\App\Core\Wasab::currentVersion()) ?></span>
+        <span style="display:flex;gap:6px;flex-wrap:wrap;">
+            <span class="badge badge-info">الإصدار: <?= e($fileVersion) ?></span>
+            <?php if ($versionSynced): ?>
+                <span class="badge badge-success">✓ قاعدة البيانات مواكبة</span>
+            <?php else: ?>
+                <span class="badge badge-warning">⏳ بانتظار إكمال الترقيات</span>
+            <?php endif; ?>
+        </span>
     </div>
+    <?php if ($finalizedAt): ?>
+        <p class="hint" style="margin:0 0 12px;">آخر اكتمال تحديث: <strong><?= e($dbVersion ?: '—') ?></strong> بتاريخ <?= format_date($finalizedAt, 'Y-m-d H:i') ?> — بعد كل سحب من الاستضافة تُطبَّق الترقيات تلقائياً (بأول زيارة أو خلال دورة الكرون) ويصلك إشعار بالاكتمال.</p>
+    <?php else: ?>
+        <p class="hint" style="margin:0 0 12px;">بعد كل سحب من الاستضافة تُطبَّق الترقيات تلقائياً (بأول زيارة أو خلال دورة الكرون) ويصلك إشعار بالاكتمال.</p>
+    <?php endif; ?>
 
     <div class="form-section" style="margin-top:0;padding-top:0;border-top:0;">الطريقة الأولى — السحب عبر Git الاستضافة (الموصى بها)</div>
     <p class="hint" style="margin:0 0 10px;">
-        إن كانت استضافتك تسحب الملفات من GitHub مباشرة (خيار Git في لوحة الاستضافة): بعد كل سحب اضغط هذا الزر
-        ليُكمل الباقي — ترقيات قاعدة بيانات النواة وكل الإضافات ومزامنة الصلاحيات — ويعرض لك تقريراً بما طُبِّق.
+        اسحب من لوحة الاستضافة — الترقيات تكتمل تلقائياً. هذا الزر لمن يريد التطبيق الفوري مع تقرير مفصّل بما طُبِّق
+        (ترقيات النواة وكل الإضافات ومزامنة الصلاحيات).
     </p>
     <form method="post" action="<?= route('/extensions/finish-update') ?>">
         <?= csrf_field() ?>
