@@ -17,7 +17,7 @@ namespace App\Core;
  */
 class SelfUpdater
 {
-    private const ZIP_URL = 'https://codeload.github.com/badrshfaqah/wasab/zip/refs/heads/claude/admin-system-modules-xiomgv';
+    private const ZIP_URL = 'https://codeload.github.com/badrshfaqah/wasab/zip/refs/heads/main';
     private const DOWNLOAD_TIMEOUT_SECONDS = 120;
 
     /** @return array{success: bool, message: string} */
