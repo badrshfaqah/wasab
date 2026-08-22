@@ -10,6 +10,7 @@ use Modules\Mobileapi\Controllers\MeetingsApiController;
 use Modules\Mobileapi\Controllers\NotificationsApiController;
 use Modules\Mobileapi\Controllers\ProfileApiController;
 use Modules\Mobileapi\Controllers\TasksApiController;
+use Modules\Mobileapi\Controllers\TodayApiController;
 use Modules\Mobileapi\Support\Api;
 
 /**
@@ -39,6 +40,11 @@ return function (Router $router): void {
 
     // ---------- الرئيسية ----------
     $router->get('/api/v1/dashboard', [HomeApiController::class, 'index'], [$auth]);
+
+    // ---------- يومي + البحث الموحد + التقويم ----------
+    $router->get('/api/v1/today', [TodayApiController::class, 'index'], [$auth]);
+    $router->get('/api/v1/search', [TodayApiController::class, 'search'], [$auth]);
+    $router->get('/api/v1/calendar', [TodayApiController::class, 'calendar'], [$auth]);
 
     // ---------- الإشعارات ----------
     $router->get('/api/v1/notifications', [NotificationsApiController::class, 'index'], [$auth]);

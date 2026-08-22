@@ -116,6 +116,18 @@ class Auth
         return $id ? (int) $id : null;
     }
 
+    /**
+     * يحقن مستخدماً محمّلاً ومتحققاً منه مسبقاً (تستخدمه واجهة تطبيق الجوال بعد
+     * التحقق من توكن Bearer) - يتجاوز أي تخزين مؤقت سابق بقيمة "لا مستخدم" قد
+     * يكون حدث أثناء الإقلاع قبل تشغيل ميدلوير التوكن.
+     */
+    public static function setUser(array $user): void
+    {
+        Session::set('user_id', (int) $user['id']);
+        self::$userCache = $user;
+        self::$loaded = true;
+    }
+
     public static function check(): bool
     {
         return self::user() !== null;

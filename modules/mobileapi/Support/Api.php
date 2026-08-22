@@ -145,7 +145,7 @@ class Api
             Database::update('mobile_api_tokens', ['last_used_at' => date('Y-m-d H:i:s')], 'id = :id', ['id' => $row['id']]);
         }
 
-        Session::set('user_id', (int) $user['id']);
+        Auth::setUser($user);
         self::$tokenRow = $row;
         return true;
     }
