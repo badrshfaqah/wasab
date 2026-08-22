@@ -4,17 +4,28 @@
 
 <div class="card">
     <div class="card-title">
-        <span>⬇️ تحديث النظام من GitHub</span>
+        <span>⬇️ تحديث النظام</span>
         <span class="badge badge-info">الإصدار الحالي: <?= e(\App\Core\Wasab::currentVersion()) ?></span>
     </div>
-    <p class="hint" style="margin:0 0 12px;">
-        يسحب آخر نسخة من مستودع النظام على GitHub ويطبّقها مباشرة بضغطة واحدة - دون FTP أو Terminal.
-        لا يمس بيانات الاتصال (config.php) ولا الملفات المرفوعة، وترقيات قاعدة البيانات تعمل تلقائياً بعده.
-        قد يستغرق حتى دقيقة حسب سرعة الاستضافة.
+
+    <div class="form-section" style="margin-top:0;padding-top:0;border-top:0;">الطريقة الأولى — السحب عبر Git الاستضافة (الموصى بها)</div>
+    <p class="hint" style="margin:0 0 10px;">
+        إن كانت استضافتك تسحب الملفات من GitHub مباشرة (خيار Git في لوحة الاستضافة): بعد كل سحب اضغط هذا الزر
+        ليُكمل الباقي — ترقيات قاعدة بيانات النواة وكل الإضافات ومزامنة الصلاحيات — ويعرض لك تقريراً بما طُبِّق.
+    </p>
+    <form method="post" action="<?= route('/extensions/finish-update') ?>">
+        <?= csrf_field() ?>
+        <button class="btn btn-sm" type="submit">✅ أكمل التحديث الآن (بعد سحب Git)</button>
+    </form>
+
+    <div class="form-section">الطريقة الثانية — السحب المدمج (احتياطية)</div>
+    <p class="hint" style="margin:0 0 10px;">
+        إن لم يكن Git مفعّلاً بالاستضافة: هذا الزر ينزّل آخر نسخة من GitHub ويطبّقها بنفسه (الملفات + الترقيات معاً).
+        لا يمس config.php ولا الملفات المرفوعة.
     </p>
     <form method="post" action="<?= route('/extensions/self-update') ?>" data-confirm="سيتم استبدال ملفات النظام بآخر نسخة من GitHub. متابعة؟">
         <?= csrf_field() ?>
-        <button class="btn btn-sm" type="submit">⬇️ سحب آخر تحديث وتطبيقه الآن</button>
+        <button class="btn btn-outline btn-sm" type="submit">⬇️ سحب آخر تحديث وتطبيقه الآن</button>
     </form>
 </div>
 

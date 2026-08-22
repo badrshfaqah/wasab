@@ -38,6 +38,60 @@ class ModuleController
         redirect('/extensions');
     }
 
+    /**
+     * «أكمل التحديث»: للمن يسحب ملفات النظام عبر Git الاستضافة مباشرة - يطبّق كل
+     * ما تبقى بعد وصول الملفات (ترقيات النواة + ترقيات كل الإضافات + مزامنة
+     * الصلاحيات) ويعرض تقريراً واضحاً بما طُبِّق بدل الاعتماد على الصمت التلقائي.
+     */
+    public function finishUpdate(): void
+    {
+        $this->verifyCsrf();
+
+        $report = [];
+        $errors = [];
+
+        // 1) ترقيات النواة (تتجاهل تهدئة إعادة المحاولة)
+        $coreResults = CoreMigrator::applyAll();
+        $coreApplied = array_filter($coreResults, fn ($r) => $r['status'] === 'applied');
+        foreach (array_filter($coreResults, fn ($r) => $r['status'] === 'failed') as $r) {
+            $errors[] = 'نواة: ' . $r['label'] . ' (' . $r['error'] . ')';
+        }
+        if ($coreApplied) {
+            $report[] = 'النواة: ' . count($coreApplied) . ' ترقية';
+        }
+
+        // 2) ترقيات الإضافات التي ملفاتها أحدث من قاعدة بياناتها
+        $disk = ModuleManager::discover();
+        foreach (ModuleManager::installedRows() as $key => $row) {
+            if (!isset($disk[$key])) {
+                continue;
+            }
+            $diskVersion = $disk[$key]['version'] ?? '1.0.0';
+            if (!version_compare($row['version'], $diskVersion, '<')) {
+                continue;
+            }
+            try {
+                ModuleManager::update($key);
+                $report[] = ($disk[$key]['name'] ?? $key) . ': ' . $row['version'] . ' ← ' . $diskVersion;
+            } catch (\Throwable $e) {
+                log_exception($e);
+                $errors[] = ($disk[$key]['name'] ?? $key) . ': ' . $e->getMessage();
+            }
+        }
+
+        $version = \App\Core\Wasab::currentVersion();
+        if ($errors) {
+            flash_set('error', 'اكتمل مع أخطاء: ' . implode(' | ', $errors) . '. راجع storage/logs/app.log.');
+        } elseif ($report) {
+            flash_set('success', "✅ اكتمل التحديث — النظام الآن على {$version}. طُبِّق: " . implode('، ', $report) . '.');
+        } else {
+            flash_set('success', "✅ كل شيء محدّث — النظام على {$version} وقواعد البيانات مطابقة للملفات، لا شيء لتطبيقه.");
+        }
+
+        \App\Core\ActivityLog::log('module.finish_update', 'system', null, 'إكمال تحديث بعد سحب Git (' . ($report ? implode('، ', $report) : 'لا تغييرات') . ')');
+        redirect('/extensions');
+    }
+
     /** زر يدوي لمدير النظام: يعيد فحص وتطبيق أي ترقيات ناقصة على جداول النواة، كأنها ترقية إضافة. */
     public function updateDatabase(): void
     {

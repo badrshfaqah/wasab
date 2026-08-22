@@ -110,6 +110,7 @@ $router->post('/extensions/{key}/move-up', [ModuleController::class, 'moveUp'], 
 $router->post('/extensions/{key}/move-down', [ModuleController::class, 'moveDown'], [[Middleware::class, 'auth'], [Middleware::class, 'systemAdmin']]);
 $router->post('/extensions/update-core-database', [ModuleController::class, 'updateDatabase'], [[Middleware::class, 'auth'], [Middleware::class, 'systemAdmin']]);
 $router->post('/extensions/self-update', [ModuleController::class, 'selfUpdate'], [[Middleware::class, 'auth'], [Middleware::class, 'systemAdmin']]);
+$router->post('/extensions/finish-update', [ModuleController::class, 'finishUpdate'], [[Middleware::class, 'auth'], [Middleware::class, 'systemAdmin']]);
 
 // ---------- الإعدادات ----------
 $router->get('/settings', [SettingController::class, 'index'], [[Middleware::class, 'auth']]);
