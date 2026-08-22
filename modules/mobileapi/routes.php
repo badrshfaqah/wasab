@@ -5,6 +5,8 @@ use App\Core\Router;
 use Modules\Mobileapi\Controllers\AuthApiController;
 use Modules\Mobileapi\Controllers\CheckinsApiController;
 use Modules\Mobileapi\Controllers\HomeApiController;
+use Modules\Mobileapi\Controllers\InboxApiController;
+use Modules\Mobileapi\Controllers\MeetingsApiController;
 use Modules\Mobileapi\Controllers\NotificationsApiController;
 use Modules\Mobileapi\Controllers\ProfileApiController;
 use Modules\Mobileapi\Controllers\TasksApiController;
@@ -64,6 +66,27 @@ return function (Router $router): void {
     $router->post('/api/v1/tasks/{id}/subtasks/{subtaskId}/delete', [TasksApiController::class, 'deleteSubtask'], $tasks);
     $router->post('/api/v1/tasks/{id}/attachments', [TasksApiController::class, 'uploadAttachment'], $tasks);
     $router->get('/api/v1/tasks/{id}/attachments/{attachmentId}', [TasksApiController::class, 'downloadAttachment'], $tasks);
+
+    // ---------- مركز المراسلات ----------
+    $inbox = [$auth, $requireModule('inbox')];
+    $router->get('/api/v1/inbox', [InboxApiController::class, 'index'], $inbox);
+    $router->get('/api/v1/inbox/{id}', [InboxApiController::class, 'show'], $inbox);
+    $router->post('/api/v1/inbox/{id}/read', [InboxApiController::class, 'setRead'], $inbox);
+    $router->post('/api/v1/inbox/{id}/delete', [InboxApiController::class, 'destroy'], $inbox);
+
+    // ---------- الاجتماعات ----------
+    $meetings = [$auth, $requireModule('meetings')];
+    $router->get('/api/v1/meetings', [MeetingsApiController::class, 'index'], $meetings);
+    $router->get('/api/v1/meetings/users', [MeetingsApiController::class, 'companyUsers'], $meetings);
+    $router->post('/api/v1/meetings', [MeetingsApiController::class, 'store'], $meetings);
+    $router->get('/api/v1/meetings/{id}', [MeetingsApiController::class, 'show'], $meetings);
+    $router->post('/api/v1/meetings/{id}', [MeetingsApiController::class, 'update'], $meetings);
+    $router->post('/api/v1/meetings/{id}/delete', [MeetingsApiController::class, 'destroy'], $meetings);
+    $router->post('/api/v1/meetings/{id}/respond', [MeetingsApiController::class, 'respond'], $meetings);
+    $router->post('/api/v1/meetings/{id}/notes', [MeetingsApiController::class, 'addNote'], $meetings);
+    $router->post('/api/v1/meetings/{id}/notes/{noteId}/task', [MeetingsApiController::class, 'noteToTask'], $meetings);
+    $router->post('/api/v1/meetings/{id}/outcomes', [MeetingsApiController::class, 'updateOutcomes'], $meetings);
+    $router->post('/api/v1/meetings/{id}/status', [MeetingsApiController::class, 'changeStatus'], $meetings);
 
     // ---------- التحضير ----------
     $checkins = [$auth, $requireModule('checkins')];
