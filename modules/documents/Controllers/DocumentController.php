@@ -30,9 +30,14 @@ class DocumentController
             return;
         }
 
+        $scope = (string) Request::query('scope', 'mine');
+        if (!in_array($scope, ['mine', 'shared', 'company'], true)) {
+            $scope = 'mine';
+        }
+
         $filters = $this->currentFilters();
         $page = max(1, (int) Request::query('page', 1));
-        $result = Document::paginate($companyId, $this->canManage(), Auth::id(), $page, 15, $filters);
+        $result = Document::paginate($companyId, $scope, $this->canManage(), Auth::id(), $page, 15, $filters);
 
         View::render('documents::index', [
             'pageTitle' => 'المستندات',
@@ -40,12 +45,141 @@ class DocumentController
             'total' => $result['total'],
             'page' => $page,
             'perPage' => 15,
+            'scope' => $scope,
+            'sharedCount' => Document::countSharedWith($companyId, Auth::id()),
             'filters' => $filters,
             'types' => self::TYPES,
             'statuses' => self::STATUSES,
             'canManage' => $this->canManage(),
             'canCreate' => $this->can('documents.create'),
         ]);
+    }
+
+    /** مشاركة المستند مع موظف بدور (مشاهدة/تعديل) - للمالك والمدير فقط. */
+    public function share(array $params): void
+    {
+        $companyId = $this->requireCompanyContext();
+        $document = $this->findVisible((int) $params['id'], $companyId);
+        $this->verifyCsrf('/documents/' . $document['id']);
+
+        if ((int) $document['created_by'] !== Auth::id() && !$this->canManage()) {
+            $this->forbidden();
+            return;
+        }
+
+        $userId = (int) Request::input('user_id', 0);
+        $target = Database::first(
+            "SELECT id, name FROM users WHERE id = :id AND company_id = :c AND status = 'active'",
+            ['id' => $userId, 'c' => $companyId]
+        );
+        if (!$target || $userId === (int) $document['created_by']) {
+            flash_set('error', 'اختر موظفاً صحيحاً (غير مالك المستند).');
+            redirect('/documents/' . $document['id']);
+        }
+        $role = Request::input('role', 'viewer') === 'editor' ? 'editor' : 'viewer';
+
+        Document::setShare((int) $document['id'], $userId, $role, Auth::id());
+        DocumentLog::add($document['id'], Auth::id(), 'shared', 'مشاركة مع ' . $target['name'] . ' (' . ($role === 'editor' ? 'تعديل' : 'مشاهدة') . ')');
+        Notification::send($userId, '📄 شُورك معك مستند', $document['title'] . ' — ' . ($role === 'editor' ? 'يمكنك التعديل' : 'للمشاهدة'), route('/documents/' . $document['id']));
+        flash_set('success', 'شُورك المستند مع ' . $target['name'] . '.');
+        redirect('/documents/' . $document['id']);
+    }
+
+    public function unshare(array $params): void
+    {
+        $companyId = $this->requireCompanyContext();
+        $document = $this->findVisible((int) $params['id'], $companyId);
+        $this->verifyCsrf('/documents/' . $document['id']);
+
+        if ((int) $document['created_by'] !== Auth::id() && !$this->canManage()) {
+            $this->forbidden();
+            return;
+        }
+        Document::removeShare((int) $document['id'], (int) $params['userId']);
+        DocumentLog::add($document['id'], Auth::id(), 'unshared', 'إلغاء مشاركة مستخدم');
+        flash_set('success', 'أُلغيت المشاركة.');
+        redirect('/documents/' . $document['id']);
+    }
+
+    /** فرق نسخة عن سابقتها: يُظهر ماذا غيّر صاحب كل حفظ بالضبط. */
+    public function versionDiff(array $params): void
+    {
+        $companyId = $this->requireCompanyContext();
+        $document = $this->findVisible((int) $params['id'], $companyId);
+        $version = Database::first(
+            'SELECT v.*, u.name AS saved_by_name FROM documents_versions v LEFT JOIN users u ON u.id = v.saved_by WHERE v.id = :id AND v.document_id = :d',
+            ['id' => (int) $params['versionId'], 'd' => $document['id']]
+        );
+        if (!$version) {
+            flash_set('error', 'النسخة غير موجودة.');
+            redirect('/documents/' . $document['id']);
+        }
+        // كل لقطة تحمل المحتوى "قبل" حفظِ saved_by - فتعديلُه هو الفرق بين هذه
+        // اللقطة والتي تليها (أو محتوى المستند الحالي إن كانت الأحدث).
+        $next = Database::first(
+            'SELECT * FROM documents_versions WHERE document_id = :d AND version_no > :n ORDER BY version_no ASC LIMIT 1',
+            ['d' => $document['id'], 'n' => $version['version_no']]
+        );
+        $afterContent = $next ? (string) $next['content'] : (string) $document['content'];
+
+        View::render('documents::diff', [
+            'pageTitle' => 'تغييرات الإصدار ' . $version['version_no'],
+            'document' => $document,
+            'version' => $version,
+            'next' => $next,
+            'diff' => self::wordDiff(
+                trim(strip_tags((string) $version['content'])),
+                trim(strip_tags($afterContent))
+            ),
+        ]);
+    }
+
+    /**
+     * فرق كلمات بسيط (LCS): يُعيد قائمة [نوع، نص] حيث النوع same/del/ins -
+     * كافٍ لإظهار "ماذا تغيّر" دون مكتبات خارجية. يُقصّ للنصوص الضخمة.
+     */
+    private static function wordDiff(string $old, string $new): array
+    {
+        $a = preg_split('/\s+/u', $old, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $b = preg_split('/\s+/u', $new, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $a = array_slice($a, 0, 1500);
+        $b = array_slice($b, 0, 1500);
+        $n = count($a);
+        $m = count($b);
+
+        // مصفوفة LCS
+        $lcs = array_fill(0, $n + 1, array_fill(0, $m + 1, 0));
+        for ($i = $n - 1; $i >= 0; $i--) {
+            for ($j = $m - 1; $j >= 0; $j--) {
+                $lcs[$i][$j] = $a[$i] === $b[$j]
+                    ? $lcs[$i + 1][$j + 1] + 1
+                    : max($lcs[$i + 1][$j], $lcs[$i][$j + 1]);
+            }
+        }
+
+        $out = [];
+        $i = 0;
+        $j = 0;
+        while ($i < $n && $j < $m) {
+            if ($a[$i] === $b[$j]) {
+                $out[] = ['same', $a[$i]];
+                $i++;
+                $j++;
+            } elseif ($lcs[$i + 1][$j] >= $lcs[$i][$j + 1]) {
+                $out[] = ['del', $a[$i]];
+                $i++;
+            } else {
+                $out[] = ['ins', $b[$j]];
+                $j++;
+            }
+        }
+        for (; $i < $n; $i++) {
+            $out[] = ['del', $a[$i]];
+        }
+        for (; $j < $m; $j++) {
+            $out[] = ['ins', $b[$j]];
+        }
+        return $out;
     }
 
     public function create(): void
@@ -82,15 +216,9 @@ class DocumentController
         $data['created_by'] = Auth::id();
         $data['verify_token'] = bin2hex(random_bytes(16));
 
-        if ($data['visibility'] === 'private') {
-            // خاص: يُعتمد تلقائياً فوراً بلا مسار موافقة، ويُمنح رقماً مباشرة
-            $data['status'] = 'approved';
-            $data['approved_by'] = Auth::id();
-            $data['approved_at'] = date('Y-m-d H:i:s');
-            $data['number'] = DocumentSetting::generateNumber($companyId);
-        } else {
-            $data['status'] = 'draft';
-        }
+        // كل مستند يبدأ مسودة للكتابة (التعاونية) - والرقم الرسمي يُمنح فقط
+        // عند «الإصدار الرسمي (توقيع)»، عاماً كان أو خاصاً.
+        $data['status'] = 'draft';
 
         $documentId = Document::create($data);
         DocumentLog::add($documentId, Auth::id(), 'created', 'تم إنشاء المستند');
@@ -113,15 +241,16 @@ class DocumentController
             'canEdit' => $this->canEditDocument($document),
             'canDelete' => $this->canDeleteDocument($document),
             'canManage' => $this->canManage(),
-            'canApprove' => $this->can('documents.approve'),
             'canSign' => $this->can('documents.sign'),
             'canDuplicate' => $this->can('documents.create') || $this->canManage(),
-            'mySignatures' => \App\Core\UserSignature::forUser(Auth::id()),
-            'approvals' => Database::select(
-                'SELECT a.*, u.name AS approver_name FROM documents_approvals a LEFT JOIN users u ON u.id = a.approved_by WHERE a.document_id = :d ORDER BY a.step_no',
-                ['d' => $document['id']]
+            'isOwner' => (int) $document['created_by'] === Auth::id(),
+            'myShareRole' => Document::shareRole((int) $document['id'], Auth::id()),
+            'shares' => Document::shares((int) $document['id']),
+            'companyUsers' => Database::select(
+                "SELECT id, name FROM users WHERE company_id = :c AND status = 'active' ORDER BY name",
+                ['c' => $companyId]
             ),
-            'approvalSteps' => max(1, min(2, (int) (DocumentSetting::getOrCreate($companyId)['approval_steps'] ?? 1))),
+            'mySignatures' => \App\Core\UserSignature::usableBy(Auth::id(), $companyId),
             'comments' => Database::select(
                 'SELECT c.*, u.name AS user_name FROM documents_comments c LEFT JOIN users u ON u.id = c.user_id WHERE c.document_id = :d ORDER BY c.id',
                 ['d' => $document['id']]
@@ -197,7 +326,7 @@ class DocumentController
         DocumentLog::add($document['id'], Auth::id(), 'duplicated', 'نُسخ المستند كمسودة جديدة #' . $newId);
         ActivityLog::log('documents.duplicate', 'document', $newId, "نسخ مستند: {$document['title']}");
 
-        flash_set('success', 'أُنشئت نسخة مسودة جديدة — عدّلها ثم أرسلها للاعتماد لتأخذ رقماً جديداً.');
+        flash_set('success', 'أُنشئت نسخة مسودة جديدة — عدّلها كما تشاء، وعند إصدارها رسمياً تأخذ رقماً جديداً.');
         redirect('/documents/' . $newId . '/edit');
     }
 
@@ -234,14 +363,6 @@ class DocumentController
         }
         $data['updated_at'] = date('Y-m-d H:i:s');
 
-        // تحويل مستند عام لخاص أثناء التعديل يُعتمد فوراً بنفس منطق الإنشاء المباشر
-        if ($data['visibility'] === 'private' && empty($document['number'])) {
-            $data['status'] = 'approved';
-            $data['approved_by'] = Auth::id();
-            $data['approved_at'] = date('Y-m-d H:i:s');
-            $data['number'] = DocumentSetting::generateNumber($companyId);
-        }
-
         // لقطة إصدار قبل التعديل إن تغيّر المحتوى أو العنوان (سجل الإصدارات)
         $contentChanged = array_key_exists('content', $data) && (string) $data['content'] !== (string) ($document['content'] ?? '');
         $titleChanged = array_key_exists('title', $data) && (string) $data['title'] !== (string) ($document['title'] ?? '');
@@ -251,6 +372,17 @@ class DocumentController
 
         Document::update($document['id'], $data);
         DocumentLog::add($document['id'], Auth::id(), 'updated', 'تم تعديل بيانات المستند');
+
+        // كتابة تعاونية: إن عدّل مشارِكٌ (غير المالك) يصل المالكَ تنبيهٌ فوري بمن
+        // عدّل، ورابط سجل الإصدارات يعرض ماذا تغيّر بالضبط
+        if ((int) $document['created_by'] !== Auth::id() && ($contentChanged || $titleChanged)) {
+            Notification::send(
+                (int) $document['created_by'],
+                '✏️ عُدّل مستندك',
+                Auth::user()['name'] . ' عدّل «' . $document['title'] . '» — افتح سجل الإصدارات لرؤية التغييرات.',
+                route('/documents/' . $document['id'])
+            );
+        }
 
         ActivityLog::log('documents.update', 'document', $document['id'], "تعديل مستند: {$data['title']}");
         flash_set('success', 'تم حفظ التعديلات.');
@@ -333,90 +465,14 @@ class DocumentController
         $isCreator = (int) $document['created_by'] === Auth::id();
 
         switch ($action) {
-            case 'submit':
-                if ($document['status'] !== 'draft' || $document['visibility'] !== 'public') {
-                    flash_set('error', 'لا يمكن إرسال هذا المستند للاعتماد في حالته الحالية.');
-                    redirect('/documents/' . $document['id']);
-                }
-                if (!$this->canManage() && !$isCreator) {
-                    $this->forbidden();
-                    return;
-                }
-                Document::update($document['id'], ['status' => 'pending_approval', 'updated_at' => date('Y-m-d H:i:s')]);
-                DocumentLog::add($document['id'], Auth::id(), 'submitted', 'تم إرسال المستند لطلب الاعتماد');
-                flash_set('success', 'تم إرسال المستند لطلب الاعتماد.');
-                break;
-
-            case 'approve':
-                if ($document['status'] !== 'pending_approval') {
-                    flash_set('error', 'هذا المستند ليس بانتظار الاعتماد.');
-                    redirect('/documents/' . $document['id']);
-                }
-                if (!$this->canManage() && !$this->can('documents.approve')) {
-                    $this->forbidden();
-                    return;
-                }
-
-                // اعتماد متعدد المراحل: عدد المراحل من الإعدادات، وكل معتمِد مرة واحدة،
-                // والمرحلة الأخيرة (عند تعدد المراحل) لمدير الشركة/النظام حصراً.
-                $steps = max(1, min(2, (int) (DocumentSetting::getOrCreate($companyId)['approval_steps'] ?? 1)));
-                $done = Database::select(
-                    'SELECT * FROM documents_approvals WHERE document_id = :d ORDER BY step_no',
-                    ['d' => $document['id']]
-                );
-                foreach ($done as $ap) {
-                    if ((int) $ap['approved_by'] === Auth::id()) {
-                        flash_set('error', 'سبق أن اعتمدتَ هذا المستند في مرحلة سابقة — الاعتماد التالي لشخص آخر.');
-                        redirect('/documents/' . $document['id']);
-                    }
-                }
-                $currentStep = count($done) + 1;
-                if ($steps > 1 && $currentStep >= $steps && !Auth::isCompanyAdmin() && !Auth::isSystemAdmin()) {
-                    flash_set('error', 'الاعتماد النهائي (المرحلة ' . $steps . ') يتطلب مدير الشركة.');
-                    redirect('/documents/' . $document['id']);
-                }
-
-                Database::insert('documents_approvals', [
-                    'document_id' => $document['id'],
-                    'step_no' => $currentStep,
-                    'approved_by' => Auth::id(),
-                    'approved_at' => date('Y-m-d H:i:s'),
-                ]);
-
-                if ($currentStep < $steps) {
-                    // مرحلة وسطى: يبقى المستند بانتظار الاعتماد النهائي
-                    DocumentLog::add($document['id'], Auth::id(), 'approved', "اعتماد المرحلة {$currentStep} من {$steps}");
-                    foreach (Database::select(
-                        "SELECT id FROM users WHERE company_id = :c AND membership_type = 'company_admin' AND status = 'active' AND id != :me",
-                        ['c' => $companyId, 'me' => Auth::id()]
-                    ) as $admin) {
-                        Notification::send((int) $admin['id'], '📄 مستند بانتظار اعتمادك النهائي', $document['title'], route('/documents/' . $document['id']));
-                    }
-                    flash_set('success', "تم اعتماد المرحلة {$currentStep} — بانتظار الاعتماد النهائي من مدير الشركة.");
-                    break;
-                }
-
-                $update = [
-                    'status' => 'approved',
-                    'approved_by' => Auth::id(),
-                    'approved_at' => date('Y-m-d H:i:s'),
-                    'updated_at' => date('Y-m-d H:i:s'),
-                ];
-                if (empty($document['number'])) {
-                    $update['number'] = DocumentSetting::generateNumber($companyId);
-                }
-                Document::update($document['id'], $update);
-                DocumentLog::add($document['id'], Auth::id(), 'approved', $steps > 1 ? "اعتماد نهائي (المرحلة {$steps} من {$steps})" : 'تم اعتماد المستند');
-                Notification::send((int) $document['created_by'], 'تم اعتماد مستندك', $document['title'], route('/documents/' . $document['id']));
-                flash_set('success', 'تم اعتماد المستند.');
-                break;
-
             case 'sign':
-                if ($document['status'] !== 'approved') {
-                    flash_set('error', 'هذا المستند ليس جاهزاً للتوقيع.');
+                // الفلسفة الجديدة: لا دورة اعتماد - المالك يُصدر مستنده رسمياً مباشرة
+                // (توقيع + ختم + رقم رسمي)، وكذلك من يملك صلاحية التوقيع أو المدير.
+                if (!in_array($document['status'], ['draft', 'pending_approval', 'approved'], true)) {
+                    flash_set('error', 'هذا المستند ليس جاهزاً للإصدار الرسمي.');
                     redirect('/documents/' . $document['id']);
                 }
-                if (!$this->canManage() && !$this->can('documents.sign')) {
+                if ((int) $document['created_by'] !== Auth::id() && !$this->canManage() && !$this->can('documents.sign')) {
                     $this->forbidden();
                     return;
                 }
@@ -428,17 +484,24 @@ class DocumentController
                     'signed_at' => date('Y-m-d H:i:s'),
                     'updated_at' => date('Y-m-d H:i:s'),
                 ];
+                // الرقم الرسمي يُمنح عند الإصدار (كان يُمنح في الاعتماد الملغى)
+                if (empty($document['number'])) {
+                    $signUpdate['number'] = DocumentSetting::generateNumber($companyId);
+                }
                 $sigId = (int) Request::input('signature_id', 0);
                 if ($sigId) {
-                    $sig = \App\Core\UserSignature::findForUser($sigId, Auth::id());
+                    $sig = \App\Core\UserSignature::findUsableBy($sigId, Auth::id());
                     if ($sig) {
                         $signUpdate['signature_file'] = $sig['image'];
                     }
                 }
                 Document::update($document['id'], $signUpdate);
-                DocumentLog::add($document['id'], Auth::id(), 'signed', 'تم توقيع المستند');
-                Notification::send((int) $document['created_by'], 'تم توقيع مستندك', $document['title'], route('/documents/' . $document['id']));
-                flash_set('success', 'تم توقيع المستند.');
+                $officialNumber = $signUpdate['number'] ?? $document['number'];
+                DocumentLog::add($document['id'], Auth::id(), 'signed', 'إصدار رسمي وتوقيع' . ($officialNumber ? ' — رقم ' . $officialNumber : ''));
+                if (!$isCreator) {
+                    Notification::send((int) $document['created_by'], '🔏 صدر مستندك رسمياً', $document['title'] . ($officialNumber ? ' — رقم ' . $officialNumber : ''), route('/documents/' . $document['id']));
+                }
+                flash_set('success', 'صدر المستند رسمياً' . ($officialNumber ? ' برقم ' . $officialNumber : '') . ' وتم توقيعه.');
                 break;
 
             case 'archive':
@@ -647,16 +710,23 @@ class DocumentController
         return Auth::isSystemAdmin() || Auth::isCompanyAdmin() || $this->can('documents.manage');
     }
 
-    /** لا تعديل بعد الاعتماد حتى تبقى المستندات المعتمدة/الموقّعة سجلاً رسمياً موثوقاً. */
+    /**
+     * فلسفة الكتابة التعاونية: التعديل متاح للمالك ولمن شُورك معه بدور «تعديل»
+     * وللمدير. يُقفل التعديل فقط بعد الإصدار الرسمي (الموقّع) وللمؤرشف -
+     * حفاظاً على أصالة ما صدر برقم رسمي؛ وللتعديل تُنسخ مسودة جديدة.
+     */
     private function canEditDocument(array $document): bool
     {
-        if (!in_array($document['status'], ['draft', 'pending_approval'], true)) {
+        if (in_array($document['status'], ['signed', 'archived'], true)) {
             return false;
         }
         if ($this->canManage()) {
             return true;
         }
-        return $this->can('documents.edit') && (int) $document['created_by'] === Auth::id();
+        if ((int) $document['created_by'] === Auth::id()) {
+            return true;
+        }
+        return Document::shareRole((int) $document['id'], Auth::id()) === 'editor';
     }
 
     private function canDeleteDocument(array $document): bool
@@ -683,9 +753,11 @@ class DocumentController
             exit;
         }
 
+        // الرؤية: المدير، أو المالك، أو من شُورك معه المستند، أو أي موظف إن كان عاماً
         $visible = $this->canManage()
             || (int) $document['created_by'] === Auth::id()
-            || ($document['visibility'] === 'public' && $document['status'] !== 'draft');
+            || Document::shareRole((int) $document['id'], Auth::id()) !== null
+            || $document['visibility'] === 'public';
         if (!$visible) {
             $this->forbidden();
             exit;

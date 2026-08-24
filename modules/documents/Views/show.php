@@ -2,12 +2,12 @@
 use Modules\Documents\Models\Document;
 
 $typeLabels = Document::typeLabels();
-$canSubmit = $document['status'] === 'draft' && $document['visibility'] === 'public'
-    && ($canManage || (int) $document['created_by'] === (int) current_user()['id']);
-$canApproveNow = $document['status'] === 'pending_approval' && ($canManage || $canApprove);
-$canSignNow = $document['status'] === 'approved' && ($canManage || $canSign);
-$canArchive = $document['status'] !== 'archived'
-    && ($canManage || (int) $document['created_by'] === (int) current_user()['id']);
+$isOwner = !empty($isOwner);
+// الإصدار الرسمي (توقيع + رقم تسلسلي) متاح للمالك والمدير وصاحب صلاحية التوقيع
+$canSignNow = in_array($document['status'], ['draft', 'pending_approval', 'approved'], true)
+    && ($isOwner || $canManage || $canSign);
+$canShare = $isOwner || $canManage;
+$canArchive = $document['status'] !== 'archived' && ($canManage || $isOwner);
 $canRestore = $document['status'] === 'archived' && $canManage;
 ?>
 <div class="page-head">
@@ -36,7 +36,7 @@ $canRestore = $document['status'] === 'archived' && $canManage;
         <a class="btn" href="#doc-pdf-preview">👁️ عرض PDF</a>
         <a class="btn btn-outline" href="<?= route('/documents/' . $document['id'] . '/print') ?>" target="_blank">🖨️ طباعة / حفظ PDF</a>
         <?php if (!empty($canDuplicate)): ?>
-        <form method="post" action="<?= route('/documents/' . $document['id'] . '/duplicate') ?>" onsubmit="return confirm('نسخ هذا المستند كمسودة جديدة؟ تمر بالاعتماد من أوله وتأخذ رقماً جديداً.');">
+        <form method="post" action="<?= route('/documents/' . $document['id'] . '/duplicate') ?>" onsubmit="return confirm('نسخ هذا المستند كمسودة جديدة؟ عند إصدارها رسمياً تأخذ رقماً جديداً.');">
             <?= csrf_field() ?><button class="btn btn-outline" type="submit">📋 نسخ كمسودة</button>
         </form>
         <?php endif; ?>
@@ -85,35 +85,21 @@ $canRestore = $document['status'] === 'archived' && $canManage;
             <p class="hint">لا يوجد محتوى.</p>
         <?php endif; ?>
 
-        <?php if ($canSubmit || $canApproveNow || $canSignNow || $canArchive || $canRestore): ?>
+        <?php if ($canSignNow || $canArchive || $canRestore): ?>
             <div class="form-actions" style="margin-top:20px;">
-                <?php if ($canSubmit): ?>
-                    <form method="post" action="<?= route('/documents/' . $document['id'] . '/status') ?>">
-                        <?= csrf_field() ?>
-                        <input type="hidden" name="action" value="submit">
-                        <button class="btn" type="submit">📤 إرسال للاعتماد</button>
-                    </form>
-                <?php endif; ?>
-                <?php if ($canApproveNow): ?>
-                    <form method="post" action="<?= route('/documents/' . $document['id'] . '/status') ?>">
-                        <?= csrf_field() ?>
-                        <input type="hidden" name="action" value="approve">
-                        <button class="btn" type="submit">✅ اعتماد</button>
-                    </form>
-                <?php endif; ?>
                 <?php if ($canSignNow): ?>
-                    <form method="post" action="<?= route('/documents/' . $document['id'] . '/status') ?>" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                    <form method="post" action="<?= route('/documents/' . $document['id'] . '/status') ?>" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;" onsubmit="return confirm('إصدار المستند رسمياً؟ سيُوقَّع ويأخذ رقماً تسلسلياً ويُقفل عن التعديل.');">
                         <?= csrf_field() ?>
                         <input type="hidden" name="action" value="sign">
                         <?php if (!empty($mySignatures)): ?>
                             <select name="signature_id" style="width:auto;min-width:150px;">
                                 <?php foreach ($mySignatures as $sig): ?>
-                                    <option value="<?= $sig['id'] ?>"><?= e($sig['name']) ?></option>
+                                    <option value="<?= $sig['id'] ?>"><?= e($sig['name']) ?><?= !empty($sig['owner_name']) ? ' (مشاركة من ' . e($sig['owner_name']) . ')' : '' ?></option>
                                 <?php endforeach; ?>
                                 <option value="">بلا صورة توقيع</option>
                             </select>
                         <?php endif; ?>
-                        <button class="btn" type="submit">✍️ توقيع</button>
+                        <button class="btn" type="submit">🔏 إصدار رسمي (توقيع)</button>
                     </form>
                     <?php if (empty($mySignatures)): ?>
                         <span class="hint">لإظهار صورة توقيعك، أضِفه من <a href="<?= route('/profile') ?>">ملفك الشخصي</a>.</span>
@@ -149,6 +135,7 @@ $canRestore = $document['status'] === 'archived' && $canManage;
                 </div>
                 <div style="display:flex;gap:6px;align-items:center;">
                     <a class="btn btn-outline btn-sm" href="<?= route('/documents/' . $document['id'] . '/versions/' . $v['id']) ?>">عرض</a>
+                    <a class="btn btn-outline btn-sm" href="<?= route('/documents/' . $document['id'] . '/versions/' . $v['id'] . '/diff') ?>" title="ماذا تغيّر في هذا الحفظ؟">± التغييرات</a>
                     <?php if ($canEdit): ?>
                     <form method="post" action="<?= route('/documents/' . $document['id'] . '/versions/' . $v['id'] . '/restore') ?>" data-confirm="استعادة هذا الإصدار؟ سيُحفظ المحتوى الحالي كإصدار قبل الاستبدال.">
                         <?= csrf_field() ?>
@@ -161,22 +148,47 @@ $canRestore = $document['status'] === 'archived' && $canManage;
     </div>
     <?php endif; ?>
 
-    <?php if (($approvalSteps ?? 1) > 1 || !empty($approvals)): ?>
     <div class="card">
-        <div class="card-title"><span>🪜 مراحل الاعتماد (<?= count($approvals ?? []) ?>/<?= (int) ($approvalSteps ?? 1) ?>)</span></div>
-        <?php for ($s = 1; $s <= ($approvalSteps ?? 1); $s++): ?>
-            <?php $ap = null; foreach (($approvals ?? []) as $a) { if ((int) $a['step_no'] === $s) { $ap = $a; break; } } ?>
+        <div class="card-title"><span>🤝 المشاركة (<?= count($shares ?? []) ?>)</span></div>
+        <?php if (!empty($myShareRole) && !$isOwner): ?>
+            <p class="hint" style="margin-top:0;">هذا المستند مُشارك معك بدور <strong><?= $myShareRole === 'editor' ? 'مشاهدة وتعديل' : 'مشاهدة فقط' ?></strong>.</p>
+        <?php endif; ?>
+        <?php if (empty($shares) && $canShare): ?>
+            <p class="hint" style="margin-top:0;">لم يُشارك المستند مع أحد بعد — أضف زميلاً وحدد دوره.</p>
+        <?php endif; ?>
+        <?php foreach (($shares ?? []) as $s): ?>
             <div class="doc-log" style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
                 <div>
-                    <?= $ap ? '✅' : '⏳' ?> المرحلة <?= $s ?><?= $s === ($approvalSteps ?? 1) && ($approvalSteps ?? 1) > 1 ? ' (نهائية — مدير الشركة)' : '' ?>
+                    👤 <?= e($s['user_name']) ?>
+                    <span class="badge badge-<?= $s['role'] === 'editor' ? 'info' : 'muted' ?>"><?= $s['role'] === 'editor' ? '✏️ مشاهدة وتعديل' : '👁️ مشاهدة' ?></span>
                 </div>
-                <div class="doc-log-meta">
-                    <?= $ap ? e($ap['approver_name'] ?? '') . ' · ' . format_date($ap['approved_at'], 'Y-m-d H:i') : ($document['status'] === 'pending_approval' ? 'بالانتظار' : '—') ?>
-                </div>
+                <?php if ($canShare): ?>
+                <form method="post" action="<?= route('/documents/' . $document['id'] . '/share/' . $s['user_id'] . '/unshare') ?>" data-confirm="إلغاء مشاركة <?= e($s['user_name']) ?>؟">
+                    <?= csrf_field() ?>
+                    <button class="btn btn-ghost btn-sm" type="submit">✕</button>
+                </form>
+                <?php endif; ?>
             </div>
-        <?php endfor; ?>
+        <?php endforeach; ?>
+        <?php if ($canShare): ?>
+            <form method="post" action="<?= route('/documents/' . $document['id'] . '/share') ?>" style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+                <?= csrf_field() ?>
+                <select name="user_id" required style="flex:1;min-width:150px;">
+                    <option value="">اختر موظفاً...</option>
+                    <?php foreach (($companyUsers ?? []) as $u): ?>
+                        <?php if ((int) $u['id'] === (int) $document['created_by']) continue; ?>
+                        <option value="<?= $u['id'] ?>"><?= e($u['name']) ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <select name="role" style="width:auto;">
+                    <option value="viewer">👁️ مشاهدة فقط</option>
+                    <option value="editor">✏️ مشاهدة وتعديل</option>
+                </select>
+                <button class="btn btn-sm" type="submit">مشاركة</button>
+            </form>
+            <p class="hint" style="margin:8px 0 0;">من له دور «مشاهدة وتعديل» يكتب معك في المستند، ويظهر كل تعديل في سجل الإصدارات مع اسم صاحبه.</p>
+        <?php endif; ?>
     </div>
-    <?php endif; ?>
 
     <div class="card">
         <div class="card-title"><span>💬 التعليقات (<?= count($comments ?? []) ?>)</span></div>

@@ -79,7 +79,7 @@ class FormController
             'known' => $known,
             'manualFields' => $manual,
             'employeesActive' => ModuleManager::isActive('employees'),
-            'mySignatures' => \App\Core\UserSignature::forUser(Auth::id()),
+            'mySignatures' => \App\Core\UserSignature::usableBy(Auth::id(), $companyId ?? null),
         ]);
     }
 
@@ -121,7 +121,7 @@ class FormController
         $signatureFile = null;
         $sigId = (int) Request::input('signature_id', 0);
         if ($sigId) {
-            $sig = \App\Core\UserSignature::findForUser($sigId, Auth::id());
+            $sig = \App\Core\UserSignature::findUsableBy($sigId, Auth::id());
             if ($sig) {
                 $signatureFile = $sig['image'];
             }

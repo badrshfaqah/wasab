@@ -3,6 +3,25 @@
  * يُستدعى عند الضغط على "تحديث" إن كان إصدار القرص أحدث من إصدار قاعدة البيانات.
  */
 return function (PDO $pdo, string $fromVersion): void {
+    if (version_compare($fromVersion, '2.0.0', '<')) {
+        // الفلسفة الجديدة: كتابة تعاونية بمشاركات لكل مستند (بدل دورة الاعتماد)
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS `documents_shares` (
+                `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                `document_id` INT UNSIGNED NOT NULL,
+                `user_id` INT UNSIGNED NOT NULL,
+                `role` ENUM('viewer','editor') NOT NULL DEFAULT 'viewer',
+                `created_by` INT UNSIGNED NULL,
+                `created_at` DATETIME NOT NULL,
+                UNIQUE KEY `documents_shares_unique` (`document_id`, `user_id`),
+                KEY `documents_shares_user_index` (`user_id`),
+                CONSTRAINT `documents_shares_document_fk` FOREIGN KEY (`document_id`) REFERENCES `documents_documents`(`id`) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        ");
+        // المستندات المعلّقة على الاعتماد القديم تعود مسودات قابلة للعمل
+        $pdo->exec("UPDATE `documents_documents` SET `status` = 'draft' WHERE `status` = 'pending_approval'");
+    }
+
     if (version_compare($fromVersion, '1.1.0', '<')) {
         $exists = $pdo->query(
             "SELECT 1 FROM information_schema.columns

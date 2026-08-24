@@ -38,7 +38,10 @@ return function (Router $router): void {
     $router->post('/documents/{id}/status', [DocumentController::class, 'updateStatus'], [$auth]);
     $router->post('/documents/{id}/comments', [DocumentController::class, 'comment'], [$auth]);
     $router->post('/documents/{id}/duplicate', [DocumentController::class, 'duplicate'], [$auth]);
+    $router->post('/documents/{id}/share', [DocumentController::class, 'share'], [$auth]);
+    $router->post('/documents/{id}/share/{userId}/unshare', [DocumentController::class, 'unshare'], [$auth]);
     $router->get('/documents/{id}/print', [DocumentController::class, 'print'], [$auth]);
     $router->get('/documents/{id}/versions/{versionId}', [DocumentController::class, 'viewVersion'], [$auth]);
+    $router->get('/documents/{id}/versions/{versionId}/diff', [DocumentController::class, 'versionDiff'], [$auth]);
     $router->post('/documents/{id}/versions/{versionId}/restore', [DocumentController::class, 'restoreVersion'], [$auth]);
 };

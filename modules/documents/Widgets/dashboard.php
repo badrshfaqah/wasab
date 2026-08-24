@@ -28,15 +28,16 @@ return function (array $user): array {
         ];
     }
 
-    if ($canManage || Permission::check('documents.approve')) {
-        $pending = Document::countPendingApproval($companyId);
+    // الفلسفة التعاونية: بدل عدّاد الاعتمادات، عدّاد المستندات المشارَكة معي
+    $sharedCount = Document::countSharedWith($companyId, $userId);
+    if ($sharedCount > 0) {
         $widgets[] = [
             'type' => 'stat',
-            'label' => 'مستندات تحتاج إجراء',
-            'value' => $pending,
-            'icon' => '✅',
-            'color' => $pending > 0 ? 'warning' : 'success',
-            'url' => route('/documents?status=pending_approval'),
+            'label' => 'مستندات مشتركة معي',
+            'value' => $sharedCount,
+            'icon' => '🤝',
+            'color' => 'info',
+            'url' => route('/documents?scope=shared'),
         ];
     }
 

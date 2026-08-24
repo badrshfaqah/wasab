@@ -201,6 +201,64 @@ class EmployeeController
         redirect('/employees/' . $employeeId);
     }
 
+    /** بطاقتي الشخصية: تحويل للمستخدم المربوط حسابه بملف وظيفي إلى بطاقة ملفه. */
+    public function myCard(): void
+    {
+        $companyId = $this->requireCompanyContext();
+        $own = Database::first(
+            'SELECT id FROM employees_profiles WHERE company_id = :c AND linked_user_id = :u',
+            ['c' => $companyId, 'u' => Auth::id()]
+        );
+        if (!$own) {
+            flash_set('error', 'حسابك غير مربوط بملف وظيفي — اطلب من الإدارة ربطه لعرض بطاقتك.');
+            redirect('/me');
+        }
+        redirect('/employees/' . $own['id'] . '/card');
+    }
+
+    /**
+     * البطاقة الشخصية للموظف: تُبنى من بيانات ملفه الوظيفي بهوية الشركة (الشعار
+     * واللون)، تُعرض من الموقع وتُحفظ PDF بمقاس بطاقة حقيقي (85.6×54مم). يراها
+     * صاحب الملف (المربوط بحسابه) أو من يملك مشاهدة الملفات — نفس قاعدة show.
+     */
+    public function card(array $params): void
+    {
+        $companyId = $this->requireCompanyContext();
+        $employee = $this->findVisible((int) $params['id'], $companyId);
+        $company = Database::first('SELECT name, logo, primary_color FROM companies WHERE id = :id', ['id' => $companyId]);
+
+        // رمز QR يحمل بطاقة تواصل (vCard) تُحفظ بجوال الماسح. النصوص العربية تستهلك
+        // ضعف السعة (UTF-8)، فنجرّب نسخاً متدرجة (كاملة ← بلا جهة ← بلا مسمى ←
+        // اسم وجوال فقط ← جوال فقط) ونستخدم أول ما يتسع - وإلا تُعرض البطاقة بلا رمز.
+        $vc = fn (array $lines): string => "BEGIN:VCARD\nVERSION:3.0\n" . implode('', $lines) . "END:VCARD";
+        $fn = "FN:{$employee['full_name']}\n";
+        $title = $employee['job_title'] ? "TITLE:{$employee['job_title']}\n" : '';
+        $org = ($company && $company['name']) ? "ORG:{$company['name']}\n" : '';
+        $tel = $employee['phone'] ? "TEL:{$employee['phone']}\n" : '';
+        $qrSvg = null;
+        $candidates = [
+            $vc([$fn, $title, $org, $tel]),
+            $vc([$fn, $title, $tel]),
+            $vc([$fn, $tel]),
+        ];
+        if ($employee['phone']) {
+            $candidates[] = 'tel:' . preg_replace('/\D+/', '', (string) $employee['phone']);
+        }
+        foreach ($candidates as $payload) {
+            $qrSvg = \App\Core\QrCode::svg($payload, 68);
+            if ($qrSvg !== null) {
+                break;
+            }
+        }
+
+        View::render('employees::card', [
+            'pageTitle' => 'البطاقة الشخصية - ' . $employee['full_name'],
+            'employee' => $employee,
+            'company' => $company,
+            'qrSvg' => $qrSvg,
+        ], '');
+    }
+
     /** استيراد موظفين جماعي من ملف CSV - نموذج الرفع. */
     public function importForm(): void
     {

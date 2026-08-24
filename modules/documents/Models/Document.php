@@ -73,12 +73,13 @@ class Document
     }
 
     /**
-     * نطاق الرؤية ثابت: مدير النظام/مدير الشركة يرون كل مستندات الشركة،
-     * أي مستخدم آخر لا يرى إلا ما أنشأه هو - وليس عبر صلاحية اختيارية.
+     * فلسفة الكتابة التعاونية: القائمة بثلاثة نطاقات -
+     * mine: ما أنشأته أنا · shared: ما شُورك معي (مشاهدة/تعديل) ·
+     * company: العام للشركة كله (والمدير يرى فيه الخاص أيضاً).
      */
-    public static function paginate(int $companyId, bool $seeAll, int $userId, int $page, int $perPage, array $filters = []): array
+    public static function paginate(int $companyId, string $scope, bool $isManager, int $userId, int $page, int $perPage, array $filters = []): array
     {
-        [$where, $params] = self::buildFilters($companyId, $seeAll, $userId, $filters);
+        [$where, $params] = self::buildFilters($companyId, $scope, $isManager, $userId, $filters);
 
         $total = Database::first("SELECT COUNT(*) AS c FROM documents_documents d WHERE {$where}", $params)['c'] ?? 0;
 
@@ -96,16 +97,21 @@ class Document
         return ['rows' => $rows, 'total' => (int) $total];
     }
 
-    private static function buildFilters(int $companyId, bool $seeAll, int $userId, array $filters): array
+    private static function buildFilters(int $companyId, string $scope, bool $isManager, int $userId, array $filters): array
     {
         $where = 'd.company_id = :company_id';
         $params = ['company_id' => $companyId];
 
-        if (!$seeAll) {
-            // الموظف (بصلاحية المشاهدة) يرى: ما أنشأه هو + المستندات العامة بعد
-            // خروجها من المسودة. الخاصة تبقى لمنشئها والمدراء فقط.
-            $where .= " AND (d.created_by = :creator OR (d.visibility = 'public' AND d.status != 'draft'))";
+        if ($scope === 'mine') {
+            $where .= ' AND d.created_by = :creator';
             $params['creator'] = $userId;
+        } elseif ($scope === 'shared') {
+            $where .= ' AND EXISTS (SELECT 1 FROM documents_shares s WHERE s.document_id = d.id AND s.user_id = :share_user)';
+            $params['share_user'] = $userId;
+        } else { // company: العام للجميع، والمدير يرى الخاص أيضاً
+            if (!$isManager) {
+                $where .= " AND d.visibility = 'public'";
+            }
         }
 
         if (!empty($filters['q'])) {
@@ -124,13 +130,63 @@ class Document
         return [$where, $params];
     }
 
-    public static function countPendingApproval(int $companyId): int
+    // ---------------- المشاركات (الكتابة التعاونية) ----------------
+
+    /** مشاركو المستند مع أسمائهم وأدوارهم. */
+    public static function shares(int $documentId): array
     {
-        return Database::count(
-            'documents_documents',
-            'company_id = :c AND status = "pending_approval"',
-            ['c' => $companyId]
+        return Database::select(
+            'SELECT s.*, u.name AS user_name FROM documents_shares s
+               JOIN users u ON u.id = s.user_id
+              WHERE s.document_id = :d ORDER BY u.name',
+            ['d' => $documentId]
         );
+    }
+
+    /** دور المستخدم في مستند مشارَك (viewer/editor) أو null إن لم يُشارك معه. */
+    public static function shareRole(int $documentId, int $userId): ?string
+    {
+        $row = Database::first(
+            'SELECT role FROM documents_shares WHERE document_id = :d AND user_id = :u',
+            ['d' => $documentId, 'u' => $userId]
+        );
+        return $row['role'] ?? null;
+    }
+
+    /** إضافة/تحديث مشاركة مستخدم بدور محدد. */
+    public static function setShare(int $documentId, int $userId, string $role, int $byUserId): void
+    {
+        $existing = Database::first(
+            'SELECT id FROM documents_shares WHERE document_id = :d AND user_id = :u',
+            ['d' => $documentId, 'u' => $userId]
+        );
+        if ($existing) {
+            Database::update('documents_shares', ['role' => $role], 'id = :id', ['id' => $existing['id']]);
+            return;
+        }
+        Database::insert('documents_shares', [
+            'document_id' => $documentId,
+            'user_id' => $userId,
+            'role' => $role,
+            'created_by' => $byUserId,
+            'created_at' => date('Y-m-d H:i:s'),
+        ]);
+    }
+
+    public static function removeShare(int $documentId, int $userId): void
+    {
+        Database::delete('documents_shares', 'document_id = :d AND user_id = :u', ['d' => $documentId, 'u' => $userId]);
+    }
+
+    /** عدد المستندات المشارَكة مع مستخدم (لشارة التبويب والودجت). */
+    public static function countSharedWith(int $companyId, int $userId): int
+    {
+        return (int) (Database::first(
+            'SELECT COUNT(*) AS c FROM documents_shares s
+               JOIN documents_documents d ON d.id = s.document_id
+              WHERE d.company_id = :c AND s.user_id = :u',
+            ['c' => $companyId, 'u' => $userId]
+        )['c'] ?? 0);
     }
 
     public static function recentFor(int $companyId, bool $seeAll, int $userId, int $limit): array

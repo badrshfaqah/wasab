@@ -99,13 +99,33 @@ $timezones = [
     <?php if (!empty($signatures)): ?>
         <div style="display:flex;flex-wrap:wrap;gap:12px;margin-bottom:14px;">
             <?php foreach ($signatures as $sig): ?>
-                <div style="border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center;width:150px;">
+                <?php $sharedWith = $sig['shared_with'] ?? []; ?>
+                <div style="border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center;width:190px;">
                     <img src="<?= e(\App\Core\UserSignature::imageUrl($sig)) ?>" alt="" style="max-height:56px;max-width:100%;">
                     <div class="hint" style="margin-top:6px;word-break:break-word;"><?= e($sig['name']) ?></div>
                     <form method="post" action="<?= route('/profile/signatures/' . $sig['id'] . '/delete') ?>" onsubmit="return confirm('حذف هذا التوقيع؟');" style="margin-top:6px;">
                         <?= csrf_field() ?>
                         <button class="btn btn-outline btn-sm" type="submit">حذف</button>
                     </form>
+                    <?php if (!empty($companyUsers)): ?>
+                    <details style="margin-top:8px;text-align:right;">
+                        <summary class="hint" style="cursor:pointer;">🖋️ مشاركة التوقيع<?= $sharedWith ? ' (' . count($sharedWith) . ')' : '' ?></summary>
+                        <form method="post" action="<?= route('/profile/signatures/' . $sig['id'] . '/share') ?>" style="margin-top:6px;">
+                            <?= csrf_field() ?>
+                            <div style="max-height:140px;overflow:auto;display:flex;flex-direction:column;gap:4px;">
+                                <?php foreach ($companyUsers as $u): ?>
+                                    <label style="display:flex;align-items:center;gap:6px;font-weight:400;font-size:.85em;">
+                                        <input type="checkbox" name="user_ids[]" value="<?= $u['id'] ?>" style="width:auto;"
+                                            <?= in_array((int) $u['id'], $sharedWith, true) ? 'checked' : '' ?>>
+                                        <?= e($u['name']) ?>
+                                    </label>
+                                <?php endforeach; ?>
+                            </div>
+                            <button class="btn btn-outline btn-sm" type="submit" style="margin-top:6px;">حفظ المشاركة</button>
+                            <p class="hint" style="margin:6px 0 0;">من تحدده يمكنه التوقيع بهذا التوقيع نيابةً عنك.</p>
+                        </form>
+                    </details>
+                    <?php endif; ?>
                 </div>
             <?php endforeach; ?>
         </div>

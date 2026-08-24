@@ -15,6 +15,7 @@ $today = date('Y-m-d');
         <p><?= e($employee['job_title'] ?: '—') ?> · <?= e($employee['department'] ?: '—') ?> · <?= status_badge($employee['status']) ?></p>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <a class="btn btn-outline" href="<?= route('/employees/' . $employee['id'] . '/card') ?>" target="_blank" rel="noopener">🪪 البطاقة الشخصية</a>
         <?php if ($canViewSensitive): ?>
             <a class="btn btn-outline" href="<?= route('/employees/' . $employee['id'] . '/eosb') ?>">💰 نهاية الخدمة</a>
         <?php endif; ?>

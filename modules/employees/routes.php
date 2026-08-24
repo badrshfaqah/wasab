@@ -31,6 +31,10 @@ return function (Router $router): void {
     $router->get('/employees/import', [EmployeeController::class, 'importForm'], [$auth]);
     $router->post('/employees/import', [EmployeeController::class, 'import'], [$auth]);
 
+    // البطاقة الشخصية (مسار ثابت قبل /{id})
+    $router->get('/employees/card', [EmployeeController::class, 'myCard'], [$auth]);
+    $router->get('/employees/{id}/card', [EmployeeController::class, 'card'], [$auth]);
+
     // مسير الرواتب (مسارات ثابتة قبل /{id})
     $router->get('/employees/payroll', [EmployeePayrollController::class, 'index'], [$auth]);
     $router->post('/employees/payroll/generate', [EmployeePayrollController::class, 'generate'], [$auth]);

@@ -24,7 +24,7 @@ namespace App\Core;
  */
 class CoreMigrator
 {
-    public const CURRENT_VERSION = 19;
+    public const CURRENT_VERSION = 20;
     private const RETRY_COOLDOWN_SECONDS = 300;
 
     private static function migrations(): array
@@ -137,6 +137,10 @@ class CoreMigrator
                     'dashboard_prefs',
                     "TEXT NULL COMMENT 'أسماء بطاقات الرئيسية المخفية (JSON) - NULL يعني إظهار الكل' AFTER `push_prefs`"
                 ),
+            ],
+            20 => [
+                'label' => 'جدول مشاركة التواقيع: صاحب التوقيع يتيحه لزملاء محددين',
+                'run' => fn () => self::createUserSignatureSharesTable(),
             ],
         ];
     }
@@ -379,6 +383,23 @@ class CoreMigrator
                 `created_at` DATETIME NOT NULL,
                 KEY `user_signatures_user_index` (`user_id`),
                 CONSTRAINT `user_signatures_user_fk` FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        ");
+    }
+
+    /** مشاركة التواقيع: صاحب التوقيع يتيح لزملاء محددين استخدامه (توكيل توقيع). */
+    private static function createUserSignatureSharesTable(): void
+    {
+        Database::pdo()->exec("
+            CREATE TABLE IF NOT EXISTS `user_signature_shares` (
+                `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                `signature_id` INT UNSIGNED NOT NULL,
+                `user_id` INT UNSIGNED NOT NULL,
+                `created_at` DATETIME NOT NULL,
+                UNIQUE KEY `user_signature_shares_unique` (`signature_id`, `user_id`),
+                KEY `user_signature_shares_user_index` (`user_id`),
+                CONSTRAINT `user_signature_shares_signature_fk` FOREIGN KEY (`signature_id`) REFERENCES `user_signatures`(`id`) ON DELETE CASCADE,
+                CONSTRAINT `user_signature_shares_user_fk` FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
         ");
     }

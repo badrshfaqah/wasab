@@ -7,7 +7,12 @@ $leaveSt = ['pending' => 'بالانتظار', 'approved' => 'معتمدة', 're
 ?>
 <div class="page-head">
     <div><h1>ملفي</h1><p>كل ما يخصّك في مكان واحد — من الإضافات المفعّلة.</p></div>
-    <a class="btn btn-outline" href="<?= route('/profile') ?>">⚙️ ملفي الشخصي</a>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <?php if (module_active('employees')): ?>
+            <a class="btn" href="<?= route('/employees/card') ?>" target="_blank" rel="noopener">🪪 البطاقة الشخصية</a>
+        <?php endif; ?>
+        <a class="btn btn-outline" href="<?= route('/profile') ?>">⚙️ ملفي الشخصي</a>
+    </div>
 </div>
 
 <?php if (!$sections): ?>

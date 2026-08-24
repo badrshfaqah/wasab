@@ -16,15 +16,6 @@ use App\Core\View;
             <p class="hint">مثال: DOC تعطي أرقاماً مثل DOC-<?= date('Y') ?>-001. التسلسل الحالي: <?= (int) $settings['last_sequence'] ?></p>
         </div>
 
-        <div class="field">
-            <label>مراحل اعتماد المستند</label>
-            <select name="approval_steps">
-                <option value="1" <?= (int) ($settings['approval_steps'] ?? 1) === 1 ? 'selected' : '' ?>>مرحلة واحدة (اعتماد ثم توقيع)</option>
-                <option value="2" <?= (int) ($settings['approval_steps'] ?? 1) === 2 ? 'selected' : '' ?>>مرحلتان (اعتماد أول ثم اعتماد نهائي من مدير الشركة، ثم توقيع)</option>
-            </select>
-            <p class="hint">عند اختيار مرحلتين لا يعتمد الشخص نفسه مرتين، والاعتماد النهائي لمدير الشركة حصراً.</p>
-        </div>
-
         <div class="grid-2">
             <div class="field">
                 <label>اسم المعتمِد/الموقّع الافتراضي</label>

@@ -66,34 +66,18 @@ class ApprovalsController
             ]);
         }
 
-        // مستندات بانتظار الاعتماد / التوقيع
-        if (ModuleManager::isActive('documents')) {
-            if ($isAdmin || Permission::check('documents.approve')) {
-                $sections['doc_approve'] = $safe(fn () => [
-                    'title' => '📄 مستندات بانتظار الاعتماد',
-                    'url' => route('/documents?status=pending_approval'),
-                    'rows' => Database::select(
-                        "SELECT id, title AS label, '' AS meta FROM documents_documents
-                          WHERE company_id = :c AND status = 'pending_approval'
-                            AND id NOT IN (SELECT document_id FROM documents_approvals WHERE approved_by = :me)
-                          ORDER BY id DESC LIMIT 20",
-                        ['c' => $companyId, 'me' => $userId]
-                    ),
-                    'itemUrl' => '/documents/',
-                ]);
-            }
-            if ($isAdmin || Permission::check('documents.sign')) {
-                $sections['doc_sign'] = $safe(fn () => [
-                    'title' => '✍️ مستندات جاهزة للتوقيع',
-                    'url' => route('/documents?status=approved'),
-                    'rows' => Database::select(
-                        "SELECT id, title AS label, number AS meta FROM documents_documents
-                          WHERE company_id = :c AND status = 'approved' ORDER BY id DESC LIMIT 20",
-                        ['c' => $companyId]
-                    ),
-                    'itemUrl' => '/documents/',
-                ]);
-            }
+        // مستندات معتمدة قديماً ولم توقَّع بعد (دورة الاعتماد أُلغيت - يبقى إصدارها الرسمي)
+        if (ModuleManager::isActive('documents') && ($isAdmin || Permission::check('documents.sign'))) {
+            $sections['doc_sign'] = $safe(fn () => [
+                'title' => '✍️ مستندات جاهزة للتوقيع',
+                'url' => route('/documents?scope=company&status=approved'),
+                'rows' => Database::select(
+                    "SELECT id, title AS label, number AS meta FROM documents_documents
+                      WHERE company_id = :c AND status = 'approved' ORDER BY id DESC LIMIT 20",
+                    ['c' => $companyId]
+                ),
+                'itemUrl' => '/documents/',
+            ]);
         }
 
         // مهام بانتظار اعتماد المستخدم (هو المعتمِد المحدد لها)

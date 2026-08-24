@@ -59,11 +59,11 @@ $typeLabels = Document::typeLabels();
             <label style="display:flex;align-items:center;gap:16px;font-weight:400;">
                 <span style="display:flex;align-items:center;gap:6px;">
                     <input type="radio" name="visibility" value="public" style="width:auto;" <?= ($document['visibility'] ?? 'public') === 'public' ? 'checked' : '' ?>>
-                    عام (يمر بمسار اعتماد وترقيم)
+                    عام (يظهر لكل الموظفين في «مستندات الشركة»)
                 </span>
                 <span style="display:flex;align-items:center;gap:6px;">
                     <input type="radio" name="visibility" value="private" style="width:auto;" <?= ($document['visibility'] ?? '') === 'private' ? 'checked' : '' ?>>
-                    خاص (يُعتمد فوراً ويُرقَّم مباشرة)
+                    خاص (لا يراه إلا أنت ومن تشاركه معه)
                 </span>
             </label>
         </div>

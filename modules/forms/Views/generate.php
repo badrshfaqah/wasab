@@ -67,7 +67,7 @@ $fieldLabels = [
                 <?php if (!empty($mySignatures)): ?>
                     <select name="signature_id">
                         <?php foreach ($mySignatures as $sig): ?>
-                            <option value="<?= $sig['id'] ?>"><?= e($sig['name']) ?></option>
+                            <option value="<?= $sig['id'] ?>"><?= e($sig['name']) ?><?= !empty($sig['owner_name']) ? ' (مشاركة من ' . e($sig['owner_name']) . ')' : '' ?></option>
                         <?php endforeach; ?>
                         <option value="">بلا توقيع</option>
                     </select>

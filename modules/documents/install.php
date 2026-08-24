@@ -135,4 +135,20 @@ return function (PDO $pdo): void {
             CONSTRAINT `documents_comments_document_fk` FOREIGN KEY (`document_id`) REFERENCES `documents_documents`(`id`) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     ");
+
+    // مشاركة المستندات: صاحب المستند يشارك موظفين محددين بدور (مشاهدة أو تعديل)
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS `documents_shares` (
+            `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            `document_id` INT UNSIGNED NOT NULL,
+            `user_id` INT UNSIGNED NOT NULL,
+            `role` ENUM('viewer','editor') NOT NULL DEFAULT 'viewer',
+            `created_by` INT UNSIGNED NULL,
+            `created_at` DATETIME NOT NULL,
+            UNIQUE KEY `documents_shares_unique` (`document_id`, `user_id`),
+            KEY `documents_shares_user_index` (`user_id`),
+            CONSTRAINT `documents_shares_document_fk` FOREIGN KEY (`document_id`) REFERENCES `documents_documents`(`id`) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    ");
+
 };

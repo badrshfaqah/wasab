@@ -6,9 +6,8 @@
 return [
     ['key' => 'documents.view', 'label' => 'مشاهدة المستندات', 'default_level' => 'employee'],
     ['key' => 'documents.create', 'label' => 'إنشاء مستند', 'default_level' => 'employee'],
-    ['key' => 'documents.edit', 'label' => 'تعديل المستندات (قبل الاعتماد)', 'default_level' => 'employee'],
+    ['key' => 'documents.edit', 'label' => 'تعديل المستندات', 'default_level' => 'employee'],
     ['key' => 'documents.delete', 'label' => 'حذف المستندات', 'default_level' => 'manager'],
-    ['key' => 'documents.approve', 'label' => 'اعتماد المستندات', 'default_level' => 'manager'],
-    ['key' => 'documents.sign', 'label' => 'توقيع المستندات', 'default_level' => 'manager'],
+    ['key' => 'documents.sign', 'label' => 'الإصدار الرسمي (توقيع المستندات)', 'default_level' => 'manager'],
     ['key' => 'documents.manage', 'label' => 'إدارة كاملة: كل المستندات، القوالب، وإعدادات الإضافة', 'default_level' => 'manager'],
 ];
