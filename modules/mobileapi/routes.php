@@ -100,6 +100,8 @@ return function (Router $router): void {
     $router->get('/api/v1/documents', [DocumentsApiController::class, 'index'], $documents);
     $router->get('/api/v1/documents/users', [DocumentsApiController::class, 'companyUsers'], $documents);
     $router->get('/api/v1/documents/templates', [DocumentsApiController::class, 'templates'], $documents);
+    $router->get('/api/v1/documents/stamps', [DocumentsApiController::class, 'stamps'], $documents);
+    $router->get('/api/v1/documents/signatures', [DocumentsApiController::class, 'signatures'], $documents);
     $router->post('/api/v1/documents', [DocumentsApiController::class, 'store'], $documents);
     $router->get('/api/v1/documents/{id}', [DocumentsApiController::class, 'show'], $documents);
     $router->get('/api/v1/documents/{id}/paper', [DocumentsApiController::class, 'paper'], $documents);

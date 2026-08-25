@@ -4,6 +4,7 @@ namespace Modules\Mobileapi\Controllers;
 
 use App\Core\ActivityLog;
 use App\Core\Auth;
+use App\Core\CompanyStamp;
 use App\Core\Database;
 use App\Core\HtmlSanitizer;
 use App\Core\Notification;
@@ -85,15 +86,39 @@ class DocumentsApiController
         Api::ok(['users' => array_map(fn ($r) => ['id' => (int) $r['id'], 'name' => $r['name']], $rows)]);
     }
 
-    /** GET /api/v1/documents/templates - قوالب الشركة (لنموذج الإنشاء). */
+    /** GET /api/v1/documents/templates - القوالب المتاحة للكاتب: قوالب الشركة العامة + ملكه + المشارَكة معه. */
     public function templates(): void
     {
         $companyId = $this->requireCompanyContext();
         Api::requirePermission('documents.view');
 
         Api::ok(['templates' => array_map(
-            fn ($t) => ['id' => (int) $t['id'], 'name' => $t['name']],
-            DocumentTemplate::forCompany($companyId)
+            [$this, 'pickerPayload'],
+            DocumentTemplate::usableBy(Auth::id(), $companyId)
+        )]);
+    }
+
+    /** GET /api/v1/documents/signatures - التواقيع المتاحة للكاتب (ملكه + المشارَكة معه). */
+    public function signatures(): void
+    {
+        $companyId = $this->requireCompanyContext();
+        Api::requirePermission('documents.view');
+
+        Api::ok(['signatures' => array_map(
+            [$this, 'pickerPayload'],
+            UserSignature::usableBy(Auth::id(), $companyId)
+        )]);
+    }
+
+    /** GET /api/v1/documents/stamps - الأختام المتاحة للكاتب (مكتبة الشركة + ملكه + المشارَكة معه). */
+    public function stamps(): void
+    {
+        $companyId = $this->requireCompanyContext();
+        Api::requirePermission('documents.view');
+
+        Api::ok(['stamps' => array_map(
+            [$this, 'pickerPayload'],
+            CompanyStamp::usableBy(Auth::id(), $companyId, $this->canManage())
         )]);
     }
 
@@ -130,10 +155,8 @@ class DocumentsApiController
                 'role' => $s['role'],
             ], Document::shares((int) $document['id'])),
             'comments' => $this->comments((int) $document['id']),
-            'my_signatures' => array_map(fn ($s) => [
-                'id' => (int) $s['id'],
-                'name' => $s['name'] . (!empty($s['owner_name']) ? ' (مشاركة من ' . $s['owner_name'] . ')' : ''),
-            ], UserSignature::usableBy(Auth::id(), $companyId)),
+            'my_signatures' => array_map([$this, 'pickerPayload'], UserSignature::usableBy(Auth::id(), $companyId)),
+            'my_stamps' => array_map([$this, 'pickerPayload'], CompanyStamp::usableBy(Auth::id(), $companyId, $this->canManage())),
             'is_owner' => $isOwner,
             'my_share_role' => $myShareRole,
             'can_edit' => $this->canEditDocument($document),
@@ -163,22 +186,35 @@ class DocumentsApiController
         $company = Database::first('SELECT * FROM companies WHERE id = :id', ['id' => $companyId]);
 
         // كل الصور تُضمَّن data URIs لأن /media يتطلب جلسة متصفح.
+        // التوقيع: لقطة الإصدار الرسمي، ثم التوقيع المختار أثناء الكتابة، وإلا
+        // توقيع الشركة القديم من الإعدادات (وهذا الأخير بعد الإصدار فقط).
         $signatureUrl = null;
         if (!empty($document['signature_file'])) {
-            $signatureUrl = Uploads::dataUri(BASE_PATH . '/storage/uploads/signatures/' . $companyId . '/' . $document['signature_file'])
-                ?: Uploads::dataUri(BASE_PATH . '/storage/uploads/documents/' . $companyId . '/' . $document['signature_file']);
-        } elseif (!empty($settings['signature_image'])) {
+            $signatureUrl = Uploads::dataUri(BASE_PATH . '/storage/uploads/signatures/' . $companyId . '/' . $document['signature_file']);
+        } elseif (!empty($document['signature_id'])) {
+            $chosenSig = UserSignature::find((int) $document['signature_id']);
+            if ($chosenSig && (int) $chosenSig['company_id'] === $companyId) {
+                $signatureUrl = Uploads::dataUri(BASE_PATH . '/storage/uploads/signatures/' . $companyId . '/' . $chosenSig['image']);
+            }
+        } elseif ($document['status'] === 'signed' && !empty($settings['signature_image'])) {
             $signatureUrl = Uploads::dataUri(BASE_PATH . '/storage/uploads/documents/' . $companyId . '/' . $settings['signature_image']);
         }
 
+        // الختم: ختم المستند المختار أثناء الكتابة، ثم ختم القالب، وإلا ختم الشركة القديم.
         $stampUrl = null;
-        if ($template && !empty($template['stamp_id'])) {
-            $stamp = \App\Core\CompanyStamp::findForCompany((int) $template['stamp_id'], $companyId);
+        if (!empty($document['stamp_id'])) {
+            $stamp = CompanyStamp::findForCompany((int) $document['stamp_id'], $companyId);
             if ($stamp) {
                 $stampUrl = Uploads::dataUri(BASE_PATH . '/storage/uploads/stamps/' . $companyId . '/' . $stamp['image']);
             }
         }
-        if (!$stampUrl && !empty($settings['stamp_image'])) {
+        if (!$stampUrl && $template && !empty($template['stamp_id'])) {
+            $stamp = CompanyStamp::findForCompany((int) $template['stamp_id'], $companyId);
+            if ($stamp) {
+                $stampUrl = Uploads::dataUri(BASE_PATH . '/storage/uploads/stamps/' . $companyId . '/' . $stamp['image']);
+            }
+        }
+        if (!$stampUrl && $document['status'] === 'signed' && !empty($settings['stamp_image'])) {
             $stampUrl = Uploads::dataUri(BASE_PATH . '/storage/uploads/documents/' . $companyId . '/' . $settings['stamp_image']);
         }
 
@@ -187,10 +223,19 @@ class DocumentsApiController
             $bgUrl = Uploads::dataUri(BASE_PATH . '/storage/uploads/documents/' . $companyId . '/' . $template['background_image']);
         }
 
-        $signerName = $settings['signer_name'] ?? null;
-        if (!empty($document['signed_by'])) {
-            $signer = Database::first('SELECT name FROM users WHERE id = :id', ['id' => $document['signed_by']]);
-            $signerName = $signer['name'] ?? $signerName;
+        // سطرا الموقّع: ما كتبه الكاتب أولاً (والاسم اختياري عمداً)، وإلا السلوك
+        // القديم: اسم من وقّع فعلاً أو ما هو معرَّف في إعدادات الشركة.
+        $signerTitle = $document['signer_title'] ?? null;
+        $signerName = $document['signer_name'] ?? null;
+        if ($signerTitle === null && $signerName === null) {
+            $signerName = $settings['signer_name'] ?? null;
+            $signerTitle = $settings['signer_title'] ?? null;
+            if (!empty($document['signed_by'])) {
+                $signer = Database::first('SELECT name FROM users WHERE id = :id', ['id' => $document['signed_by']]);
+                if ($signer) {
+                    $signerName = $signer['name'];
+                }
+            }
         }
 
         $_GET['embed'] = '1';
@@ -203,7 +248,8 @@ class DocumentsApiController
             'stampUrl' => $stampUrl,
             'bgUrl' => $bgUrl,
             'signerName' => $signerName,
-            'verifyUrl' => base_url('documents/verify/' . $document['verify_token']),
+            'signerTitle' => $signerTitle,
+            'verifyUrl' => !empty($document['verify_token']) ? base_url('documents/verify/' . $document['verify_token']) : null,
             'typeLabels' => Document::typeLabels(),
         ]);
 
@@ -297,6 +343,12 @@ class DocumentsApiController
             'title' => mb_substr($document['title'], 0, 240) . ' (نسخة)',
             'content' => $document['content'],
             'template_id' => $document['template_id'],
+            // تُنقل إعدادات الورقة ليعدّل الناسخ المحتوى فقط؛ الرقم والتوقيع
+            // الرسمي يبقيان حكراً على إصدار النسخة الجديدة نفسها.
+            'signature_id' => $document['signature_id'] ?? null,
+            'stamp_id' => $document['stamp_id'] ?? null,
+            'signer_title' => $document['signer_title'] ?? null,
+            'signer_name' => $document['signer_name'] ?? null,
             'verify_token' => bin2hex(random_bytes(16)),
             'created_by' => Auth::id(),
         ]);
@@ -339,7 +391,8 @@ class DocumentsApiController
                     $update['number'] = $number;
                 }
 
-                $signatureId = (int) Api::input('signature_id', 0);
+                // توقيع الإصدار: اختيار لحظة الإصدار، وإلا التوقيع المختار أثناء الكتابة.
+                $signatureId = (int) Api::input('signature_id', 0) ?: (int) ($document['signature_id'] ?? 0);
                 if ($signatureId > 0) {
                     $signature = UserSignature::findUsableBy($signatureId, Auth::id());
                     if ($signature) {
@@ -635,14 +688,19 @@ class DocumentsApiController
             $confidentiality = 'normal';
         }
 
-        $templateId = (int) Api::input('template_id', 0);
-        if ($templateId > 0) {
-            $template = DocumentTemplate::find($templateId);
-            if (!$template || (int) $template['company_id'] !== $companyId) {
-                Api::error('القالب المختار غير صالح.', 422, 'validation');
-            }
-        } else {
-            $templateId = null;
+        $templateId = (int) Api::input('template_id', 0) ?: null;
+        if ($templateId && !DocumentTemplate::findUsableBy($templateId, Auth::id(), $companyId)) {
+            Api::error('القالب المختار غير صالح.', 422, 'validation');
+        }
+
+        // أدوات الكتابة المختارة: ما لا يحق للكاتب استخدامه يُهمَل بصمت (كما في الويب).
+        $signatureId = (int) Api::input('signature_id', 0) ?: null;
+        if ($signatureId && !UserSignature::findUsableBy($signatureId, Auth::id())) {
+            $signatureId = null;
+        }
+        $stampId = (int) Api::input('stamp_id', 0) ?: null;
+        if ($stampId && !CompanyStamp::findUsableBy($stampId, Auth::id(), $companyId, $this->canManage())) {
+            $stampId = null;
         }
 
         $followUp = trim((string) Api::input('follow_up_date', ''));
@@ -654,9 +712,26 @@ class DocumentsApiController
             'visibility' => $visibility,
             'confidentiality' => $confidentiality,
             'template_id' => $templateId,
+            'signature_id' => $signatureId,
+            'stamp_id' => $stampId,
+            'signer_title' => mb_substr(trim((string) Api::input('signer_title', '')), 0, 150) ?: null,
+            'signer_name' => mb_substr(trim((string) Api::input('signer_name', '')), 0, 150) ?: null,
             'follow_up_date' => $followUp !== '' ? $followUp : null,
             'expiry_date' => $expiry !== '' ? $expiry : null,
             'content' => HtmlSanitizer::sanitize((string) Api::input('content', '')),
+        ];
+    }
+
+    /**
+     * عنصر اختيار (قالب/ختم/توقيع): owner_name يأتي غير فارغ للعناصر المشارَكة
+     * فقط - نعرضه للتطبيق ليكتب «مشاركة من فلان» بجانب الاسم.
+     */
+    private function pickerPayload(array $item): array
+    {
+        return [
+            'id' => (int) $item['id'],
+            'name' => $item['name'],
+            'owner_name' => $item['owner_name'] ?? null,
         ];
     }
 
@@ -707,6 +782,11 @@ class DocumentsApiController
             'follow_up_date' => $d['follow_up_date'] ?? null,
             'expiry_date' => $d['expiry_date'] ?? null,
             'template_id' => isset($d['template_id']) && $d['template_id'] ? (int) $d['template_id'] : null,
+            // أدوات الكتابة المختارة - تملأ بها شاشة التعديل حقولها مسبقاً.
+            'signature_id' => isset($d['signature_id']) && $d['signature_id'] ? (int) $d['signature_id'] : null,
+            'stamp_id' => isset($d['stamp_id']) && $d['stamp_id'] ? (int) $d['stamp_id'] : null,
+            'signer_title' => $d['signer_title'] ?? null,
+            'signer_name' => $d['signer_name'] ?? null,
             'verify_url' => !empty($d['verify_token']) ? base_url('documents/verify/' . $d['verify_token']) : null,
             'updated_at' => $d['updated_at'] ?? null,
         ];
