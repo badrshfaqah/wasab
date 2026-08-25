@@ -26,7 +26,9 @@ body{margin:0;background:#e5e7eb;font-family:'Cairo','Segoe UI',Tahoma,Arial,san
 .doc-header{margin-bottom:20px;font-size:13px;}
 .doc-body{line-height:2.2;font-size:15px;white-space:pre-wrap;min-height:120mm;}
 .doc-signature{margin-top:50px;display:flex;justify-content:flex-start;gap:20px;text-align:center;}
-.doc-signature img{max-height:80px;display:block;margin:0 auto 6px;}
+.doc-signature img{max-height:80px;display:block;margin:0 auto 6px;
+  /* انظر ملاحظة نفس القاعدة في مستندات/print.php: إذابة الخلفية البيضاء للأختام الممسوحة */
+  mix-blend-mode:multiply;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
 .doc-footer{margin-top:26px;font-size:12px;color:#4b5563;}
 @page{size:A4;margin:0;}
 @media print{

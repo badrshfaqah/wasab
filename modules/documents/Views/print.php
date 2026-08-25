@@ -45,7 +45,11 @@ body{margin:0;background:#e5e7eb;font-family:'Cairo','Segoe UI',Tahoma,Arial,san
 .doc-content{line-height:2;font-size:14.5px;min-height:120mm;}
 .doc-content :is(ul,ol){padding-inline-start:24px;}
 .doc-signature{margin-top:40px;display:flex;justify-content:flex-end;gap:20px;text-align:center;}
-.doc-signature img{max-height:70px;display:block;margin:0 auto 6px;}
+.doc-signature img{max-height:70px;display:block;margin:0 auto 6px;
+  /* صور التواقيع والأختام كثيراً ما تكون ممسوحة ضوئياً بخلفية بيضاء صلبة بدل
+     الشفافية - الدمج بالضرب يُذيب الأبيض في الورقة فيظهر الختم طبيعياً، ويحافظ
+     على الشفافية الحقيقية كما هي. print-color-adjust يبقيه صحيحاً عند الطباعة. */
+  mix-blend-mode:multiply;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
 /*
   بدون @page بهوامش صفرية: المتصفح يضيف هوامشه الافتراضية (~13مم لكل جهة) فوق
   هوامش المستند الداخلية (30/22مم)، فيضيق عمود النص وتُطبع الصفحة "صغيرة".
