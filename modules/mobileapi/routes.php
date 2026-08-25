@@ -2,9 +2,12 @@
 
 use App\Core\ModuleManager;
 use App\Core\Router;
+use Modules\Mobileapi\Controllers\ApprovalsApiController;
+use Modules\Mobileapi\Controllers\ArchiveApiController;
 use Modules\Mobileapi\Controllers\AuthApiController;
 use Modules\Mobileapi\Controllers\CheckinsApiController;
 use Modules\Mobileapi\Controllers\DocumentsApiController;
+use Modules\Mobileapi\Controllers\EmployeeCardApiController;
 use Modules\Mobileapi\Controllers\HomeApiController;
 use Modules\Mobileapi\Controllers\InboxApiController;
 use Modules\Mobileapi\Controllers\MeetingsApiController;
@@ -56,6 +59,27 @@ return function (Router $router): void {
     $router->post('/api/v1/profile', [ProfileApiController::class, 'update'], [$auth]);
     $router->get('/api/v1/profile/devices', [ProfileApiController::class, 'devices'], [$auth]);
     $router->post('/api/v1/profile/devices/{id}/revoke', [ProfileApiController::class, 'revokeDevice'], [$auth]);
+
+    // ---------- مركز الموافقات ----------
+    // يجمع كل ما ينتظر قرار المستخدم من الوحدات المفعّلة. البتّ متاح هنا لما
+    // لا شاشة له في التطبيق (إجازات، مصروفات، خطابات)؛ والبقية تُفتح بشاشاتها.
+    $router->get('/api/v1/approvals', [ApprovalsApiController::class, 'index'], [$auth]);
+    $router->post('/api/v1/approvals/{type}/{id}/decide', [ApprovalsApiController::class, 'decide'], [$auth]);
+
+    // ---------- أرشيف الملفات ----------
+    $archive = [$auth, $requireModule('archive')];
+    $router->get('/api/v1/archive', [ArchiveApiController::class, 'index'], $archive);
+    $router->post('/api/v1/archive', [ArchiveApiController::class, 'store'], $archive);
+    $router->get('/api/v1/archive/{id}/file', [ArchiveApiController::class, 'download'], $archive);
+    $router->get('/api/v1/archive/{id}', [ArchiveApiController::class, 'show'], $archive);
+
+    // ---------- البطاقة الشخصية ----------
+    $card = [$auth, $requireModule('employees')];
+    $router->get('/api/v1/employee-card/photo', [EmployeeCardApiController::class, 'minePhoto'], $card);
+    $router->get('/api/v1/employee-card/logo', [EmployeeCardApiController::class, 'logo'], $card);
+    $router->get('/api/v1/employee-card/{id}/photo', [EmployeeCardApiController::class, 'photo'], $card);
+    $router->get('/api/v1/employee-card/{id}', [EmployeeCardApiController::class, 'show'], $card);
+    $router->get('/api/v1/employee-card', [EmployeeCardApiController::class, 'mine'], $card);
 
     // ---------- المهام ----------
     $tasks = [$auth, $requireModule('tasks')];
