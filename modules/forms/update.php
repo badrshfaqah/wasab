@@ -1,6 +1,18 @@
 <?php
 /** يُستدعى عند الضغط على "تحديث" إن كان إصدار القرص أحدث من إصدار قاعدة البيانات. */
 return function (PDO $pdo, string $fromVersion): void {
+    if (version_compare($fromVersion, '1.6.0', '<')) {
+        // التوثيق (رمز التحقق) صار اختياراً عند توليد الخطاب كالختم والتوقيع.
+        // NULL = يتبع إعداد القالب (سلوك الخطابات القديمة كما هو).
+        $has = $pdo->query(
+            "SELECT 1 FROM information_schema.columns
+              WHERE table_schema = DATABASE() AND table_name = 'forms_letters' AND column_name = 'qr_enabled'"
+        )->fetchColumn();
+        if (!$has) {
+            $pdo->exec("ALTER TABLE `forms_letters` ADD COLUMN `qr_enabled` TINYINT(1) NULL COMMENT 'إظهار رمز التحقق على الخطاب - NULL يعني اتباع إعداد القالب' AFTER `verify_token`");
+        }
+    }
+
     if (version_compare($fromVersion, '1.1.0', '<')) {
         // زرع القوالب الجديدة (إنذار/ترقية/نقل/تعميم) للشركات التي لديها بالفعل
         // قوالب (أي فعّلت النماذج)، دون تكرار ما هو موجود بالاسم، ودون لمس ما حُذف عمداً.

@@ -3,6 +3,18 @@
  * يُستدعى عند الضغط على "تحديث" إن كان إصدار القرص أحدث من إصدار قاعدة البيانات.
  */
 return function (PDO $pdo, string $fromVersion): void {
+    if (version_compare($fromVersion, '2.2.0', '<')) {
+        // التوثيق (رمز التحقق) صار اختياراً لحظة الكتابة كالختم والتوقيع.
+        // NULL = يتبع إعداد القالب (سلوك المستندات القديمة كما هو).
+        $has = $pdo->query(
+            "SELECT 1 FROM information_schema.columns
+              WHERE table_schema = DATABASE() AND table_name = 'documents_documents' AND column_name = 'qr_enabled'"
+        )->fetchColumn();
+        if (!$has) {
+            $pdo->exec("ALTER TABLE `documents_documents` ADD COLUMN `qr_enabled` TINYINT(1) NULL COMMENT 'إظهار رمز التحقق على الورقة - NULL يعني اتباع إعداد القالب' AFTER `signer_name`");
+        }
+    }
+
     if (version_compare($fromVersion, '2.1.0', '<')) {
         $colMissingIn = function (string $table, string $col) use ($pdo): bool {
             return !$pdo->query(

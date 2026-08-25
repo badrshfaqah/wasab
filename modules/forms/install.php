@@ -38,6 +38,7 @@ return function (PDO $pdo): void {
             `recipient_name` VARCHAR(180) NULL COMMENT 'اسم المستفيد (لقطة)',
             `body` MEDIUMTEXT NOT NULL COMMENT 'النص النهائي بعد ملء حقول الدمج',
             `signature_file` VARCHAR(255) NULL COMMENT 'صورة توقيع مُصدِر الخطاب المختار (لقطة)',
+            `qr_enabled` TINYINT(1) NULL COMMENT 'إظهار رمز التحقق على الخطاب - NULL يعني اتباع إعداد القالب',
             `verify_token` CHAR(32) NULL COMMENT 'رمز تحقق عام غير قابل للتخمين للتأكد من صحة الخطاب',
             `created_by` INT UNSIGNED NULL,
             `created_at` DATETIME NOT NULL,

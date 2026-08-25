@@ -30,7 +30,7 @@ $typeLabels = Document::typeLabels();
                 <select name="template_id">
                     <option value="">— بدون قالب —</option>
                     <?php foreach ($templates as $t): ?>
-                        <option value="<?= $t['id'] ?>" <?= (int) ($document['template_id'] ?? 0) === (int) $t['id'] ? 'selected' : '' ?>><?= e($t['name']) ?><?= !empty($t['owner_name']) ? ' (مشاركة من ' . e($t['owner_name']) . ')' : '' ?></option>
+                        <option value="<?= $t['id'] ?>" data-qr="<?= (int) ($t['qr_enabled'] ?? 0) ?>" <?= (int) ($document['template_id'] ?? 0) === (int) $t['id'] ? 'selected' : '' ?>><?= e($t['name']) ?><?= !empty($t['owner_name']) ? ' (مشاركة من ' . e($t['owner_name']) . ')' : '' ?></option>
                     <?php endforeach; ?>
                 </select>
                 <p class="hint">قوالبك + المشارَكة معك. أنشئ قوالبك من <a href="<?= route('/documents/templates') ?>" target="_blank">صفحة القوالب</a>.</p>
@@ -59,6 +59,29 @@ $typeLabels = Document::typeLabels();
                 </select>
             </div>
         </div>
+        <div class="field">
+            <label style="display:flex;align-items:center;gap:8px;font-weight:400;">
+                <input type="checkbox" name="qr_enabled" value="1" style="width:auto;"
+                    <?php
+                    // عند التعديل: اختيار المستند نفسه (ومن قبل الميزة: إعداد قالبه).
+                    // عند الإنشاء: إعداد القالب المختار، ويُحدَّث تلقائياً إن غيّر القالب.
+                    $currentTemplate = null;
+                    foreach ($templates as $t) {
+                        if ((int) $t['id'] === (int) ($document['template_id'] ?? 0)) {
+                            $currentTemplate = $t;
+                            break;
+                        }
+                    }
+                    $qrChecked = $isEdit && $document['qr_enabled'] !== null
+                        ? (bool) $document['qr_enabled']
+                        : !empty($currentTemplate['qr_enabled']);
+                    ?>
+                    <?= $qrChecked ? 'checked' : '' ?>>
+                🔳 إضافة التوثيق (رمز التحقق) على الورقة
+            </label>
+            <p class="hint">رمز يُمسح ضوئياً فيفتح صفحة تؤكد أصالة المستند. موضعه وحجمه ولونه يُحدَّدان في القالب — وإن لم تختر قالباً يظهر أسفل يسار الورقة.</p>
+        </div>
+
         <div class="grid-2">
             <div class="field">
                 <label>المسمى فوق التوقيع (اختياري)</label>
@@ -110,6 +133,22 @@ $typeLabels = Document::typeLabels();
                 'value' => $document['content'] ?? '',
             ]) ?>
         </div>
+
+        <script>
+        // اقتراح إعداد التوثيق من القالب المختار، ما لم يغيّره المستخدم بنفسه
+        (function () {
+            var tpl = document.querySelector('select[name="template_id"]');
+            var qr = document.querySelector('input[name="qr_enabled"]');
+            if (!tpl || !qr) { return; }
+            var touched = false;
+            qr.addEventListener('change', function () { touched = true; });
+            tpl.addEventListener('change', function () {
+                if (touched) { return; }
+                var opt = tpl.options[tpl.selectedIndex];
+                qr.checked = opt && opt.dataset.qr === '1';
+            });
+        })();
+        </script>
 
         <div class="form-actions">
             <button class="btn" type="submit"><?= $isEdit ? 'حفظ التعديلات' : 'إنشاء المستند' ?></button>

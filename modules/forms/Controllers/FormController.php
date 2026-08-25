@@ -137,6 +137,8 @@ class FormController
             'recipient_name' => $recipient ? mb_substr($recipient, 0, 180) : null,
             'body' => $finalBody,
             'signature_file' => $signatureFile,
+            // التوثيق اختيار عند التوليد؛ الموضع والحجم واللون تبقى من القالب
+            'qr_enabled' => Request::input('qr_enabled') ? 1 : 0,
             'verify_token' => bin2hex(random_bytes(16)),
             'created_by' => Auth::id(),
             'created_at' => date('Y-m-d H:i:s'),
@@ -437,6 +439,8 @@ class FormController
             'employee_id' => (int) $employee['id'],
             'recipient_name' => mb_substr($employee['full_name'], 0, 180),
             'body' => $finalBody,
+            // خطاب مولَّد آلياً باعتماد طلب: يتبع إعداد التوثيق في قالبه
+            'qr_enabled' => !empty($template['qr_enabled']) ? 1 : 0,
             'verify_token' => bin2hex(random_bytes(16)),
             'created_by' => Auth::id(),
             'created_at' => date('Y-m-d H:i:s'),

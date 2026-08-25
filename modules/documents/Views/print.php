@@ -10,6 +10,19 @@ $footerHtml = ($template['footer_html'] ?? '') ?: ($settings['footer_html'] ?? '
 $numberPosition = $template['number_position'] ?? 'top-right';
 $showNumber = $template ? (bool) $template['show_number'] : true;
 $showDate = $template ? (bool) $template['show_date'] : true;
+/*
+  التوثيق (رمز التحقق) اختيار يخص الورقة نفسها كالختم والتوقيع: قرار الإظهار
+  من المستند، وموضعه وحجمه ولونه من القالب (وإن لم يكن للمستند قالب فبقيم
+  افتراضية). NULL على المستند = اتباع إعداد القالب كما كان قبل هذه الميزة.
+*/
+$qrOn = $document['qr_enabled'] === null || !array_key_exists('qr_enabled', $document)
+    ? !empty($template['qr_enabled'])
+    : (bool) $document['qr_enabled'];
+$qrX = (int) ($template['qr_x'] ?? 40);
+$qrY = (int) ($template['qr_y'] ?? 40);
+$qrSize = (int) ($template['qr_size'] ?? 90);
+$qrColor = $template['qr_color'] ?? '#000000';
+
 $bgUrl = $bgUrl ?? ($template && $template['background_image']
     ? route('/media/documents/' . $template['company_id'] . '/' . $template['background_image'])
     : null);
@@ -126,7 +139,7 @@ body{background:#9ca3af;}
         <?php endif; ?>
 
         <?php // عبارة التحقق النصية تُخفى عندما يكون رمز QR مفعّلاً بالقالب (الرمز يغني عنها) ?>
-        <?php if (!empty($verifyUrl) && empty($template['qr_enabled'])): ?>
+        <?php if (!empty($verifyUrl) && !$qrOn): ?>
             <div class="doc-verify">
                 <span>🔎 للتحقق من صحة هذا المستند، امسح الرمز أو افتح الرابط:</span>
                 <div class="doc-verify-url"><?= e($verifyUrl) ?></div>
@@ -137,13 +150,13 @@ body{background:#9ca3af;}
         <?php
         // رمز QR للتحقق بموضع/حجم/لون القالب (بكسل من أسفل ويسار الورقة) - لا يؤثر
         // على شكل الورقة الرسمية لأنه يوضع في الفراغ الذي يحدده المدير.
-        if ($template && !empty($template['qr_enabled']) && !empty($verifyUrl)):
-            $qrSvg = \App\Core\QrCode::svg($verifyUrl, (int) $template['qr_size']);
+        if ($qrOn && !empty($verifyUrl)):
+            $qrSvg = \App\Core\QrCode::svg($verifyUrl, $qrSize);
             if ($qrSvg):
         ?>
-            <div style="position:absolute;left:<?= (int) $template['qr_x'] ?>px;bottom:<?= (int) $template['qr_y'] ?>px;
-                        width:<?= (int) $template['qr_size'] ?>px;height:<?= (int) $template['qr_size'] ?>px;
-                        color:<?= e($template['qr_color']) ?>;line-height:0;
+            <div style="position:absolute;left:<?= $qrX ?>px;bottom:<?= $qrY ?>px;
+                        width:<?= $qrSize ?>px;height:<?= $qrSize ?>px;
+                        color:<?= e($qrColor) ?>;line-height:0;
                         -webkit-print-color-adjust:exact;print-color-adjust:exact;"><?= $qrSvg ?></div>
         <?php endif; endif; ?>
     </div>

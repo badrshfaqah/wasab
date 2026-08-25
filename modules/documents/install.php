@@ -55,6 +55,7 @@ return function (PDO $pdo): void {
             `stamp_id` INT UNSIGNED NULL COMMENT 'ختم مختار أثناء الكتابة',
             `signer_title` VARCHAR(150) NULL COMMENT 'المسمى فوق التوقيع مثل: مدير عام الشركة',
             `signer_name` VARCHAR(150) NULL COMMENT 'اسم الموقّع تحت المسمى (اختياري)',
+            `qr_enabled` TINYINT(1) NULL COMMENT 'إظهار رمز التحقق على الورقة - NULL يعني اتباع إعداد القالب',
             `archived_at` DATETIME NULL,
             `created_at` DATETIME NOT NULL,
             `updated_at` DATETIME NULL,

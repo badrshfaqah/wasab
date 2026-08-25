@@ -76,6 +76,15 @@ $fieldLabels = [
                 <?php endif; ?>
             </div>
 
+            <div class="field">
+                <label style="display:flex;align-items:center;gap:8px;font-weight:400;">
+                    <input type="checkbox" name="qr_enabled" value="1" style="width:auto;"
+                        <?= !empty($template['qr_enabled']) ? 'checked' : '' ?>>
+                    🔳 إضافة التوثيق (رمز التحقق) على الخطاب
+                </label>
+                <p class="hint">رمز يُمسح ضوئياً فيفتح صفحة تؤكد أصالة الخطاب. موضعه وحجمه ولونه من إعداد القالب.</p>
+            </div>
+
             <button class="btn" type="submit">توليد الخطاب وحفظه</button>
         </form>
     </div>
