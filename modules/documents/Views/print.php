@@ -47,7 +47,7 @@ body{margin:0;background:#e5e7eb;font-family:'Cairo','Segoe UI',Tahoma,Arial,san
 .toolbar button, .toolbar a{background:#2563eb;color:#fff;border:0;border-radius:6px;padding:8px 16px;font-size:14px;cursor:pointer;text-decoration:none;}
 .page-wrap{display:flex;justify-content:center;padding:24px 12px;overflow-x:auto;}
 .doc-page{
-  position:relative;width:210mm;min-height:297mm;background:#fff;
+  position:relative;z-index:0;width:210mm;min-height:297mm;background:#fff;
   box-shadow:0 2px 16px rgba(0,0,0,.15);
   -webkit-print-color-adjust:exact;print-color-adjust:exact;
 }
@@ -57,7 +57,7 @@ body{margin:0;background:#e5e7eb;font-family:'Cairo','Segoe UI',Tahoma,Arial,san
   تُمدّد على ارتفاع المستند كله فتخرج مشوّهة. z-index سالب ليبقى خلف النص.
 */
 .paper-bg{
-  position:absolute;inset:0;z-index:0;pointer-events:none;
+  position:absolute;inset:0;z-index:-1;pointer-events:none;
   <?= $bgUrl ? "background:url('" . e($bgUrl) . "') top center/210mm 297mm repeat-y;" : '' ?>
   -webkit-print-color-adjust:exact;print-color-adjust:exact;
 }
@@ -67,7 +67,9 @@ body{margin:0;background:#e5e7eb;font-family:'Cairo','Segoe UI',Tahoma,Arial,san
   وهذا ما لا يفعله حشو العنصر (يُطبَّق على أول صفحة وآخرها فقط). وتبقى هوامش
   @page صفراً حتى تغطي الترويسة الورقة من الحافة للحافة.
 */
-.paper-flow{width:100%;border-collapse:collapse;position:relative;z-index:1;}
+/* بلا position/z-index هنا عمداً: أي سياق تكديس هنا يعزل محتوى الورقة عن طبقة
+   ورق الترويسة خلفها ويربك ترتيب الرسم. */
+.paper-flow{width:100%;border-collapse:collapse;}
 .paper-flow td{padding:0;}
 /* خصوصية أعلى من القاعدة أعلاه وإلا أُلغي هامش النص الجانبي */
 .pad-top{height:<?= $marginTop ?>mm;}
@@ -94,10 +96,10 @@ body{margin:0;background:#e5e7eb;font-family:'Cairo','Segoe UI',Tahoma,Arial,san
 .doc-content :is(ul,ol){padding-inline-start:24px;}
 .doc-signature{margin-top:40px;display:flex;justify-content:flex-end;gap:20px;text-align:center;}
 .doc-signature img{max-height:70px;display:block;margin:0 auto 6px;
-  /* صور التواقيع والأختام كثيراً ما تكون ممسوحة ضوئياً بخلفية بيضاء صلبة بدل
-     الشفافية - الدمج بالضرب يُذيب الأبيض في الورقة فيظهر الختم طبيعياً، ويحافظ
-     على الشفافية الحقيقية كما هي. print-color-adjust يبقيه صحيحاً عند الطباعة. */
-  mix-blend-mode:multiply;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  /* بلا mix-blend-mode: الدمج كان يذيب خلفية الأختام الممسوحة البيضاء لكنه
+     يغيّر ألوان الختم الشفاف فوق الورق الملوّن. الأصح عرض الصورة كما رُفعت -
+     ومن أراد ختماً بلا مربع أبيض يرفعه PNG بخلفية شفافة. */
+-webkit-print-color-adjust:exact;print-color-adjust:exact;}
 /*
   بدون @page بهوامش صفرية: المتصفح يضيف هوامشه الافتراضية (~13مم لكل جهة) فوق
   هوامش المستند الداخلية (30/22مم)، فيضيق عمود النص وتُطبع الصفحة "صغيرة".
@@ -227,10 +229,46 @@ body{background:#9ca3af;}
             $qrSvg = \App\Core\QrCode::svg($verifyUrl, $qrSize);
             if ($qrSvg):
         ?>
-            <div style="position:absolute;left:<?= $qrX ?>px;bottom:<?= $qrY ?>px;
+            <div id="doc-qr" style="position:absolute;left:<?= $qrX ?>px;bottom:<?= $qrY ?>px;
                         width:<?= $qrSize ?>px;height:<?= $qrSize ?>px;
                         color:<?= e($qrColor) ?>;line-height:0;
                         -webkit-print-color-adjust:exact;print-color-adjust:exact;"><?= $qrSvg ?></div>
+            <script>
+            /*
+              رمز التحقق يخصّ الورقة كلها لا نهاية النص: مكانه المضبوط بالقالب
+              (بكسل من الأسفل واليسار) على الصفحة الأخيرة - صفحةً كان المستند أم
+              خمس صفحات. الإسناد المطلق وحده يضعه عند نهاية المحتوى لأن ارتفاع
+              الورقة يقف عندها، فنحسب عدد الصفحات ونثبّته في آخر واحدة.
+            */
+            (function () {
+                var page = document.querySelector('.doc-page');
+                var qr = document.getElementById('doc-qr');
+                if (!page || !qr) { return; }
+                var qrY = <?= $qrY ?>, qrSize = <?= $qrSize ?>;
+
+                function place() {
+                    var probe = document.createElement('div');
+                    probe.style.cssText = 'position:absolute;visibility:hidden;width:0;height:297mm;';
+                    page.appendChild(probe);
+                    var pageH = probe.offsetHeight;
+                    probe.parentNode.removeChild(probe);
+                    if (!pageH) { return; }
+
+                    qr.style.display = 'none';
+                    var pages = Math.max(1, Math.ceil((page.scrollHeight - 2) / pageH));
+                    qr.style.display = '';
+                    // إكمال الصفحة الأخيرة حتى يقع الرمز عند حافتها لا عند آخر سطر
+                    page.style.minHeight = (pages * pageH) + 'px';
+                    qr.style.bottom = 'auto';
+                    qr.style.top = ((pages - 1) * pageH + (pageH - qrY - qrSize)) + 'px';
+                }
+
+                place();
+                window.addEventListener('beforeprint', place);
+                if (document.fonts && document.fonts.ready) { document.fonts.ready.then(place); }
+                window.addEventListener('load', place);
+            })();
+            </script>
         <?php endif; endif; ?>
         </td></tr></tbody>
         </table>
