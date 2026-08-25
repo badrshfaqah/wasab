@@ -40,9 +40,35 @@ body{margin:0;background:#e5e7eb;font-family:'Cairo','Segoe UI',Tahoma,Arial,san
 .toolbar button, .toolbar a{background:#2563eb;color:#fff;border:0;border-radius:6px;padding:8px 16px;font-size:14px;cursor:pointer;text-decoration:none;}
 .page-wrap{display:flex;justify-content:center;padding:24px 12px;overflow-x:auto;}
 .doc-page{
-  position:relative;width:210mm;min-height:297mm;background:#fff <?= $bgUrl ? 'url(' . e($bgUrl) . ') center/cover no-repeat' : '' ?>;
-  box-shadow:0 2px 16px rgba(0,0,0,.15);padding:30mm 22mm;
+  position:relative;width:210mm;min-height:297mm;background:#fff;
+  box-shadow:0 2px 16px rgba(0,0,0,.15);
   -webkit-print-color-adjust:exact;print-color-adjust:exact;
+}
+/*
+  ورق الترويسة طبقة مستقلة بمقاس A4 بالضبط تتكرر رأسياً: حين يطول المحتوى
+  ويتجاوز صفحة، تحصل كل صفحة على ترويستها كاملةً غير ممطوطة - بدل صورة واحدة
+  تُمدّد على ارتفاع المستند كله فتخرج مشوّهة. z-index سالب ليبقى خلف النص.
+*/
+.paper-bg{
+  position:absolute;inset:0;z-index:0;pointer-events:none;
+  <?= $bgUrl ? "background:url('" . e($bgUrl) . "') top center/210mm 297mm repeat-y;" : '' ?>
+  -webkit-print-color-adjust:exact;print-color-adjust:exact;
+}
+/*
+  هوامش الورقة عبر جدول: المتصفحات تعيد طباعة thead/tfoot أعلى وأسفل كل صفحة
+  وتحجز ارتفاعهما - فتحصل الصفحة الثانية وما بعدها على نفس الهوامش تلقائياً،
+  وهذا ما لا يفعله حشو العنصر (يُطبَّق على أول صفحة وآخرها فقط). وتبقى هوامش
+  @page صفراً حتى تغطي الترويسة الورقة من الحافة للحافة.
+*/
+.paper-flow{width:100%;border-collapse:collapse;position:relative;z-index:1;}
+.paper-flow td{padding:0;}
+.pad-top{height:30mm;}
+.pad-bottom{height:25mm;}
+.body-cell{padding:0 22mm;vertical-align:top;}
+/* خط رفيع يوضّح أين تنتهي كل صفحة أثناء المعاينة على الشاشة فقط */
+@media screen{
+  .page-guides{position:absolute;inset:0;z-index:2;pointer-events:none;
+    background:repeating-linear-gradient(to bottom, transparent 0 296.6mm, rgba(0,0,0,.18) 296.6mm 297mm);}
 }
 .doc-badge{position:absolute;font-size:11px;color:#374151;background:rgba(255,255,255,.85);padding:4px 10px;border-radius:6px;}
 .doc-badge.top-right{top:10mm;right:14mm;text-align:left;}
@@ -69,12 +95,26 @@ body{margin:0;background:#e5e7eb;font-family:'Cairo','Segoe UI',Tahoma,Arial,san
   الحل: تصفير هوامش الطابعة وجعل عنصر الصفحة بمقاس A4 الفعلي - فتُطبع مطابقة
   تماماً لما يظهر بالشاشة، والخلفية تغطي الورقة كاملة من الحافة للحافة.
 */
+/*
+  هوامش الصفحة تُترك للطابعة (@page) بدل حشو العنصر: هكذا تحترم كل صفحة جديدة
+  الهوامش نفسها، فلا يلتصق النص بحافة الصفحة الثانية وما بعدها. وطبقة الورق
+  تُثبَّت بإزاحة سالبة بمقدار الهوامش لتغطي الورقة من الحافة للحافة، والعناصر
+  المثبّتة تُعاد طباعتها على كل صفحة تلقائياً.
+*/
 @page{size:A4;margin:0;}
 @media print{
   body{background:#fff;}
   .toolbar{display:none;}
   .page-wrap{padding:0;display:block;overflow:visible;}
   .doc-page{box-shadow:none;width:210mm;min-height:297mm;margin:0;}
+  .page-guides{display:none;}
+  /* عنصر مثبّت بمقاس الورقة: المتصفح يعيد رسمه على كل صفحة مطبوعة */
+  .paper-bg{position:fixed;inset:auto;top:0;left:0;width:210mm;height:297mm;
+    <?= $bgUrl ? "background:url('" . e($bgUrl) . "') center/210mm 297mm no-repeat;" : '' ?>}
+  /* لا يُقطع العنوان ولا كتلة التوقيع بين صفحتين */
+  .doc-title{break-after:avoid;}
+  .doc-signature{break-inside:avoid;}
+  .doc-content :is(p,li,tr,h1,h2,h3){break-inside:avoid-page;}
 }
 <?php if ($embedded): ?>
 /* معاينة مدمجة: صفحة نظيفة بلا شريط ولا خلفية - تُعرض داخل iframe */
@@ -96,6 +136,12 @@ body{background:#9ca3af;}
 <?php endif; ?>
 <div class="page-wrap">
     <div class="doc-page">
+        <div class="paper-bg"></div>
+        <div class="page-guides"></div>
+        <table class="paper-flow">
+        <thead><tr><td class="pad-top"></td></tr></thead>
+        <tfoot><tr><td class="pad-bottom"></td></tr></tfoot>
+        <tbody><tr><td class="body-cell">
         <?php if ($showNumber || $showDate): ?>
             <div class="doc-badge <?= e($numberPosition) ?>">
                 <?php if ($showNumber && $document['number']): ?><div>رقم: <?= e($document['number']) ?></div><?php endif; ?>
@@ -125,11 +171,12 @@ body{background:#9ca3af;}
                     <div><img src="<?= e($stampUrl) ?>" alt=""></div>
                 <?php endif; ?>
                 <div>
+                    <?php // الترتيب: المسمى ثم الاسم ثم التوقيع أسفلهما - وبلا توقيع يبقى الاسم آخر السطور ?>
                     <?php if (!empty($signerTitle)): ?><div style="font-size:13px;"><strong><?= e($signerTitle) ?></strong></div><?php endif; ?>
+                    <?php if (!empty($signerName)): ?><div style="margin-top:2px;"><strong><?= e($signerName) ?></strong></div><?php endif; ?>
                     <?php if (!empty($signatureUrl)): ?>
-                        <img src="<?= e($signatureUrl) ?>" alt="">
+                        <img src="<?= e($signatureUrl) ?>" alt="" style="margin-top:6px;margin-bottom:0;">
                     <?php endif; ?>
-                    <?php if (!empty($signerName)): ?><div><strong><?= e($signerName) ?></strong></div><?php endif; ?>
                 </div>
             </div>
         <?php endif; ?>
@@ -159,6 +206,8 @@ body{background:#9ca3af;}
                         color:<?= e($qrColor) ?>;line-height:0;
                         -webkit-print-color-adjust:exact;print-color-adjust:exact;"><?= $qrSvg ?></div>
         <?php endif; endif; ?>
+        </td></tr></tbody>
+        </table>
     </div>
 </div>
 </body>

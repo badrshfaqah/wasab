@@ -31,8 +31,22 @@ body{margin:0;background:#e5e7eb;font-family:'Cairo','Segoe UI',Tahoma,Arial,san
 .toolbar button,.toolbar a{background:#2563eb;color:#fff;border:0;border-radius:6px;padding:8px 16px;font-size:14px;cursor:pointer;text-decoration:none;font-family:inherit;}
 .page-wrap{display:flex;justify-content:center;padding:24px 12px;}
 .doc-page{
-  position:relative;width:210mm;min-height:297mm;background:#fff <?= $bg ? 'url(' . e($bg) . ') center/cover no-repeat' : '' ?>;
-  box-shadow:0 2px 16px rgba(0,0,0,.15);padding:35mm 25mm;-webkit-print-color-adjust:exact;print-color-adjust:exact;
+  position:relative;width:210mm;min-height:297mm;background:#fff;
+  box-shadow:0 2px 16px rgba(0,0,0,.15);-webkit-print-color-adjust:exact;print-color-adjust:exact;
+}
+/* ورق الترويسة بمقاس A4 يتكرر لكل صفحة بدل تمطّطه على طول المحتوى (انظر مستندات/print.php) */
+.paper-bg{position:absolute;inset:0;z-index:0;pointer-events:none;
+  <?= $bg ? "background:url('" . e($bg) . "') top center/210mm 297mm repeat-y;" : '' ?>
+  -webkit-print-color-adjust:exact;print-color-adjust:exact;}
+/* هوامش تتكرر مع كل صفحة عبر thead/tfoot (حشو العنصر يطبَّق على أول وآخر صفحة فقط) */
+.paper-flow{width:100%;border-collapse:collapse;position:relative;z-index:1;}
+.paper-flow td{padding:0;}
+.pad-top{height:35mm;}
+.pad-bottom{height:28mm;}
+.body-cell{padding:0 25mm;vertical-align:top;}
+@media screen{
+  .page-guides{position:absolute;inset:0;z-index:2;pointer-events:none;
+    background:repeating-linear-gradient(to bottom, transparent 0 296.6mm, rgba(0,0,0,.18) 296.6mm 297mm);}
 }
 .doc-number{position:absolute;top:14mm;left:20mm;font-size:12px;color:#374151;}
 .doc-header{margin-bottom:20px;font-size:13px;}
@@ -46,8 +60,13 @@ body{margin:0;background:#e5e7eb;font-family:'Cairo','Segoe UI',Tahoma,Arial,san
 @media print{
   body{background:#fff;}
   .toolbar{display:none;}
-  .page-wrap{padding:0;}
+  .page-wrap{padding:0;display:block;}
   .doc-page{box-shadow:none;width:210mm;min-height:297mm;margin:0;}
+  .page-guides{display:none;}
+  /* عنصر مثبّت بمقاس الورقة: يُعاد رسمه على كل صفحة مطبوعة */
+  .paper-bg{position:fixed;inset:auto;top:0;left:0;width:210mm;height:297mm;
+    <?= $bg ? "background:url('" . e($bg) . "') center/210mm 297mm no-repeat;" : '' ?>}
+  .doc-signature{break-inside:avoid;}
 }
 <?php if ($embedded): ?>
 body{background:#9ca3af;}
@@ -68,6 +87,12 @@ body{background:#9ca3af;}
 <?php endif; ?>
 <div class="page-wrap">
     <div class="doc-page">
+        <div class="paper-bg"></div>
+        <div class="page-guides"></div>
+        <table class="paper-flow">
+        <thead><tr><td class="pad-top"></td></tr></thead>
+        <tfoot><tr><td class="pad-bottom"></td></tr></tfoot>
+        <tbody><tr><td class="body-cell">
         <div class="doc-number">رقم: <?= e($letter['number']) ?></div>
         <?php if ($header): ?><div class="doc-header"><?= $header ?></div><?php endif; ?>
 
@@ -79,11 +104,12 @@ body{background:#9ca3af;}
                 <div><img src="<?= e($stampUrl) ?>" alt=""></div>
             <?php endif; ?>
             <div>
-                <?php if (!empty($signatureUrl)): ?>
-                    <img src="<?= e($signatureUrl) ?>" alt="">
-                <?php endif; ?>
-                <?php if (!empty($signerName)): ?><div><strong><?= e($signerName) ?></strong></div><?php endif; ?>
+                <?php // الترتيب: المسمى ثم الاسم ثم التوقيع أسفلهما - وبلا توقيع يبقى الاسم آخر السطور ?>
                 <?php if (!empty($settings['signer_title'])): ?><div style="font-size:12px;color:#6b7280;"><?= e($settings['signer_title']) ?></div><?php endif; ?>
+                <?php if (!empty($signerName)): ?><div style="margin-top:2px;"><strong><?= e($signerName) ?></strong></div><?php endif; ?>
+                <?php if (!empty($signatureUrl)): ?>
+                    <img src="<?= e($signatureUrl) ?>" alt="" style="margin-top:6px;margin-bottom:0;">
+                <?php endif; ?>
             </div>
         </div>
         <?php endif; ?>
@@ -107,6 +133,8 @@ body{background:#9ca3af;}
                         color:<?= e($qrColor) ?>;line-height:0;
                         -webkit-print-color-adjust:exact;print-color-adjust:exact;"><?= $qrSvg ?></div>
         <?php endif; endif; ?>
+        </td></tr></tbody>
+        </table>
     </div>
 </div>
 </body>
