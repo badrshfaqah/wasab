@@ -4,6 +4,7 @@ use App\Core\ModuleManager;
 use App\Core\Router;
 use Modules\Mobileapi\Controllers\AuthApiController;
 use Modules\Mobileapi\Controllers\CheckinsApiController;
+use Modules\Mobileapi\Controllers\DocumentsApiController;
 use Modules\Mobileapi\Controllers\HomeApiController;
 use Modules\Mobileapi\Controllers\InboxApiController;
 use Modules\Mobileapi\Controllers\MeetingsApiController;
@@ -93,6 +94,25 @@ return function (Router $router): void {
     $router->post('/api/v1/meetings/{id}/notes/{noteId}/task', [MeetingsApiController::class, 'noteToTask'], $meetings);
     $router->post('/api/v1/meetings/{id}/outcomes', [MeetingsApiController::class, 'updateOutcomes'], $meetings);
     $router->post('/api/v1/meetings/{id}/status', [MeetingsApiController::class, 'changeStatus'], $meetings);
+
+    // ---------- المستندات ----------
+    $documents = [$auth, $requireModule('documents')];
+    $router->get('/api/v1/documents', [DocumentsApiController::class, 'index'], $documents);
+    $router->get('/api/v1/documents/users', [DocumentsApiController::class, 'companyUsers'], $documents);
+    $router->get('/api/v1/documents/templates', [DocumentsApiController::class, 'templates'], $documents);
+    $router->post('/api/v1/documents', [DocumentsApiController::class, 'store'], $documents);
+    $router->get('/api/v1/documents/{id}', [DocumentsApiController::class, 'show'], $documents);
+    $router->get('/api/v1/documents/{id}/paper', [DocumentsApiController::class, 'paper'], $documents);
+    $router->post('/api/v1/documents/{id}', [DocumentsApiController::class, 'update'], $documents);
+    $router->post('/api/v1/documents/{id}/delete', [DocumentsApiController::class, 'destroy'], $documents);
+    $router->post('/api/v1/documents/{id}/duplicate', [DocumentsApiController::class, 'duplicate'], $documents);
+    $router->post('/api/v1/documents/{id}/status', [DocumentsApiController::class, 'updateStatus'], $documents);
+    $router->post('/api/v1/documents/{id}/comments', [DocumentsApiController::class, 'comment'], $documents);
+    $router->post('/api/v1/documents/{id}/share', [DocumentsApiController::class, 'share'], $documents);
+    $router->post('/api/v1/documents/{id}/share/{userId}/unshare', [DocumentsApiController::class, 'unshare'], $documents);
+    $router->get('/api/v1/documents/{id}/versions/{versionId}', [DocumentsApiController::class, 'viewVersion'], $documents);
+    $router->get('/api/v1/documents/{id}/versions/{versionId}/diff', [DocumentsApiController::class, 'versionDiff'], $documents);
+    $router->post('/api/v1/documents/{id}/versions/{versionId}/restore', [DocumentsApiController::class, 'restoreVersion'], $documents);
 
     // ---------- التحضير ----------
     $checkins = [$auth, $requireModule('checkins')];
