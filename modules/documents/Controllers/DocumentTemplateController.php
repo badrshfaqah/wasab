@@ -280,9 +280,17 @@ class DocumentTemplateController
             $stampId = null;
         }
 
+        $mm = fn (string $field, int $default): int => max(0, min(80, (int) Request::input($field, $default)));
+        $titlePosition = Request::input('title_position') === 'above_date' ? 'above_date' : 'below_date';
+
         return array_merge([
             'name' => $name,
             'number_position' => $position,
+            'margin_top' => $mm('margin_top', 30),
+            'margin_bottom' => $mm('margin_bottom', 25),
+            'margin_x' => $mm('margin_x', 22),
+            'show_title' => Request::input('show_title') ? 1 : 0,
+            'title_position' => $titlePosition,
             'show_date' => $showDate,
             'show_number' => $showNumber,
             'stamp_id' => $stampId,

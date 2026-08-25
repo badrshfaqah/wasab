@@ -23,6 +23,13 @@ $qrY = (int) ($template['qr_y'] ?? 40);
 $qrSize = (int) ($template['qr_size'] ?? 90);
 $qrColor = $template['qr_color'] ?? '#000000';
 
+// هوامش النص وعنوان الورقة من القالب (لكل ورق ترويسة مساحته البيضاء)
+$marginTop = (int) ($template['margin_top'] ?? 30);
+$marginBottom = (int) ($template['margin_bottom'] ?? 25);
+$marginX = (int) ($template['margin_x'] ?? 22);
+$showTitle = $template ? !empty($template['show_title']) : true;
+$titleAboveDate = ($template['title_position'] ?? 'below_date') === 'above_date';
+
 $bgUrl = $bgUrl ?? ($template && $template['background_image']
     ? route('/media/documents/' . $template['company_id'] . '/' . $template['background_image'])
     : null);
@@ -62,9 +69,10 @@ body{margin:0;background:#e5e7eb;font-family:'Cairo','Segoe UI',Tahoma,Arial,san
 */
 .paper-flow{width:100%;border-collapse:collapse;position:relative;z-index:1;}
 .paper-flow td{padding:0;}
-.pad-top{height:30mm;}
-.pad-bottom{height:25mm;}
-.body-cell{padding:0 22mm;vertical-align:top;}
+/* خصوصية أعلى من القاعدة أعلاه وإلا أُلغي هامش النص الجانبي */
+.pad-top{height:<?= $marginTop ?>mm;}
+.pad-bottom{height:<?= $marginBottom ?>mm;}
+.paper-flow td.body-cell{padding:0 <?= $marginX ?>mm;vertical-align:top;}
 /* خط رفيع يوضّح أين تنتهي كل صفحة أثناء المعاينة على الشاشة فقط */
 @media screen{
   .page-guides{position:absolute;inset:0;z-index:2;pointer-events:none;
@@ -81,6 +89,7 @@ body{margin:0;background:#e5e7eb;font-family:'Cairo','Segoe UI',Tahoma,Arial,san
 .doc-verify-url{direction:ltr;word-break:break-all;margin-top:2px;font-size:11px;}
 .doc-verify-code{margin-top:2px;letter-spacing:1px;font-weight:600;color:#374151;}
 .doc-title{font-size:20px;font-weight:700;margin:0 0 18px;text-align:center;}
+.doc-meta-line{display:flex;justify-content:space-between;font-size:12px;color:#374151;margin:0 0 16px;}
 .doc-content{line-height:2;font-size:14.5px;min-height:120mm;}
 .doc-content :is(ul,ol){padding-inline-start:24px;}
 .doc-signature{margin-top:40px;display:flex;justify-content:flex-end;gap:20px;text-align:center;}
@@ -142,10 +151,25 @@ body{background:#9ca3af;}
         <thead><tr><td class="pad-top"></td></tr></thead>
         <tfoot><tr><td class="pad-bottom"></td></tr></tfoot>
         <tbody><tr><td class="body-cell">
-        <?php if ($showNumber || $showDate): ?>
+        <?php
+        // «العنوان أعلى التاريخ»: يُطبع العنوان أولاً ثم سطر الرقم/التاريخ تحته
+        // داخل المتن. وإلا يبقى الرقم/التاريخ وسماً في زاوية الورقة كما هو.
+        $metaInFlow = $titleAboveDate && ($showNumber || $showDate);
+        ?>
+        <?php if (($showNumber || $showDate) && !$metaInFlow): ?>
             <div class="doc-badge <?= e($numberPosition) ?>">
                 <?php if ($showNumber && $document['number']): ?><div>رقم: <?= e($document['number']) ?></div><?php endif; ?>
                 <?php if ($showDate): ?><div><?= format_date($document['created_at'], 'Y-m-d') ?></div><?php endif; ?>
+            </div>
+        <?php endif; ?>
+
+        <?php if ($showTitle && $titleAboveDate): ?>
+            <h1 class="doc-title"><?= e($document['title']) ?></h1>
+        <?php endif; ?>
+        <?php if ($metaInFlow): ?>
+            <div class="doc-meta-line">
+                <?php if ($showNumber && $document['number']): ?><span>رقم: <?= e($document['number']) ?></span><?php endif; ?>
+                <?php if ($showDate): ?><span><?= format_date($document['created_at'], 'Y-m-d') ?></span><?php endif; ?>
             </div>
         <?php endif; ?>
 
@@ -153,7 +177,9 @@ body{background:#9ca3af;}
             <div class="doc-header"><?= $headerHtml ?></div>
         <?php endif; ?>
 
-        <h1 class="doc-title"><?= e($document['title']) ?></h1>
+        <?php if ($showTitle && !$titleAboveDate): ?>
+            <h1 class="doc-title"><?= e($document['title']) ?></h1>
+        <?php endif; ?>
 
         <div class="doc-content"><?= $document['content'] ?: '' ?></div>
 

@@ -42,6 +42,9 @@ class FormSettingController
             'number_prefix' => mb_substr(trim((string) Request::input('number_prefix', '')), 0, 30) ?: null,
             'signer_name' => mb_substr(trim((string) Request::input('signer_name', '')), 0, 120) ?: null,
             'signer_title' => mb_substr(trim((string) Request::input('signer_title', '')), 0, 120) ?: null,
+            'margin_top' => max(0, min(80, (int) Request::input('margin_top', 35))),
+            'margin_bottom' => max(0, min(80, (int) Request::input('margin_bottom', 28))),
+            'margin_x' => max(0, min(80, (int) Request::input('margin_x', 25))),
             'header_html' => HtmlSanitizer::sanitize(Request::input('header_html', '')) ?: null,
             'footer_html' => HtmlSanitizer::sanitize(Request::input('footer_html', '')) ?: null,
         ];

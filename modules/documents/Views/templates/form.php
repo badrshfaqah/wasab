@@ -82,6 +82,42 @@ $positionLabels = [
         </div>
 
         <div class="field">
+            <label>هوامش النص (بالمليمتر)</label>
+            <div class="grid-2" style="gap:10px;">
+                <div>
+                    <label class="hint" style="display:block;margin-bottom:4px;">من الأعلى</label>
+                    <input type="number" name="margin_top" min="0" max="80" value="<?= (int) ($template['margin_top'] ?? 30) ?>">
+                </div>
+                <div>
+                    <label class="hint" style="display:block;margin-bottom:4px;">من الأسفل</label>
+                    <input type="number" name="margin_bottom" min="0" max="80" value="<?= (int) ($template['margin_bottom'] ?? 25) ?>">
+                </div>
+            </div>
+            <div style="margin-top:10px;">
+                <label class="hint" style="display:block;margin-bottom:4px;">يميناً ويساراً</label>
+                <input type="number" name="margin_x" min="0" max="80" value="<?= (int) ($template['margin_x'] ?? 22) ?>">
+            </div>
+            <p class="hint">المساحة البيضاء التي يبتعدها النص عن حواف الورقة، لتناسب ترويستك — وتتكرر مع كل صفحة جديدة عند طول المستند.</p>
+        </div>
+
+        <div class="grid-2">
+            <div class="field">
+                <label style="display:flex;align-items:center;gap:8px;font-weight:400;">
+                    <input type="checkbox" name="show_title" value="1" style="width:auto;" <?= !isset($template) || !empty($template['show_title']) ? 'checked' : '' ?>>
+                    إظهار عنوان المستند على الورقة
+                </label>
+                <p class="hint">أزل التحديد إن كان ورقك الرسمي لا يحتاج عنواناً مطبوعاً.</p>
+            </div>
+            <div class="field">
+                <label>موضع العنوان</label>
+                <select name="title_position">
+                    <option value="below_date" <?= ($template['title_position'] ?? 'below_date') === 'below_date' ? 'selected' : '' ?>>أسفل التاريخ (الرقم والتاريخ في زاوية الورقة)</option>
+                    <option value="above_date" <?= ($template['title_position'] ?? '') === 'above_date' ? 'selected' : '' ?>>أعلى التاريخ (العنوان أولاً ثم سطر الرقم والتاريخ تحته)</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="field">
             <label>رأس الصفحة (اختياري)</label>
             <?= View::renderPartial('documents::partials.editor', [
                 'name' => 'header_html',

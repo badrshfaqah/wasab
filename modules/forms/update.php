@@ -1,6 +1,19 @@
 <?php
 /** يُستدعى عند الضغط على "تحديث" إن كان إصدار القرص أحدث من إصدار قاعدة البيانات. */
 return function (PDO $pdo, string $fromVersion): void {
+    if (version_compare($fromVersion, '1.7.0', '<')) {
+        $has = $pdo->query(
+            "SELECT 1 FROM information_schema.columns
+              WHERE table_schema = DATABASE() AND table_name = 'forms_settings' AND column_name = 'margin_top'"
+        )->fetchColumn();
+        if (!$has) {
+            $pdo->exec("ALTER TABLE `forms_settings`
+                ADD COLUMN `margin_top` SMALLINT UNSIGNED NOT NULL DEFAULT 35 COMMENT 'هامش نص الخطاب العلوي بالمليمتر - يتكرر مع كل صفحة',
+                ADD COLUMN `margin_bottom` SMALLINT UNSIGNED NOT NULL DEFAULT 28 COMMENT 'هامش نص الخطاب السفلي بالمليمتر',
+                ADD COLUMN `margin_x` SMALLINT UNSIGNED NOT NULL DEFAULT 25 COMMENT 'هامش نص الخطاب يميناً ويساراً بالمليمتر'");
+        }
+    }
+
     if (version_compare($fromVersion, '1.6.0', '<')) {
         // التوثيق (رمز التحقق) صار اختياراً عند توليد الخطاب كالختم والتوقيع.
         // NULL = يتبع إعداد القالب (سلوك الخطابات القديمة كما هو).

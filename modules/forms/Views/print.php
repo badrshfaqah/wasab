@@ -41,9 +41,10 @@ body{margin:0;background:#e5e7eb;font-family:'Cairo','Segoe UI',Tahoma,Arial,san
 /* هوامش تتكرر مع كل صفحة عبر thead/tfoot (حشو العنصر يطبَّق على أول وآخر صفحة فقط) */
 .paper-flow{width:100%;border-collapse:collapse;position:relative;z-index:1;}
 .paper-flow td{padding:0;}
-.pad-top{height:35mm;}
-.pad-bottom{height:28mm;}
-.body-cell{padding:0 25mm;vertical-align:top;}
+/* خصوصية أعلى من القاعدة أعلاه وإلا أُلغي هامش النص الجانبي */
+.pad-top{height:<?= (int) ($settings['margin_top'] ?? 35) ?>mm;}
+.pad-bottom{height:<?= (int) ($settings['margin_bottom'] ?? 28) ?>mm;}
+.paper-flow td.body-cell{padding:0 <?= (int) ($settings['margin_x'] ?? 25) ?>mm;vertical-align:top;}
 @media screen{
   .page-guides{position:absolute;inset:0;z-index:2;pointer-events:none;
     background:repeating-linear-gradient(to bottom, transparent 0 296.6mm, rgba(0,0,0,.18) 296.6mm 297mm);}

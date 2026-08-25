@@ -3,6 +3,22 @@
  * يُستدعى عند الضغط على "تحديث" إن كان إصدار القرص أحدث من إصدار قاعدة البيانات.
  */
 return function (PDO $pdo, string $fromVersion): void {
+    if (version_compare($fromVersion, '2.3.0', '<')) {
+        // هوامش النص وعنوان الورقة صارت من إعداد القالب (لكل ورق ترويسة مساحته)
+        $has = $pdo->query(
+            "SELECT 1 FROM information_schema.columns
+              WHERE table_schema = DATABASE() AND table_name = 'documents_templates' AND column_name = 'margin_top'"
+        )->fetchColumn();
+        if (!$has) {
+            $pdo->exec("ALTER TABLE `documents_templates`
+                ADD COLUMN `margin_top` SMALLINT UNSIGNED NOT NULL DEFAULT 30 COMMENT 'هامش النص العلوي بالمليمتر - يتكرر مع كل صفحة',
+                ADD COLUMN `margin_bottom` SMALLINT UNSIGNED NOT NULL DEFAULT 25 COMMENT 'هامش النص السفلي بالمليمتر',
+                ADD COLUMN `margin_x` SMALLINT UNSIGNED NOT NULL DEFAULT 22 COMMENT 'هامش النص يميناً ويساراً بالمليمتر',
+                ADD COLUMN `show_title` TINYINT(1) NOT NULL DEFAULT 1 COMMENT 'طباعة عنوان المستند على الورقة',
+                ADD COLUMN `title_position` ENUM('below_date','above_date') NOT NULL DEFAULT 'below_date' COMMENT 'العنوان أسفل سطر التاريخ/الرقم أم أعلاه'");
+        }
+    }
+
     if (version_compare($fromVersion, '2.2.0', '<')) {
         // التوثيق (رمز التحقق) صار اختياراً لحظة الكتابة كالختم والتوقيع.
         // NULL = يتبع إعداد القالب (سلوك المستندات القديمة كما هو).

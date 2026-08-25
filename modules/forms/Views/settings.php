@@ -24,6 +24,25 @@
             </div>
         </div>
         <div class="field">
+            <label>هوامش نص الخطاب (بالمليمتر)</label>
+            <div class="grid-2" style="gap:10px;">
+                <div>
+                    <label class="hint" style="display:block;margin-bottom:4px;">من الأعلى</label>
+                    <input type="number" name="margin_top" min="0" max="80" value="<?= (int) ($settings['margin_top'] ?? 35) ?>">
+                </div>
+                <div>
+                    <label class="hint" style="display:block;margin-bottom:4px;">من الأسفل</label>
+                    <input type="number" name="margin_bottom" min="0" max="80" value="<?= (int) ($settings['margin_bottom'] ?? 28) ?>">
+                </div>
+            </div>
+            <div style="margin-top:10px;">
+                <label class="hint" style="display:block;margin-bottom:4px;">يميناً ويساراً</label>
+                <input type="number" name="margin_x" min="0" max="80" value="<?= (int) ($settings['margin_x'] ?? 25) ?>">
+            </div>
+            <p class="hint">اضبطها لتناسب ترويسة خطاباتك — وتتكرر مع كل صفحة جديدة عند طول الخطاب.</p>
+        </div>
+
+        <div class="field">
             <label>خلفية/ترويسة الخطاب (صورة A4)</label>
             <input type="file" name="background_image" accept="image/png,image/jpeg,image/webp">
             <?php if ($img('background_image')): ?><div style="margin-top:8px;"><img src="<?= e($img('background_image')) ?>" style="max-height:120px;border:1px solid var(--border);border-radius:6px;"></div><?php endif; ?>
