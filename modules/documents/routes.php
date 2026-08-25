@@ -23,6 +23,7 @@ return function (Router $router): void {
     $router->get('/documents/templates/{id}/edit', [DocumentTemplateController::class, 'edit'], [$auth]);
     $router->post('/documents/templates/{id}', [DocumentTemplateController::class, 'update'], [$auth]);
     $router->post('/documents/templates/{id}/delete', [DocumentTemplateController::class, 'destroy'], [$auth]);
+    $router->post('/documents/templates/{id}/share', [DocumentTemplateController::class, 'share'], [$auth]);
 
     $router->get('/documents/settings', [DocumentSettingController::class, 'edit'], [$auth]);
     $router->post('/documents/settings', [DocumentSettingController::class, 'update'], [$auth]);

@@ -9,6 +9,7 @@ return function (PDO $pdo): void {
         CREATE TABLE IF NOT EXISTS `documents_templates` (
             `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
             `company_id` INT UNSIGNED NOT NULL,
+            `created_by` INT UNSIGNED NULL COMMENT 'مالك القالب - NULL يعني قالب شركة يديره المدراء',
             `name` VARCHAR(150) NOT NULL,
             `background_image` VARCHAR(255) NULL,
             `stamp_id` INT UNSIGNED NULL COMMENT 'ختم افتراضي لهذا القالب من مكتبة أختام الشركة',
@@ -50,6 +51,10 @@ return function (PDO $pdo): void {
             `signed_by` INT UNSIGNED NULL,
             `signed_at` DATETIME NULL,
             `signature_file` VARCHAR(255) NULL COMMENT 'صورة توقيع الموقّع المختار وقت التوقيع (لقطة)',
+            `signature_id` INT UNSIGNED NULL COMMENT 'توقيع مختار أثناء الكتابة (من تواقيع الكاتب أو المشارَكة معه)',
+            `stamp_id` INT UNSIGNED NULL COMMENT 'ختم مختار أثناء الكتابة',
+            `signer_title` VARCHAR(150) NULL COMMENT 'المسمى فوق التوقيع مثل: مدير عام الشركة',
+            `signer_name` VARCHAR(150) NULL COMMENT 'اسم الموقّع تحت المسمى (اختياري)',
             `archived_at` DATETIME NULL,
             `created_at` DATETIME NOT NULL,
             `updated_at` DATETIME NULL,
@@ -133,6 +138,19 @@ return function (PDO $pdo): void {
             `created_at` DATETIME NOT NULL,
             KEY `documents_comments_document_index` (`document_id`),
             CONSTRAINT `documents_comments_document_fk` FOREIGN KEY (`document_id`) REFERENCES `documents_documents`(`id`) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    ");
+
+    // مشاركة القوالب: صاحب القالب يتيح لزملاء محددين استخدامه
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS `documents_template_shares` (
+            `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            `template_id` INT UNSIGNED NOT NULL,
+            `user_id` INT UNSIGNED NOT NULL,
+            `created_at` DATETIME NOT NULL,
+            UNIQUE KEY `documents_template_shares_unique` (`template_id`, `user_id`),
+            KEY `documents_template_shares_user_index` (`user_id`),
+            CONSTRAINT `documents_template_shares_template_fk` FOREIGN KEY (`template_id`) REFERENCES `documents_templates`(`id`) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     ");
 

@@ -30,9 +30,44 @@ $typeLabels = Document::typeLabels();
                 <select name="template_id">
                     <option value="">— بدون قالب —</option>
                     <?php foreach ($templates as $t): ?>
-                        <option value="<?= $t['id'] ?>" <?= (int) ($document['template_id'] ?? 0) === (int) $t['id'] ? 'selected' : '' ?>><?= e($t['name']) ?></option>
+                        <option value="<?= $t['id'] ?>" <?= (int) ($document['template_id'] ?? 0) === (int) $t['id'] ? 'selected' : '' ?>><?= e($t['name']) ?><?= !empty($t['owner_name']) ? ' (مشاركة من ' . e($t['owner_name']) . ')' : '' ?></option>
                     <?php endforeach; ?>
                 </select>
+                <p class="hint">قوالبك + المشارَكة معك. أنشئ قوالبك من <a href="<?= route('/documents/templates') ?>" target="_blank">صفحة القوالب</a>.</p>
+            </div>
+        </div>
+
+        <!-- كتلة التوقيع: توقيع/ختم يُختاران أثناء الكتابة + سطرا المسمى والاسم -->
+        <div class="grid-2">
+            <div class="field">
+                <label>التوقيع على الورقة (اختياري)</label>
+                <select name="signature_id">
+                    <option value="">— بلا توقيع —</option>
+                    <?php foreach (($mySignatures ?? []) as $sig): ?>
+                        <option value="<?= $sig['id'] ?>" <?= (int) ($document['signature_id'] ?? 0) === (int) $sig['id'] ? 'selected' : '' ?>><?= e($sig['name']) ?><?= !empty($sig['owner_name']) ? ' (مشاركة من ' . e($sig['owner_name']) . ')' : '' ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <p class="hint">تواقيعك + المشارَكة معك — تُضاف من <a href="<?= route('/profile') ?>" target="_blank">ملفك الشخصي</a>.</p>
+            </div>
+            <div class="field">
+                <label>الختم على الورقة (اختياري)</label>
+                <select name="stamp_id">
+                    <option value="">— بلا ختم<?= empty($document['template_id']) ? '' : ' (يُستخدم ختم القالب إن وُجد)' ?> —</option>
+                    <?php foreach (($myStamps ?? []) as $st): ?>
+                        <option value="<?= $st['id'] ?>" <?= (int) ($document['stamp_id'] ?? 0) === (int) $st['id'] ? 'selected' : '' ?>><?= e($st['name']) ?><?= !empty($st['owner_name']) ? ' (مشاركة من ' . e($st['owner_name']) . ')' : (empty($st['user_id']) ? ' (مكتبة الشركة)' : '') ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+        </div>
+        <div class="grid-2">
+            <div class="field">
+                <label>المسمى فوق التوقيع (اختياري)</label>
+                <input type="text" name="signer_title" maxlength="150" value="<?= e($document['signer_title'] ?? '') ?>" placeholder="مثال: مدير عام الشركة">
+            </div>
+            <div class="field">
+                <label>اسم الموقّع (اختياري)</label>
+                <input type="text" name="signer_name" maxlength="150" value="<?= e($document['signer_name'] ?? '') ?>" placeholder="مثال: فلان الفلاني — أو اتركه فارغاً">
+                <p class="hint">يمكن وضع التوقيع والختم دون كتابة اسم.</p>
             </div>
         </div>
         <div class="grid-2">

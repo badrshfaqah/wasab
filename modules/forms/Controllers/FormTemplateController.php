@@ -37,7 +37,7 @@ class FormTemplateController
             'pageTitle' => 'قالب جديد',
             'template' => null,
             'knownFields' => MergeFields::knownFields(),
-            'stamps' => \App\Core\CompanyStamp::forCompany((int) \App\Core\Auth::companyId()),
+            'stamps' => \App\Core\CompanyStamp::usableBy((int) \App\Core\Auth::id(), (int) \App\Core\Auth::companyId(), true),
         ]);
     }
 
@@ -74,7 +74,7 @@ class FormTemplateController
             'pageTitle' => 'تعديل: ' . $template['name'],
             'template' => $template,
             'knownFields' => MergeFields::knownFields(),
-            'stamps' => \App\Core\CompanyStamp::forCompany((int) \App\Core\Auth::companyId()),
+            'stamps' => \App\Core\CompanyStamp::usableBy((int) \App\Core\Auth::id(), (int) \App\Core\Auth::companyId(), true),
         ]);
     }
 
@@ -125,7 +125,7 @@ class FormTemplateController
         }
         // ختم القالب: يجب أن يخصّ الشركة (وإلا يُهمَل) - null يعني بلا ختم
         $stampId = (int) Request::input('stamp_id', 0) ?: null;
-        if ($stampId && !\App\Core\CompanyStamp::findForCompany($stampId, (int) \App\Core\Auth::companyId())) {
+        if ($stampId && !\App\Core\CompanyStamp::findUsableBy($stampId, (int) \App\Core\Auth::id(), (int) \App\Core\Auth::companyId(), true)) {
             $stampId = null;
         }
         $qrColor = (string) Request::input('qr_color', '#000000');

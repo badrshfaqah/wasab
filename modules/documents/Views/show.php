@@ -94,7 +94,7 @@ $canRestore = $document['status'] === 'archived' && $canManage;
                         <?php if (!empty($mySignatures)): ?>
                             <select name="signature_id" style="width:auto;min-width:150px;">
                                 <?php foreach ($mySignatures as $sig): ?>
-                                    <option value="<?= $sig['id'] ?>"><?= e($sig['name']) ?><?= !empty($sig['owner_name']) ? ' (مشاركة من ' . e($sig['owner_name']) . ')' : '' ?></option>
+                                    <option value="<?= $sig['id'] ?>" <?= (int) ($document['signature_id'] ?? 0) === (int) $sig['id'] ? 'selected' : '' ?>><?= e($sig['name']) ?><?= !empty($sig['owner_name']) ? ' (مشاركة من ' . e($sig['owner_name']) . ')' : '' ?></option>
                                 <?php endforeach; ?>
                                 <option value="">بلا صورة توقيع</option>
                             </select>

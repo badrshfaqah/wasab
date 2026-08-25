@@ -19,8 +19,8 @@ $scopeDescriptions = [
 <div class="page-head">
     <div><h1>المستندات</h1><p><?= e($scopeDescriptions[$scope]) ?></p></div>
     <div style="display:flex;gap:8px;">
+        <a class="btn btn-outline" href="<?= route('/documents/templates') ?>">🎨 قوالبي</a>
         <?php if ($canManage): ?>
-            <a class="btn btn-outline" href="<?= route('/documents/templates') ?>">🎨 القوالب</a>
             <a class="btn btn-outline" href="<?= route('/documents/settings') ?>">⚙️ الإعدادات</a>
         <?php endif; ?>
         <?php if ($canCreate): ?>

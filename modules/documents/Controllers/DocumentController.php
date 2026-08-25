@@ -190,12 +190,21 @@ class DocumentController
             return;
         }
 
-        View::render('documents::form', [
+        View::render('documents::form', array_merge([
             'pageTitle' => 'مستند جديد',
             'document' => null,
-            'templates' => DocumentTemplate::forCompany($companyId),
             'types' => self::TYPES,
-        ]);
+        ], $this->formPickers($companyId)));
+    }
+
+    /** خيارات الكتابة: القوالب والتواقيع والأختام المتاحة للكاتب (ملكه + المشارَك معه). */
+    private function formPickers(int $companyId): array
+    {
+        return [
+            'templates' => DocumentTemplate::usableBy(Auth::id(), $companyId),
+            'mySignatures' => \App\Core\UserSignature::usableBy(Auth::id(), $companyId),
+            'myStamps' => \App\Core\CompanyStamp::usableBy(Auth::id(), $companyId, $this->canManage()),
+        ];
     }
 
     public function store(): void
@@ -317,6 +326,12 @@ class DocumentController
             'title' => mb_substr($document['title'], 0, 240) . ' (نسخة)',
             'content' => $document['content'],
             'template_id' => $document['template_id'],
+            // تُنقل إعدادات الورقة (القالب/التوقيع/الختم/سطرا الموقّع) ليكتب الناسخ
+            // المحتوى فقط - ويبقى الرقم والتوقيع الرسمي حكراً على إصدار النسخة نفسها
+            'signature_id' => $document['signature_id'] ?? null,
+            'stamp_id' => $document['stamp_id'] ?? null,
+            'signer_title' => $document['signer_title'] ?? null,
+            'signer_name' => $document['signer_name'] ?? null,
             'verify_token' => bin2hex(random_bytes(16)),
             'created_by' => Auth::id(),
             'created_at' => date('Y-m-d H:i:s'),
@@ -339,12 +354,11 @@ class DocumentController
             return;
         }
 
-        View::render('documents::form', [
+        View::render('documents::form', array_merge([
             'pageTitle' => 'تعديل مستند',
             'document' => $document,
-            'templates' => DocumentTemplate::forCompany($companyId),
             'types' => self::TYPES,
-        ]);
+        ], $this->formPickers($companyId)));
     }
 
     public function update(array $params): void
@@ -488,7 +502,8 @@ class DocumentController
                 if (empty($document['number'])) {
                     $signUpdate['number'] = DocumentSetting::generateNumber($companyId);
                 }
-                $sigId = (int) Request::input('signature_id', 0);
+                // توقيع الإصدار: اختيار لحظة الإصدار، وإلا التوقيع المختار أثناء الكتابة
+                $sigId = (int) Request::input('signature_id', 0) ?: (int) ($document['signature_id'] ?? 0);
                 if ($sigId) {
                     $sig = \App\Core\UserSignature::findUsableBy($sigId, Auth::id());
                     if ($sig) {
@@ -563,32 +578,50 @@ class DocumentController
         $settings = DocumentSetting::getOrCreate($companyId);
         $company = Database::first('SELECT * FROM companies WHERE id = :id', ['id' => $companyId]);
 
-        // التوقيع: توقيع الموقّع الشخصي المختار (لقطة على المستند)، وإلا توقيع الشركة القديم.
+        // التوقيع: لقطة الإصدار الرسمي أولاً، ثم التوقيع المختار أثناء الكتابة،
+        // وإلا توقيع الشركة القديم من الإعدادات.
         $signatureUrl = null;
         if (!empty($document['signature_file'])) {
             $signatureUrl = route('/media/signatures/' . $companyId . '/' . $document['signature_file']);
-        } elseif (!empty($settings['signature_image'])) {
+        } elseif (!empty($document['signature_id'])) {
+            $chosenSig = \App\Core\UserSignature::find((int) $document['signature_id']);
+            if ($chosenSig && (int) $chosenSig['company_id'] === $companyId) {
+                $signatureUrl = \App\Core\UserSignature::imageUrl($chosenSig);
+            }
+        } elseif ($document['status'] === 'signed' && !empty($settings['signature_image'])) {
             $signatureUrl = route('/media/documents/' . $companyId . '/' . $settings['signature_image']);
         }
 
-        // الختم: ختم القالب من مكتبة الأختام، وإلا ختم الشركة القديم.
+        // الختم: ختم المستند المختار أثناء الكتابة، ثم ختم القالب، وإلا ختم الشركة القديم.
         $stampUrl = null;
-        if ($template && !empty($template['stamp_id'])) {
+        if (!empty($document['stamp_id'])) {
+            $stamp = \App\Core\CompanyStamp::findForCompany((int) $document['stamp_id'], $companyId);
+            if ($stamp) {
+                $stampUrl = \App\Core\CompanyStamp::imageUrl($stamp);
+            }
+        }
+        if (!$stampUrl && $template && !empty($template['stamp_id'])) {
             $stamp = \App\Core\CompanyStamp::findForCompany((int) $template['stamp_id'], $companyId);
             if ($stamp) {
                 $stampUrl = \App\Core\CompanyStamp::imageUrl($stamp);
             }
         }
-        if (!$stampUrl && !empty($settings['stamp_image'])) {
+        if (!$stampUrl && $document['status'] === 'signed' && !empty($settings['stamp_image'])) {
             $stampUrl = route('/media/documents/' . $companyId . '/' . $settings['stamp_image']);
         }
 
-        // اسم الموقّع: المستخدم الذي وقّع فعلاً، وإلا الاسم المعرّف بالإعدادات.
-        $signerName = $settings['signer_name'] ?? null;
-        if (!empty($document['signed_by'])) {
-            $signer = Database::first('SELECT name FROM users WHERE id = :id', ['id' => $document['signed_by']]);
-            if ($signer) {
-                $signerName = $signer['name'];
+        // سطرا الموقّع: ما كتبه الكاتب (المسمى/الاسم) أولاً - والاسم اختياري عمداً؛
+        // وإلا فالسلوك القديم: اسم من وقّع فعلاً أو الاسم المعرّف بالإعدادات.
+        $signerTitle = $document['signer_title'] ?? null;
+        $signerName = $document['signer_name'] ?? null;
+        if ($signerTitle === null && $signerName === null) {
+            $signerName = $settings['signer_name'] ?? null;
+            $signerTitle = $settings['signer_title'] ?? null;
+            if (!empty($document['signed_by'])) {
+                $signer = Database::first('SELECT name FROM users WHERE id = :id', ['id' => $document['signed_by']]);
+                if ($signer) {
+                    $signerName = $signer['name'];
+                }
             }
         }
 
@@ -600,6 +633,7 @@ class DocumentController
             'signatureUrl' => $signatureUrl,
             'stampUrl' => $stampUrl,
             'signerName' => $signerName,
+            'signerTitle' => $signerTitle,
             'verifyUrl' => !empty($document['verify_token']) ? base_url('documents/verify/' . $document['verify_token']) : null,
         ], '');
     }
@@ -650,26 +684,42 @@ class DocumentController
         $signatureUrl = null;
         if (!empty($document['signature_file'])) {
             $signatureUrl = \App\Core\Uploads::dataUri(BASE_PATH . '/storage/uploads/signatures/' . $companyId . '/' . $document['signature_file']);
-        } elseif (!empty($settings['signature_image'])) {
+        } elseif (!empty($document['signature_id'])) {
+            $chosenSig = \App\Core\UserSignature::find((int) $document['signature_id']);
+            if ($chosenSig && (int) $chosenSig['company_id'] === $companyId) {
+                $signatureUrl = \App\Core\Uploads::dataUri(BASE_PATH . '/storage/uploads/signatures/' . $companyId . '/' . $chosenSig['image']);
+            }
+        } elseif ($document['status'] === 'signed' && !empty($settings['signature_image'])) {
             $signatureUrl = \App\Core\Uploads::dataUri(BASE_PATH . '/storage/uploads/documents/' . $companyId . '/' . $settings['signature_image']);
         }
 
         $stampUrl = null;
-        if ($template && !empty($template['stamp_id'])) {
+        if (!empty($document['stamp_id'])) {
+            $stamp = \App\Core\CompanyStamp::findForCompany((int) $document['stamp_id'], $companyId);
+            if ($stamp) {
+                $stampUrl = \App\Core\Uploads::dataUri(BASE_PATH . '/storage/uploads/stamps/' . $companyId . '/' . $stamp['image']);
+            }
+        }
+        if (!$stampUrl && $template && !empty($template['stamp_id'])) {
             $stamp = \App\Core\CompanyStamp::findForCompany((int) $template['stamp_id'], $companyId);
             if ($stamp) {
                 $stampUrl = \App\Core\Uploads::dataUri(BASE_PATH . '/storage/uploads/stamps/' . $companyId . '/' . $stamp['image']);
             }
         }
-        if (!$stampUrl && !empty($settings['stamp_image'])) {
+        if (!$stampUrl && $document['status'] === 'signed' && !empty($settings['stamp_image'])) {
             $stampUrl = \App\Core\Uploads::dataUri(BASE_PATH . '/storage/uploads/documents/' . $companyId . '/' . $settings['stamp_image']);
         }
 
-        $signerName = $settings['signer_name'] ?? null;
-        if (!empty($document['signed_by'])) {
-            $signer = Database::first('SELECT name FROM users WHERE id = :id', ['id' => $document['signed_by']]);
-            if ($signer) {
-                $signerName = $signer['name'];
+        $signerTitle = $document['signer_title'] ?? null;
+        $signerName = $document['signer_name'] ?? null;
+        if ($signerTitle === null && $signerName === null) {
+            $signerName = $settings['signer_name'] ?? null;
+            $signerTitle = $settings['signer_title'] ?? null;
+            if (!empty($document['signed_by'])) {
+                $signer = Database::first('SELECT name FROM users WHERE id = :id', ['id' => $document['signed_by']]);
+                if ($signer) {
+                    $signerName = $signer['name'];
+                }
             }
         }
 
@@ -681,6 +731,7 @@ class DocumentController
             'signatureUrl' => $signatureUrl,
             'stampUrl' => $stampUrl,
             'signerName' => $signerName,
+            'signerTitle' => $signerTitle,
             'verifyUrl' => base_url('documents/verify/' . $token),
             'bgUrl' => ($template && !empty($template['background_image']))
                 ? \App\Core\Uploads::dataUri(BASE_PATH . '/storage/uploads/documents/' . $companyId . '/' . $template['background_image'])
@@ -822,12 +873,19 @@ class DocumentController
             $confidentiality = 'normal';
         }
 
-        if ($templateId) {
-            $template = DocumentTemplate::find($templateId);
-            if (!$template || (int) $template['company_id'] !== $companyId) {
-                flash_set('error', 'القالب المختار غير صالح.');
-                return null;
-            }
+        if ($templateId && !DocumentTemplate::findUsableBy($templateId, Auth::id(), $companyId)) {
+            flash_set('error', 'القالب المختار غير صالح.');
+            return null;
+        }
+
+        // التوقيع والختم المختاران أثناء الكتابة: يجب أن يحق للكاتب استخدامهما
+        $signatureId = (int) Request::input('signature_id', 0) ?: null;
+        if ($signatureId && !\App\Core\UserSignature::findUsableBy($signatureId, Auth::id())) {
+            $signatureId = null;
+        }
+        $stampId = (int) Request::input('stamp_id', 0) ?: null;
+        if ($stampId && !\App\Core\CompanyStamp::findUsableBy($stampId, Auth::id(), $companyId, $this->canManage())) {
+            $stampId = null;
         }
 
         return [
@@ -836,6 +894,10 @@ class DocumentController
             'visibility' => $visibility,
             'confidentiality' => $confidentiality,
             'template_id' => $templateId,
+            'signature_id' => $signatureId,
+            'stamp_id' => $stampId,
+            'signer_title' => mb_substr(trim((string) Request::input('signer_title', '')), 0, 150) ?: null,
+            'signer_name' => mb_substr(trim((string) Request::input('signer_name', '')), 0, 150) ?: null,
             'follow_up_date' => $followUpDate,
             'expiry_date' => $expiryDate,
             'content' => $content,

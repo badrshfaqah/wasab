@@ -53,6 +53,9 @@ $router->post('/profile/signatures', [ProfileController::class, 'storeSignature'
 $router->post('/profile/push-prefs', [ProfileController::class, 'updatePushPrefs'], [[Middleware::class, 'auth']]);
 $router->post('/profile/signatures/{id}/delete', [ProfileController::class, 'deleteSignature'], [[Middleware::class, 'auth']]);
 $router->post('/profile/signatures/{id}/share', [ProfileController::class, 'shareSignature'], [[Middleware::class, 'auth']]);
+$router->post('/profile/stamps', [ProfileController::class, 'storeStamp'], [[Middleware::class, 'auth']]);
+$router->post('/profile/stamps/{id}/delete', [ProfileController::class, 'deleteStamp'], [[Middleware::class, 'auth']]);
+$router->post('/profile/stamps/{id}/share', [ProfileController::class, 'shareStamp'], [[Middleware::class, 'auth']]);
 
 // أختام الشركة (مدير الشركة/النظام) - مكتبة تُربط بقوالب المستندات والنماذج
 $router->get('/stamps', [\App\Controllers\StampController::class, 'index'], [[Middleware::class, 'auth']]);

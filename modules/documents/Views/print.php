@@ -94,17 +94,25 @@ body{background:#9ca3af;}
 
         <div class="doc-content"><?= $document['content'] ?: '' ?></div>
 
-        <?php if ($document['status'] === 'signed' && (!empty($signatureUrl) || !empty($stampUrl) || !empty($signerName))): ?>
+        <?php
+        // كتلة التوقيع تظهر متى اختار الكاتب توقيعاً/ختماً/سطرَي الموقّع أثناء
+        // الكتابة، أو بعد الإصدار الرسمي (القيم القديمة من الإعدادات مقيّدة به).
+        $chosenWhileWriting = !empty($document['signature_id']) || !empty($document['stamp_id'])
+            || !empty($document['signer_title']) || !empty($document['signer_name']);
+        $showSignatureBlock = ($document['status'] === 'signed' || $chosenWhileWriting)
+            && (!empty($signatureUrl) || !empty($stampUrl) || !empty($signerName) || !empty($signerTitle));
+        ?>
+        <?php if ($showSignatureBlock): ?>
             <div class="doc-signature">
                 <?php if (!empty($stampUrl)): ?>
                     <div><img src="<?= e($stampUrl) ?>" alt=""></div>
                 <?php endif; ?>
                 <div>
+                    <?php if (!empty($signerTitle)): ?><div style="font-size:13px;"><strong><?= e($signerTitle) ?></strong></div><?php endif; ?>
                     <?php if (!empty($signatureUrl)): ?>
                         <img src="<?= e($signatureUrl) ?>" alt="">
                     <?php endif; ?>
                     <?php if (!empty($signerName)): ?><div><strong><?= e($signerName) ?></strong></div><?php endif; ?>
-                    <?php if (!empty($settings['signer_title'])): ?><div style="font-size:12px;color:#6b7280;"><?= e($settings['signer_title']) ?></div><?php endif; ?>
                 </div>
             </div>
         <?php endif; ?>

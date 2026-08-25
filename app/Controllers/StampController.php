@@ -11,8 +11,9 @@ use App\Core\Uploads;
 use App\Core\View;
 
 /**
- * إدارة مكتبة أختام الشركة (مدير الشركة/النظام). الأختام تُربط لاحقاً بقوالب
- * المستندات والنماذج فتُطبَّق تلقائياً على أي مستند مُولَّد منها.
+ * إدارة مكتبة أختام الشركة العامة (مدير الشركة/النظام) - وهي المتاحة للجميع.
+ * أما الأختام الشخصية فيرفعها كل مستخدم من ملفه الشخصي ويشاركها بنفسه، ولا
+ * تظهر هنا ولا يملك المدير حذفها.
  */
 class StampController
 {
@@ -21,7 +22,7 @@ class StampController
         $companyId = $this->requireManager();
         View::render('stamps.index', [
             'pageTitle' => 'أختام الشركة',
-            'stamps' => CompanyStamp::forCompany($companyId),
+            'stamps' => CompanyStamp::companyLibrary($companyId),
         ]);
     }
 
@@ -54,7 +55,8 @@ class StampController
         $this->verifyCsrf();
 
         $stamp = CompanyStamp::findForCompany((int) $params['id'], $companyId);
-        if ($stamp) {
+        // مكتبة الشركة فقط - الأختام الشخصية يحذفها أصحابها من ملفاتهم
+        if ($stamp && empty($stamp['user_id'])) {
             @unlink(BASE_PATH . '/storage/uploads/stamps/' . $companyId . '/' . $stamp['image']);
             CompanyStamp::delete((int) $stamp['id'], $companyId);
             ActivityLog::log('stamps.delete', 'company_stamp', (int) $stamp['id'], "حذف ختم: {$stamp['name']}");

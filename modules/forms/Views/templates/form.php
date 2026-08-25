@@ -24,7 +24,7 @@ $action = $isEdit ? route('/forms/templates/' . $template['id']) : route('/forms
                 <select name="stamp_id">
                     <option value="">— بلا ختم —</option>
                     <?php foreach (($stamps ?? []) as $st): ?>
-                        <option value="<?= $st['id'] ?>" <?= (int) ($template['stamp_id'] ?? 0) === (int) $st['id'] ? 'selected' : '' ?>><?= e($st['name']) ?></option>
+                        <option value="<?= $st['id'] ?>" <?= (int) ($template['stamp_id'] ?? 0) === (int) $st['id'] ? 'selected' : '' ?>><?= e($st['name']) ?><?= !empty($st['owner_name']) ? ' (مشاركة من ' . e($st['owner_name']) . ')' : (empty($st['user_id']) ? ' (مكتبة الشركة)' : '') ?></option>
                     <?php endforeach; ?>
                 </select>
                 <p class="hint">يُطبَّق تلقائياً على كل خطاب مُولَّد من هذا القالب. أضف الأختام من <a href="<?= route('/stamps') ?>">أختام الشركة</a>.</p>

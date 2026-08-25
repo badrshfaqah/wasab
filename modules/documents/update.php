@@ -3,6 +3,38 @@
  * يُستدعى عند الضغط على "تحديث" إن كان إصدار القرص أحدث من إصدار قاعدة البيانات.
  */
 return function (PDO $pdo, string $fromVersion): void {
+    if (version_compare($fromVersion, '2.1.0', '<')) {
+        $colMissingIn = function (string $table, string $col) use ($pdo): bool {
+            return !$pdo->query(
+                "SELECT 1 FROM information_schema.columns
+                  WHERE table_schema = DATABASE() AND table_name = " . $pdo->quote($table) . " AND column_name = " . $pdo->quote($col)
+            )->fetchColumn();
+        };
+        // القوالب الشخصية: مالك لكل قالب (NULL = قالب شركة قديم) + جدول مشاركتها
+        if ($colMissingIn('documents_templates', 'created_by')) {
+            $pdo->exec("ALTER TABLE `documents_templates` ADD COLUMN `created_by` INT UNSIGNED NULL COMMENT 'مالك القالب - NULL يعني قالب شركة يديره المدراء' AFTER `company_id`");
+        }
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS `documents_template_shares` (
+                `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                `template_id` INT UNSIGNED NOT NULL,
+                `user_id` INT UNSIGNED NOT NULL,
+                `created_at` DATETIME NOT NULL,
+                UNIQUE KEY `documents_template_shares_unique` (`template_id`, `user_id`),
+                KEY `documents_template_shares_user_index` (`user_id`),
+                CONSTRAINT `documents_template_shares_template_fk` FOREIGN KEY (`template_id`) REFERENCES `documents_templates`(`id`) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        ");
+        // اختيار التوقيع والختم وسطر الموقّع أثناء كتابة المستند
+        if ($colMissingIn('documents_documents', 'signature_id')) {
+            $pdo->exec("ALTER TABLE `documents_documents`
+                ADD COLUMN `signature_id` INT UNSIGNED NULL COMMENT 'توقيع مختار أثناء الكتابة (من تواقيع الكاتب أو المشارَكة معه)' AFTER `signature_file`,
+                ADD COLUMN `stamp_id` INT UNSIGNED NULL COMMENT 'ختم مختار أثناء الكتابة' AFTER `signature_id`,
+                ADD COLUMN `signer_title` VARCHAR(150) NULL COMMENT 'المسمى فوق التوقيع مثل: مدير عام الشركة' AFTER `stamp_id`,
+                ADD COLUMN `signer_name` VARCHAR(150) NULL COMMENT 'اسم الموقّع تحت المسمى (اختياري)' AFTER `signer_title`");
+        }
+    }
+
     if (version_compare($fromVersion, '2.0.0', '<')) {
         // الفلسفة الجديدة: كتابة تعاونية بمشاركات لكل مستند (بدل دورة الاعتماد)
         $pdo->exec("

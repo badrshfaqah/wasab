@@ -24,7 +24,7 @@ namespace App\Core;
  */
 class CoreMigrator
 {
-    public const CURRENT_VERSION = 20;
+    public const CURRENT_VERSION = 21;
     private const RETRY_COOLDOWN_SECONDS = 300;
 
     private static function migrations(): array
@@ -141,6 +141,17 @@ class CoreMigrator
             20 => [
                 'label' => 'جدول مشاركة التواقيع: صاحب التوقيع يتيحه لزملاء محددين',
                 'run' => fn () => self::createUserSignatureSharesTable(),
+            ],
+            21 => [
+                'label' => 'الأختام الشخصية: مالك لكل ختم + جدول مشاركة الأختام',
+                'run' => function (): void {
+                    self::addColumnIfMissing(
+                        'company_stamps',
+                        'user_id',
+                        "INT UNSIGNED NULL COMMENT 'مالك الختم - NULL يعني ختم شركة قديم يديره المدراء' AFTER `company_id`"
+                    );
+                    self::createUserStampSharesTable();
+                },
             ],
         ];
     }
@@ -404,6 +415,23 @@ class CoreMigrator
         ");
     }
 
+    /** مشاركة الأختام: صاحب الختم يتيح لزملاء محددين استخدامه. */
+    private static function createUserStampSharesTable(): void
+    {
+        Database::pdo()->exec("
+            CREATE TABLE IF NOT EXISTS `user_stamp_shares` (
+                `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                `stamp_id` INT UNSIGNED NOT NULL,
+                `user_id` INT UNSIGNED NOT NULL,
+                `created_at` DATETIME NOT NULL,
+                UNIQUE KEY `user_stamp_shares_unique` (`stamp_id`, `user_id`),
+                KEY `user_stamp_shares_user_index` (`user_id`),
+                CONSTRAINT `user_stamp_shares_stamp_fk` FOREIGN KEY (`stamp_id`) REFERENCES `company_stamps`(`id`) ON DELETE CASCADE,
+                CONSTRAINT `user_stamp_shares_user_fk` FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        ");
+    }
+
     /** أختام الشركة: يديرها المدير (إضافة/حذف) وتُربط بقوالب المستندات والنماذج. */
     private static function createCompanyStampsTable(): void
     {
@@ -411,6 +439,7 @@ class CoreMigrator
             CREATE TABLE IF NOT EXISTS `company_stamps` (
                 `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 `company_id` INT UNSIGNED NOT NULL,
+                `user_id` INT UNSIGNED NULL COMMENT 'مالك الختم - NULL يعني ختم شركة قديم يديره المدراء',
                 `name` VARCHAR(120) NOT NULL,
                 `image` VARCHAR(255) NOT NULL,
                 `created_at` DATETIME NOT NULL,

@@ -23,9 +23,16 @@ class ProfileController
         }
         unset($sig);
 
+        $stamps = \App\Core\CompanyStamp::forUser(Auth::id());
+        foreach ($stamps as &$st) {
+            $st['shared_with'] = \App\Core\CompanyStamp::shareUserIds((int) $st['id']);
+        }
+        unset($st);
+
         View::render('profile.index', [
             'pageTitle' => 'الملف الشخصي',
             'signatures' => $signatures,
+            'stamps' => $stamps,
             'companyUsers' => $companyId ? Database::select(
                 "SELECT id, name FROM users WHERE company_id = :c AND status = 'active' AND id != :me ORDER BY name",
                 ['c' => $companyId, 'me' => Auth::id()]
@@ -49,19 +56,7 @@ class ProfileController
             redirect('/profile');
         }
 
-        $companyId = (int) (Auth::companyId() ?? 0);
-        $requested = array_map('intval', (array) Request::input('user_ids', []));
-        // نقبل فقط زملاء فعليين في نفس الشركة (وليس صاحب التوقيع نفسه)
-        $valid = [];
-        if ($requested && $companyId) {
-            $placeholders = implode(',', array_fill(0, count($requested), '?'));
-            $rows = Database::select(
-                "SELECT id FROM users WHERE company_id = ? AND status = 'active' AND id IN ({$placeholders})",
-                array_merge([$companyId], $requested)
-            );
-            $valid = array_diff(array_map(fn ($r) => (int) $r['id'], $rows), [Auth::id()]);
-        }
-
+        $valid = $this->validCompanyUserIds((array) Request::input('user_ids', []));
         $before = UserSignature::shareUserIds((int) $sig['id']);
         UserSignature::setShares((int) $sig['id'], $valid);
         // تنبيه من أُتيح له التوقيع حديثاً
@@ -138,6 +133,103 @@ class ProfileController
             flash_set('success', 'تم حذف التوقيع.');
         }
         redirect('/profile');
+    }
+
+    /** رفع ختم شخصي جديد (يظهر كخيار عند كتابة المستندات، ويمكن مشاركته). */
+    public function storeStamp(): void
+    {
+        if (!Csrf::verify(Request::input('_csrf'))) {
+            flash_set('error', 'انتهت صلاحية الجلسة، حاول مرة أخرى.');
+            redirect('/profile');
+        }
+        $companyId = (int) (Auth::companyId() ?? 0);
+        if (!$companyId) {
+            flash_set('error', 'الأختام متاحة داخل شركة فقط.');
+            redirect('/profile');
+        }
+        $name = trim((string) Request::input('name', '')) ?: 'ختمي';
+
+        $img = Uploads::handleImage('image', BASE_PATH . '/storage/uploads/stamps/' . $companyId);
+        if ($img['error']) {
+            flash_set('error', $img['error']);
+            redirect('/profile');
+        }
+        if (!$img['filename']) {
+            flash_set('error', 'يرجى اختيار صورة الختم (يُفضّل PNG بخلفية شفافة).');
+            redirect('/profile');
+        }
+
+        \App\Core\CompanyStamp::create($companyId, $name, $img['filename'], Auth::id());
+        ActivityLog::log('profile.stamp_add', 'user', Auth::id(), 'إضافة ختم شخصي');
+        flash_set('success', 'تمت إضافة الختم.');
+        redirect('/profile');
+    }
+
+    public function deleteStamp(array $params): void
+    {
+        if (!Csrf::verify(Request::input('_csrf'))) {
+            flash_set('error', 'انتهت صلاحية الجلسة، حاول مرة أخرى.');
+            redirect('/profile');
+        }
+        $stamp = Database::first(
+            'SELECT * FROM company_stamps WHERE id = :id AND user_id = :u',
+            ['id' => (int) $params['id'], 'u' => Auth::id()]
+        );
+        if ($stamp) {
+            @unlink(BASE_PATH . '/storage/uploads/stamps/' . (int) $stamp['company_id'] . '/' . $stamp['image']);
+            Database::delete('company_stamps', 'id = :id AND user_id = :u', ['id' => $stamp['id'], 'u' => Auth::id()]);
+            flash_set('success', 'تم حذف الختم.');
+        }
+        redirect('/profile');
+    }
+
+    /** تحديث من يحق لهم استخدام ختم شخصي معيّن (كمشاركة التواقيع). */
+    public function shareStamp(array $params): void
+    {
+        if (!Csrf::verify(Request::input('_csrf'))) {
+            flash_set('error', 'انتهت صلاحية الجلسة، حاول مرة أخرى.');
+            redirect('/profile');
+        }
+        $stamp = Database::first(
+            'SELECT * FROM company_stamps WHERE id = :id AND user_id = :u',
+            ['id' => (int) $params['id'], 'u' => Auth::id()]
+        );
+        if (!$stamp) {
+            flash_set('error', 'الختم غير موجود.');
+            redirect('/profile');
+        }
+
+        $valid = $this->validCompanyUserIds((array) Request::input('user_ids', []));
+        $before = \App\Core\CompanyStamp::shareUserIds((int) $stamp['id']);
+        \App\Core\CompanyStamp::setShares((int) $stamp['id'], $valid);
+        foreach (array_diff($valid, $before) as $uid) {
+            \App\Core\Notification::send(
+                $uid,
+                '🪧 شُورك معك ختم',
+                Auth::user()['name'] . ' أتاح لك استخدام ختمه «' . $stamp['name'] . '» على المستندات.',
+                route('/profile')
+            );
+        }
+
+        ActivityLog::log('profile.stamp_share', 'user', Auth::id(), 'تحديث مشاركة ختم «' . $stamp['name'] . '» (' . count($valid) . ' مستخدم)');
+        flash_set('success', $valid ? 'حُدّثت مشاركة الختم.' : 'أُلغيت مشاركة الختم.');
+        redirect('/profile');
+    }
+
+    /** يقصر قائمة معرّفات على زملاء فعليين نشطين في شركة المستخدم (عداه هو). */
+    private function validCompanyUserIds(array $requested): array
+    {
+        $companyId = (int) (Auth::companyId() ?? 0);
+        $requested = array_map('intval', $requested);
+        if (!$requested || !$companyId) {
+            return [];
+        }
+        $placeholders = implode(',', array_fill(0, count($requested), '?'));
+        $rows = Database::select(
+            "SELECT id FROM users WHERE company_id = ? AND status = 'active' AND id IN ({$placeholders})",
+            array_merge([$companyId], $requested)
+        );
+        return array_values(array_diff(array_map(fn ($r) => (int) $r['id'], $rows), [Auth::id()]));
     }
 
     public function update(): void

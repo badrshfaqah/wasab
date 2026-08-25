@@ -20,6 +20,14 @@ $positionLabels = [
             <label>اسم القالب</label>
             <input type="text" name="name" value="<?= e($template['name'] ?? '') ?>" required>
         </div>
+        <?php if (!empty($isManager) && empty($template)): ?>
+        <div class="field">
+            <label style="display:flex;align-items:center;gap:8px;font-weight:400;">
+                <input type="checkbox" name="company_wide" value="1" checked style="width:auto;">
+                🏢 قالب عام للشركة (يظهر لكل الموظفين — أزل التحديد ليكون قالبك الشخصي)
+            </label>
+        </div>
+        <?php endif; ?>
 
         <div class="field">
             <label>صورة الخلفية (تُعرض كخلفية كاملة لصفحة الطباعة)</label>
@@ -37,10 +45,10 @@ $positionLabels = [
             <select name="stamp_id">
                 <option value="">— بلا ختم —</option>
                 <?php foreach (($stamps ?? []) as $st): ?>
-                    <option value="<?= $st['id'] ?>" <?= (int) ($template['stamp_id'] ?? 0) === (int) $st['id'] ? 'selected' : '' ?>><?= e($st['name']) ?></option>
+                    <option value="<?= $st['id'] ?>" <?= (int) ($template['stamp_id'] ?? 0) === (int) $st['id'] ? 'selected' : '' ?>><?= e($st['name']) ?><?= !empty($st['owner_name']) ? ' (مشاركة من ' . e($st['owner_name']) . ')' : (empty($st['user_id']) ? ' (مكتبة الشركة)' : '') ?></option>
                 <?php endforeach; ?>
             </select>
-            <p class="hint">يُطبَّق تلقائياً على كل مستند موقّع مُنشأ من هذا القالب. أضف الأختام من <a href="<?= route('/stamps') ?>">أختام الشركة</a>.</p>
+            <p class="hint">يُطبَّق تلقائياً على كل مستند مُنشأ من هذا القالب. أضف أختامك من <a href="<?= route('/profile') ?>">ملفك الشخصي</a> (🪧 أختامي).</p>
         </div>
 
         <?php
