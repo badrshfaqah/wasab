@@ -652,8 +652,6 @@ class ArchiveFileController
             'assets' => ['assets_assets', 'name', 'assets'],
             'employees' => ['employees_profiles', 'full_name', 'employees'],
             'users' => ['users', 'name', null],
-            'clients' => ['clients_clients', 'name', 'clients'],
-            'crm' => ['crm_organizations', 'name', 'crm'],
             'contact_org' => ['contacts_organizations', 'name', 'contacts'],
             'contact_person' => ['contacts_persons', 'full_name', 'contacts'],
         ];
@@ -697,12 +695,6 @@ class ArchiveFileController
         }
         if (\App\Core\ModuleManager::isActive('assets')) {
             $out['أصل / عهدة'] = $this->rowsFor($companyId, 'assets', 'assets_assets', 'name');
-        }
-        if (\App\Core\ModuleManager::isActive('clients')) {
-            $out['عميل'] = $this->rowsFor($companyId, 'clients', 'clients_clients', 'name');
-        }
-        if (\App\Core\ModuleManager::isActive('crm')) {
-            $out['جهة (CRM)'] = $this->rowsFor($companyId, 'crm', 'crm_organizations', 'name');
         }
         if (\App\Core\ModuleManager::isActive('contacts')) {
             $out['جهة'] = $this->rowsFor($companyId, 'contact_org', 'contacts_organizations', 'name');
@@ -767,13 +759,13 @@ class ArchiveFileController
         if (!$mod || !$id) {
             return null;
         }
-        $paths = ['documents' => '/documents/', 'assets' => '/custody/', 'employees' => '/employees/', 'clients' => '/clients/'];
+        $paths = ['documents' => '/documents/', 'assets' => '/custody/', 'employees' => '/employees/'];
         return isset($paths[$mod]) ? route($paths[$mod] . (int) $id) : null;
     }
 
     /** أيقونة نوع الكيان المرتبط (للعرض). */
     public static function linkIcon(?string $mod): string
     {
-        return ['documents' => '📄', 'assets' => '📦', 'employees' => '👤', 'users' => '👤', 'clients' => '👔'][$mod] ?? '🔗';
+        return ['documents' => '📄', 'assets' => '📦', 'employees' => '👤', 'users' => '👤'][$mod] ?? '🔗';
     }
 }

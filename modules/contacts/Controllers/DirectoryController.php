@@ -43,6 +43,7 @@ class DirectoryController
             'people' => $tab === 'people' ? Directory::persons($companyId, $filters, $perPage, $offset) : [],
             'peopleTotal' => Directory::countPersons($companyId, $filters),
             'canCreate' => Permission::check('contacts.create'),
+            'hasLegacyClients' => ImportClientsController::legacyAvailable($companyId),
         ]);
     }
 

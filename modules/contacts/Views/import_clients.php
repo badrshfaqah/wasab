@@ -8,7 +8,7 @@
 
 <?php if (!$available): ?>
     <div class="card"><div class="empty-state"><div class="ic">📇</div>
-        إضافة «العملاء» غير مفعّلة — لا شيء لاستيراده.
+        لا توجد سجلات في إضافة «العملاء» القديمة — لا شيء لاستيراده.
     </div></div>
 <?php elseif (!$clients): ?>
     <div class="card"><div class="empty-state"><div class="ic">✅</div>

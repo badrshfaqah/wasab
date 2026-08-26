@@ -6,7 +6,6 @@ use App\Core\ActivityLog;
 use App\Core\Auth;
 use App\Core\Csrf;
 use App\Core\Database;
-use App\Core\ModuleManager;
 use App\Core\Permission;
 use App\Core\Request;
 use App\Core\View;
@@ -21,10 +20,27 @@ use Modules\Contacts\Models\Directory;
  */
 class ImportClientsController
 {
+    /**
+     * هل بقيت بيانات عملاء قديمة تستحق الاستيراد؟ نفحص الجدول نفسه لا الإضافة،
+     * فقد تُحذف الإضافة القديمة من النظام ويبقى جدولها بسجلاته في قاعدة قائمة.
+     */
+    public static function legacyAvailable(int $companyId): bool
+    {
+        $exists = \App\Core\Database::first(
+            "SELECT 1 AS x FROM information_schema.tables
+              WHERE table_schema = DATABASE() AND table_name = 'clients_clients'"
+        );
+        if (!$exists) {
+            return false;
+        }
+        $count = \App\Core\Database::first('SELECT COUNT(*) AS c FROM clients_clients WHERE company_id = :c', ['c' => $companyId]);
+        return (int) ($count['c'] ?? 0) > 0;
+    }
+
     public function form(): void
     {
         $companyId = $this->guard();
-        $available = ModuleManager::isActive('clients');
+        $available = self::legacyAvailable($companyId);
         $clients = [];
         $alreadyIn = 0;
 
@@ -61,8 +77,8 @@ class ImportClientsController
             flash_set('error', 'انتهت صلاحية الجلسة، حاول مرة أخرى.');
             redirect('/contacts/import-clients');
         }
-        if (!ModuleManager::isActive('clients')) {
-            flash_set('error', 'إضافة العملاء غير مفعّلة.');
+        if (!self::legacyAvailable($companyId)) {
+            flash_set('error', 'لا توجد سجلات عملاء قديمة لاستيرادها.');
             redirect('/contacts');
         }
 

@@ -57,7 +57,7 @@ $statusLabels = ['todo' => 'لم تبدأ', 'in_progress' => 'قيد التنف�
         </div>
         <?php if (!empty($linkables)): ?>
         <?php
-        $typeLabels = ['document' => 'مستند', 'asset' => 'أصل/عهدة', 'employee' => 'موظف', 'client' => 'عميل', 'crm_org' => 'جهة (CRM)', 'contact_org' => 'جهة', 'contact_person' => 'فرد'];
+        $typeLabels = ['document' => 'مستند', 'asset' => 'أصل/عهدة', 'employee' => 'موظف', 'contact_org' => 'جهة', 'contact_person' => 'فرد'];
         $currentLink = ($task['linked_type'] ?? '') !== '' ? $task['linked_type'] . ':' . (int) ($task['linked_id'] ?? 0) : '';
         ?>
         <div class="field">

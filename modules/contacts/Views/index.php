@@ -8,7 +8,7 @@ $q = fn (array $over = []) => route('/contacts?' . http_build_query(array_filter
     </div>
     <?php if ($canCreate): ?>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        <?php if (module_active('clients')): ?>
+        <?php if (!empty($hasLegacyClients)): ?>
             <a class="btn btn-outline" href="<?= route('/contacts/import-clients') ?>">📥 استيراد العملاء</a>
         <?php endif; ?>
         <a class="btn btn-outline" href="<?= route('/contacts/people/create') ?>">+ فرد</a>

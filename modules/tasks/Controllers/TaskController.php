@@ -938,8 +938,6 @@ class TaskController
             'document' => ['documents_documents', 'title', '/documents/', 'documents'],
             'asset' => ['assets_assets', 'name', '/custody/', 'assets'],
             'employee' => ['employees_profiles', 'full_name', '/employees/', 'employees'],
-            'client' => ['clients_clients', 'name', '/clients/', 'clients'],
-            'crm_org' => ['crm_organizations', 'name', '/crm/orgs/', 'crm'],
             'contact_org' => ['contacts_organizations', 'name', '/contacts/orgs/', 'contacts'],
             'contact_person' => ['contacts_persons', 'full_name', '/contacts/people/', 'contacts'],
         ];
@@ -990,7 +988,7 @@ class TaskController
         if (!$type || !$id) {
             return null;
         }
-        $paths = ['document' => '/documents/', 'asset' => '/custody/', 'employee' => '/employees/', 'meeting' => '/meetings/', 'client' => '/clients/', 'crm_org' => '/crm/orgs/', 'contact_org' => '/contacts/orgs/', 'contact_person' => '/contacts/people/'];
+        $paths = ['document' => '/documents/', 'asset' => '/custody/', 'employee' => '/employees/', 'meeting' => '/meetings/', 'crm_org' => '/contacts/orgs/', 'contact_org' => '/contacts/orgs/', 'contact_person' => '/contacts/people/'];
         return isset($paths[$type]) ? route($paths[$type] . (int) $id) : null;
     }
 }
