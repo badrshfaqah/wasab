@@ -4,6 +4,7 @@
         <p>كل مساحة بيئة مستقلة بأعضائها وتصنيفاتها ومراحلها، فوق دليل جهات واحد لا تتكرر فيه الجهة.</p>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <a class="btn btn-outline" href="<?= route('/crm/today') ?>">📌 عملي اليوم</a>
         <?php if ($isAdmin): ?>
             <a class="btn btn-outline" href="<?= route('/crm/directory') ?>">🏛️ دليل الجهات</a>
         <?php endif; ?>

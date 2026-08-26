@@ -2,7 +2,9 @@
 
 use App\Core\Middleware;
 use App\Core\Router;
+use Modules\Crm\Controllers\ActivityController;
 use Modules\Crm\Controllers\OrganizationController;
+use Modules\Crm\Controllers\TodayController;
 use Modules\Crm\Controllers\WorkspaceController;
 
 /**
@@ -14,6 +16,7 @@ return function (Router $router): void {
 
     // المساحات
     $router->get('/crm', [WorkspaceController::class, 'index'], [$auth]);
+    $router->get('/crm/today', [TodayController::class, 'index'], [$auth]);
     $router->get('/crm/directory', [OrganizationController::class, 'directory'], [$auth]);
     $router->get('/crm/workspaces/create', [WorkspaceController::class, 'create'], [$auth]);
     $router->post('/crm/workspaces', [WorkspaceController::class, 'store'], [$auth]);
@@ -32,6 +35,16 @@ return function (Router $router): void {
     $router->get('/crm/w/{id}/orgs/{orgId}', [OrganizationController::class, 'show'], [$auth]);
     $router->post('/crm/w/{id}/orgs/{orgId}', [OrganizationController::class, 'update'], [$auth]);
     $router->post('/crm/w/{id}/orgs/{orgId}/unlink', [OrganizationController::class, 'unlink'], [$auth]);
+
+    // الأنشطة وسجل العلاقة وجهات الاتصال
+    $router->post('/crm/w/{id}/orgs/{orgId}/activities', [ActivityController::class, 'store'], [$auth]);
+    $router->post('/crm/w/{id}/activities/{activityId}/done', [ActivityController::class, 'completeFollowUp'], [$auth]);
+    $router->post('/crm/w/{id}/activities/{activityId}/delete', [ActivityController::class, 'deleteActivity'], [$auth]);
+    $router->post('/crm/w/{id}/orgs/{orgId}/contacts', [ActivityController::class, 'storeContact'], [$auth]);
+    $router->post('/crm/w/{id}/orgs/{orgId}/contacts/{contactId}/delete', [ActivityController::class, 'deleteContact'], [$auth]);
+
+    // فتح جهة بمعرّفها فقط (من مهمة مرتبطة مثلاً) - يحوّل لأول مساحة يصلها المستخدم
+    $router->get('/crm/orgs/{orgId}', [OrganizationController::class, 'resolve'], [$auth]);
 
     // لوحة المساحة (أخيراً حتى لا تلتقط المسارات الثابتة أعلاه)
     $router->get('/crm/w/{id}', [OrganizationController::class, 'index'], [$auth]);

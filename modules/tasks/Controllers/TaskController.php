@@ -939,6 +939,7 @@ class TaskController
             'asset' => ['assets_assets', 'name', '/custody/', 'assets'],
             'employee' => ['employees_profiles', 'full_name', '/employees/', 'employees'],
             'client' => ['clients_clients', 'name', '/clients/', 'clients'],
+            'crm_org' => ['crm_organizations', 'name', '/crm/orgs/', 'crm'],
         ];
     }
 
@@ -987,7 +988,7 @@ class TaskController
         if (!$type || !$id) {
             return null;
         }
-        $paths = ['document' => '/documents/', 'asset' => '/custody/', 'employee' => '/employees/', 'meeting' => '/meetings/', 'client' => '/clients/'];
+        $paths = ['document' => '/documents/', 'asset' => '/custody/', 'employee' => '/employees/', 'meeting' => '/meetings/', 'client' => '/clients/', 'crm_org' => '/crm/orgs/'];
         return isset($paths[$type]) ? route($paths[$type] . (int) $id) : null;
     }
 }

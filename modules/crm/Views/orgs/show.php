@@ -75,15 +75,69 @@ $catIds = array_map(fn ($c) => (int) $c['id'], $categories);
 
     <div class="card">
         <div class="card-title"><span>👥 الأشخاص (<?= count($contacts) ?>)</span></div>
+        <p class="hint" style="margin-top:0;">أشخاص الجهة مشتركون بين كل المساحات المرتبطة بها.</p>
         <?php if (!$contacts): ?>
-            <p class="hint" style="margin-top:0;">لا يوجد أشخاص مسجّلون لهذه الجهة بعد — تُضاف في المرحلة القادمة مع سجل الأنشطة.</p>
+            <p class="hint">لا يوجد أشخاص مسجّلون بعد.</p>
         <?php endif; ?>
         <?php foreach ($contacts as $c): ?>
-            <div class="doc-log">
-                <div><strong><?= e($c['name']) ?></strong> <?= $c['job_title'] ? '— ' . e($c['job_title']) : '' ?></div>
-                <div class="doc-log-meta"><?= e(trim(($c['mobile'] ?? '') . ' · ' . ($c['email'] ?? ''), ' ·')) ?></div>
+            <div class="doc-log" style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;">
+                <div>
+                    <strong><?= e($c['name']) ?></strong><?= $c['job_title'] ? ' — ' . e($c['job_title']) : '' ?>
+                    <?php if ($c['status'] === 'inactive'): ?><span class="badge badge-muted">غير نشط</span><?php endif; ?>
+                    <div class="doc-log-meta">
+                        <?= e(trim(($c['department'] ?? '') . ' · ' . ($c['mobile'] ?? '') . ' · ' . ($c['email'] ?? ''), ' ·')) ?: '—' ?>
+                    </div>
+                </div>
+                <?php if ($canManageContacts): ?>
+                <div style="display:flex;gap:4px;">
+                    <details>
+                        <summary class="btn btn-ghost btn-sm" style="cursor:pointer;">✎</summary>
+                        <form method="post" action="<?= route('/crm/w/' . $wid . '/orgs/' . $oid . '/contacts') ?>" style="margin-top:8px;min-width:220px;text-align:right;">
+                            <?= csrf_field() ?>
+                            <input type="hidden" name="contact_id" value="<?= $c['id'] ?>">
+                            <div class="field"><label>الاسم</label><input type="text" name="name" value="<?= e($c['name']) ?>" required></div>
+                            <div class="field"><label>المسمى</label><input type="text" name="job_title" value="<?= e($c['job_title'] ?? '') ?>"></div>
+                            <div class="field"><label>الجوال</label><input type="text" name="mobile" value="<?= e($c['mobile'] ?? '') ?>"></div>
+                            <div class="field"><label>البريد</label><input type="email" name="email" value="<?= e($c['email'] ?? '') ?>"></div>
+                            <div class="field"><label>الحالة</label>
+                                <select name="status">
+                                    <option value="active" <?= $c['status'] === 'active' ? 'selected' : '' ?>>نشط</option>
+                                    <option value="inactive" <?= $c['status'] === 'inactive' ? 'selected' : '' ?>>غير نشط</option>
+                                </select>
+                            </div>
+                            <button class="btn btn-sm" type="submit">حفظ</button>
+                        </form>
+                    </details>
+                    <form method="post" action="<?= route('/crm/w/' . $wid . '/orgs/' . $oid . '/contacts/' . $c['id'] . '/delete') ?>" data-confirm="حذف <?= e($c['name']) ?>؟">
+                        <?= csrf_field() ?>
+                        <button class="btn btn-ghost btn-sm" type="submit">✕</button>
+                    </form>
+                </div>
+                <?php endif; ?>
             </div>
         <?php endforeach; ?>
+
+        <?php if ($canManageContacts): ?>
+        <details style="margin-top:12px;">
+            <summary class="btn btn-outline btn-sm" style="cursor:pointer;">➕ إضافة شخص</summary>
+            <form method="post" action="<?= route('/crm/w/' . $wid . '/orgs/' . $oid . '/contacts') ?>" style="margin-top:10px;">
+                <?= csrf_field() ?>
+                <div class="grid-2">
+                    <div class="field"><label>الاسم</label><input type="text" name="name" required></div>
+                    <div class="field"><label>المسمى الوظيفي</label><input type="text" name="job_title"></div>
+                </div>
+                <div class="grid-2">
+                    <div class="field"><label>القسم</label><input type="text" name="department"></div>
+                    <div class="field"><label>الجوال</label><input type="text" name="mobile"></div>
+                </div>
+                <div class="grid-2">
+                    <div class="field"><label>البريد</label><input type="email" name="email"></div>
+                    <div class="field"><label>LinkedIn</label><input type="text" name="linkedin"></div>
+                </div>
+                <button class="btn btn-sm" type="submit">إضافة</button>
+            </form>
+        </details>
+        <?php endif; ?>
     </div>
 
     <div class="card">
@@ -97,6 +151,8 @@ $catIds = array_map(fn ($c) => (int) $c['id'], $categories);
         <?php endforeach; ?>
     </div>
 </div>
+
+<?php require __DIR__ . '/_timeline.php'; ?>
 
 <?php if ($canEdit): ?>
 <div class="card">

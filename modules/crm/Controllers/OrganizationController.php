@@ -166,7 +166,10 @@ class OrganizationController extends BaseCrmController
             'relation' => $relation,
             'categories' => Organization::categoriesOf((int) $relation['id']),
             'allCategories' => Database::select('SELECT * FROM crm_categories WHERE workspace_id = :w ORDER BY sort_order, name', ['w' => $workspace['id']]),
-            'contacts' => Database::select('SELECT * FROM crm_contacts WHERE organization_id = :o ORDER BY name', ['o' => $organization['id']]),
+            'contacts' => \Modules\Crm\Models\Contact::forOrganization((int) $organization['id']),
+            'timeline' => \Modules\Crm\Models\Activity::timeline((int) $workspace['id'], (int) $organization['id']),
+            'canLogActivity' => Workspace::can($membership, 'activities.create'),
+            'canManageContacts' => Workspace::can($membership, 'contacts.manage'),
             'otherSpaces' => $otherSpaces,
             'members' => Workspace::members((int) $workspace['id']),
             'logs' => CrmLog::forEntity('organization', (int) $organization['id'], 15),
@@ -231,6 +234,27 @@ class OrganizationController extends BaseCrmController
             'إزالة الجهة من المساحة: ' . $organization['name']);
         flash_set('success', 'أُزيلت الجهة من هذه المساحة (وبقيت في الدليل المركزي).');
         redirect('/crm/w/' . $workspace['id']);
+    }
+
+    /**
+     * فتح جهة بمعرّفها دون معرفة المساحة (رابط من مهمة مرتبطة مثلاً): يحوّل إلى
+     * أول مساحة يملك المستخدم عضويتها وترتبط بها الجهة.
+     */
+    public function resolve(array $params): void
+    {
+        $companyId = $this->requireCompanyContext();
+        $organization = Organization::find((int) $params['orgId']);
+        if (!$organization || (int) $organization['company_id'] !== $companyId) {
+            flash_set('error', 'الجهة غير موجودة.');
+            redirect('/crm');
+        }
+        foreach (Organization::workspacesOf((int) $organization['id']) as $link) {
+            if (Workspace::membership((int) $link['workspace_id'], Auth::id())) {
+                redirect('/crm/w/' . $link['workspace_id'] . '/orgs/' . $organization['id']);
+            }
+        }
+        flash_set('error', 'لا تملك وصولاً لأي مساحة مرتبطة بهذه الجهة.');
+        redirect('/crm');
     }
 
     /** الدليل المركزي: كل جهات الشركة ومساحاتها - لمن يدير CRM. */

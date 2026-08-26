@@ -238,6 +238,7 @@ return function (PDO $pdo): void {
             `user_id` INT UNSIGNED NOT NULL,
             `next_action_at` DATETIME NULL,
             `next_action_note` VARCHAR(255) NULL,
+            `next_action_owner_id` INT UNSIGNED NULL COMMENT 'المسؤول عن المتابعة - قد يختلف عن مسجّل النشاط',
             `next_action_status` ENUM('none','pending','done') NOT NULL DEFAULT 'none',
             `task_id` INT UNSIGNED NULL COMMENT 'المهمة المُنشأة للمتابعة في إضافة المهام',
             `created_at` DATETIME NOT NULL,
