@@ -2,7 +2,7 @@
 <div class="page-head">
     <div>
         <h1>إضافة جهة إلى: <?= e($workspace['name']) ?></h1>
-        <p>ابحث أولاً في دليل الجهات — إن كانت الجهة مسجّلة سابقاً في أي مساحة نربطها هنا بدل تكرار بياناتها.</p>
+        <p>ابحث أولاً في دليل جهات الاتصال — إن كانت الجهة مسجّلة في الشركة (من أي مساحة أو من الدليل نفسه) نربطها هنا بدل تكرار بياناتها.</p>
     </div>
     <a class="btn btn-outline" href="<?= route('/crm/w/' . $wid) ?>">↩ رجوع</a>
 </div>
@@ -86,8 +86,18 @@
             <p class="hint">يمكن للجهة أن تحمل أكثر من تصنيف، والتصنيف يخص هذه المساحة وحدها.</p>
         </div>
         <?php endif; ?>
-        <div class="field"><label>وصف مختصر</label><textarea name="description" rows="2"></textarea></div>
         <div class="field"><label>ملاحظات</label><textarea name="notes" rows="2"></textarea></div>
+
+        <div class="card-title divided" style="margin-top:14px;"><span>👤 شخص التواصل (مطلوب)</span></div>
+        <div class="grid-2">
+            <div class="field"><label>الاسم</label><input type="text" name="person_name" required></div>
+            <div class="field"><label>مسمّاه في هذه الجهة</label><input type="text" name="person_job" placeholder="مثال: مدير التسويق"></div>
+        </div>
+        <div class="grid-2">
+            <div class="field"><label>الجوال</label><input type="text" name="person_mobile"></div>
+            <div class="field"><label>البريد</label><input type="email" name="person_email"></div>
+        </div>
+        <p class="hint">تُسجَّل الجهة وشخصها في <strong>دليل جهات الاتصال</strong> المشترك للشركة، وتُربط بهذه المساحة — فلا تتكرر بياناتها في مكان آخر.</p>
 
         <div class="form-actions">
             <button class="btn" type="submit">حفظ وإضافة للمساحة</button>

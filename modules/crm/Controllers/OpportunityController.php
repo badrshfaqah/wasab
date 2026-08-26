@@ -292,11 +292,8 @@ class OpportunityController extends BaseCrmController
         }
 
         $contactId = (int) Request::input('contact_id', 0) ?: null;
-        if ($contactId) {
-            $contact = Contact::find($contactId);
-            if (!$contact || (int) $contact['organization_id'] !== $organizationId) {
-                $contactId = null;
-            }
+        if ($contactId && !Contact::belongsTo($contactId, $organizationId)) {
+            $contactId = null;
         }
         $probability = Request::input('probability', '');
         $value = Request::input('value', '');

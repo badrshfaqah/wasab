@@ -2,13 +2,15 @@
 /**
  * تثبيت إضافة CRM. الفكرة المعمارية:
  *
- *   crm_organizations       دليل الجهات المركزي للشركة - الجهة تُسجَّل مرة واحدة.
- *   crm_workspace_orgs      علاقة الجهة بمساحة معيّنة (تصنيف/مسؤول/حالة/ملاحظات).
+ *   الجهات نفسها ليست هنا: مكانها دليل «جهات الاتصال» المشترك
+ *   (contacts_organizations / contacts_persons) فتبقى للشركة وإن عُطّل CRM.
+ *
  *   crm_workspaces          المساحات، وكل مساحة بيئة مستقلة بأعضائها وإعداداتها.
+ *   crm_workspace_orgs      علاقة جهة من الدليل بمساحة (تصنيف/مسؤول/حالة/متابعة).
  *
  * فالشركة الواحدة تكون «منظم فعاليات» في مساحة و«عميل محتمل» في أخرى، ببيانات
- * أساسية واحدة لا تتكرر. لا توجد مفاتيح أجنبية نحو users/companies عمداً (كبقية
- * الإضافات) لتبقى الإضافة مستقلة وسهلة الإزالة.
+ * أساسية واحدة لا تتكرر. لا مفاتيح أجنبية نحو جداول خارج الإضافة عمداً، حتى
+ * تبقى مستقلة التثبيت والإزالة.
  */
 return function (PDO $pdo): void {
     // ---------- المساحات وأعضاؤها ----------
@@ -44,56 +46,6 @@ return function (PDO $pdo): void {
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     ");
 
-    // ---------- دليل الجهات المركزي ----------
-    $pdo->exec("
-        CREATE TABLE IF NOT EXISTS `crm_organizations` (
-            `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-            `company_id` INT UNSIGNED NOT NULL,
-            `name` VARCHAR(200) NOT NULL,
-            `trade_name` VARCHAR(200) NULL COMMENT 'الاسم التجاري إن اختلف',
-            `logo` VARCHAR(255) NULL,
-            `description` TEXT NULL,
-            `sector` VARCHAR(120) NULL,
-            `country` VARCHAR(80) NULL,
-            `city` VARCHAR(80) NULL,
-            `address` VARCHAR(255) NULL,
-            `website` VARCHAR(200) NULL,
-            `email` VARCHAR(150) NULL,
-            `phone` VARCHAR(50) NULL,
-            `social_json` TEXT NULL COMMENT 'حسابات التواصل (JSON)',
-            `custom_json` TEXT NULL COMMENT 'حقول مخصصة تُعرّفها المساحات (JSON)',
-            `notes` TEXT NULL,
-            `created_by` INT UNSIGNED NULL,
-            `created_at` DATETIME NOT NULL,
-            `updated_at` DATETIME NULL,
-            KEY `crm_organizations_company_index` (`company_id`),
-            KEY `crm_organizations_name_index` (`company_id`, `name`)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-    ");
-
-    // أشخاص الجهة: تابعون للجهة نفسها فيراهم كل من يصل إليها من أي مساحة
-    $pdo->exec("
-        CREATE TABLE IF NOT EXISTS `crm_contacts` (
-            `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-            `company_id` INT UNSIGNED NOT NULL,
-            `organization_id` INT UNSIGNED NOT NULL,
-            `name` VARCHAR(150) NOT NULL,
-            `job_title` VARCHAR(150) NULL,
-            `department` VARCHAR(150) NULL,
-            `mobile` VARCHAR(50) NULL,
-            `phone` VARCHAR(50) NULL,
-            `email` VARCHAR(150) NULL,
-            `linkedin` VARCHAR(255) NULL,
-            `notes` TEXT NULL,
-            `status` ENUM('active','inactive') NOT NULL DEFAULT 'active',
-            `created_by` INT UNSIGNED NULL,
-            `created_at` DATETIME NOT NULL,
-            `updated_at` DATETIME NULL,
-            KEY `crm_contacts_org_index` (`organization_id`),
-            CONSTRAINT `crm_contacts_org_fk` FOREIGN KEY (`organization_id`) REFERENCES `crm_organizations`(`id`) ON DELETE CASCADE
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-    ");
-
     // ---------- علاقة الجهة بالمساحة ----------
     $pdo->exec("
         CREATE TABLE IF NOT EXISTS `crm_workspace_orgs` (
@@ -111,8 +63,7 @@ return function (PDO $pdo): void {
             UNIQUE KEY `crm_workspace_orgs_unique` (`workspace_id`, `organization_id`),
             KEY `crm_workspace_orgs_org_index` (`organization_id`),
             KEY `crm_workspace_orgs_next_index` (`workspace_id`, `next_action_at`),
-            CONSTRAINT `crm_workspace_orgs_ws_fk` FOREIGN KEY (`workspace_id`) REFERENCES `crm_workspaces`(`id`) ON DELETE CASCADE,
-            CONSTRAINT `crm_workspace_orgs_org_fk` FOREIGN KEY (`organization_id`) REFERENCES `crm_organizations`(`id`) ON DELETE CASCADE
+            CONSTRAINT `crm_workspace_orgs_ws_fk` FOREIGN KEY (`workspace_id`) REFERENCES `crm_workspaces`(`id`) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     ");
 
@@ -209,8 +160,7 @@ return function (PDO $pdo): void {
             KEY `crm_opportunities_ws_index` (`workspace_id`, `status`),
             KEY `crm_opportunities_org_index` (`organization_id`),
             KEY `crm_opportunities_stage_index` (`stage_id`),
-            CONSTRAINT `crm_opportunities_ws_fk` FOREIGN KEY (`workspace_id`) REFERENCES `crm_workspaces`(`id`) ON DELETE CASCADE,
-            CONSTRAINT `crm_opportunities_org_fk` FOREIGN KEY (`organization_id`) REFERENCES `crm_organizations`(`id`) ON DELETE CASCADE
+            CONSTRAINT `crm_opportunities_ws_fk` FOREIGN KEY (`workspace_id`) REFERENCES `crm_workspaces`(`id`) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     ");
     $pdo->exec("
@@ -245,8 +195,7 @@ return function (PDO $pdo): void {
             KEY `crm_activities_org_index` (`organization_id`, `occurred_at`),
             KEY `crm_activities_ws_index` (`workspace_id`, `occurred_at`),
             KEY `crm_activities_next_index` (`workspace_id`, `next_action_status`, `next_action_at`),
-            CONSTRAINT `crm_activities_ws_fk` FOREIGN KEY (`workspace_id`) REFERENCES `crm_workspaces`(`id`) ON DELETE CASCADE,
-            CONSTRAINT `crm_activities_org_fk` FOREIGN KEY (`organization_id`) REFERENCES `crm_organizations`(`id`) ON DELETE CASCADE
+            CONSTRAINT `crm_activities_ws_fk` FOREIGN KEY (`workspace_id`) REFERENCES `crm_workspaces`(`id`) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     ");
 

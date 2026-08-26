@@ -163,7 +163,7 @@ class ImportController extends BaseCrmController
             }
 
             $existing = Database::first(
-                'SELECT * FROM crm_organizations WHERE company_id = :c AND name = :n LIMIT 1',
+                'SELECT * FROM contacts_organizations WHERE company_id = :c AND name = :n LIMIT 1',
                 ['c' => $companyId, 'n' => $name]
             );
 
@@ -202,6 +202,7 @@ class ImportController extends BaseCrmController
     {
         [$workspace, ] = $this->guard($params, 'export');
         $rows = Organization::inWorkspace((int) $workspace['id'], [], 5000);
+        // التصدير من طبقة العلاقة: بيانات الجهة تأتي من الدليل المشترك
 
         CrmLog::add((int) $workspace['id'], 'export', 'workspace', (int) $workspace['id'], 'تصدير جهات المساحة (' . count($rows) . ')');
 
@@ -307,7 +308,8 @@ class ImportController extends BaseCrmController
             return 0;
         }
         $exists = Database::first(
-            'SELECT id FROM crm_contacts WHERE organization_id = :o AND name = :n',
+            'SELECT p.id FROM contacts_person_orgs po JOIN contacts_persons p ON p.id = po.person_id
+              WHERE po.organization_id = :o AND p.full_name = :n',
             ['o' => $organizationId, 'n' => $name]
         );
         if ($exists) {

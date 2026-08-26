@@ -26,7 +26,7 @@ return function (array $user, string $query): array {
 
     $orgs = Database::select(
         "SELECT DISTINCT o.id, o.name, o.city, o.sector, r.workspace_id, w.icon, w.name AS workspace_name
-           FROM crm_organizations o
+           FROM contacts_organizations o
            JOIN crm_workspace_orgs r ON r.organization_id = o.id
            JOIN crm_workspaces w ON w.id = r.workspace_id
           WHERE o.company_id = :c AND (o.name LIKE :q OR o.email LIKE :q2 OR o.phone LIKE :q3){$access}
@@ -39,12 +39,13 @@ return function (array $user, string $query): array {
         $contactParams['u'] = $userId;
     }
     $contacts = Database::select(
-        "SELECT DISTINCT ct.id, ct.name, ct.job_title, o.name AS org_name, o.id AS org_id, r.workspace_id
-           FROM crm_contacts ct
-           JOIN crm_organizations o ON o.id = ct.organization_id
+        "SELECT DISTINCT ct.id, ct.full_name AS name, ct.job_title, o.name AS org_name, o.id AS org_id, r.workspace_id
+           FROM contacts_persons ct
+           JOIN contacts_person_orgs po ON po.person_id = ct.id
+           JOIN contacts_organizations o ON o.id = po.organization_id
            JOIN crm_workspace_orgs r ON r.organization_id = o.id
-          WHERE ct.company_id = :c AND (ct.name LIKE :q OR ct.email LIKE :q2 OR ct.mobile LIKE :q3){$access}
-          ORDER BY ct.name LIMIT 5",
+          WHERE ct.company_id = :c AND (ct.full_name LIKE :q OR ct.email LIKE :q2 OR ct.mobile LIKE :q3){$access}
+          ORDER BY ct.full_name LIMIT 5",
         $contactParams
     );
 

@@ -125,7 +125,7 @@ class Stats
         $row = Database::first(
             "SELECT
                 (SELECT COUNT(*) FROM crm_workspaces WHERE company_id = :c AND status = 'active') AS spaces,
-                (SELECT COUNT(*) FROM crm_organizations WHERE company_id = :c2) AS orgs,
+                (SELECT COUNT(*) FROM contacts_organizations WHERE company_id = :c2) AS orgs,
                 (SELECT COUNT(*) FROM crm_activities a JOIN crm_workspaces w ON w.id = a.workspace_id
                   WHERE w.company_id = :c3 AND a.occurred_at BETWEEN :from AND :to) AS activities,
                 (SELECT COUNT(*) FROM crm_opportunities o JOIN crm_workspaces w ON w.id = o.workspace_id

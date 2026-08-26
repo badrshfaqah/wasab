@@ -44,7 +44,7 @@ class CrmList
             "SELECT r.*, o.name, o.sector, o.city, o.email, o.phone, u.name AS owner_name
                FROM crm_list_items i
                JOIN crm_workspace_orgs r ON r.id = i.workspace_org_id
-               JOIN crm_organizations o ON o.id = r.organization_id
+               JOIN contacts_organizations o ON o.id = r.organization_id
                LEFT JOIN users u ON u.id = r.owner_id
               WHERE i.list_id = :l ORDER BY o.name",
             ['l' => $listId]

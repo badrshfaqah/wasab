@@ -14,7 +14,7 @@ return function (array $user, string $fromDate, string $toDate): array {
     $rows = Database::select(
         "SELECT a.id, a.next_action_at, a.next_action_note, o.name AS org_name, o.id AS org_id, a.workspace_id, w.icon
            FROM crm_activities a
-           JOIN crm_organizations o ON o.id = a.organization_id
+           JOIN contacts_organizations o ON o.id = a.organization_id
            JOIN crm_workspaces w ON w.id = a.workspace_id
            JOIN crm_workspace_members m ON m.workspace_id = a.workspace_id AND m.user_id = :u
           WHERE w.company_id = :c

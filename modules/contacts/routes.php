@@ -3,6 +3,7 @@
 use App\Core\Middleware;
 use App\Core\Router;
 use Modules\Contacts\Controllers\DirectoryController;
+use Modules\Contacts\Controllers\ImportClientsController;
 
 return function (Router $router): void {
     $auth = [Middleware::class, 'auth'];
@@ -10,6 +11,9 @@ return function (Router $router): void {
     $router->get('/contacts', [DirectoryController::class, 'index'], [$auth]);
 
     // الثابتة قبل ذوات {id}
+    $router->get('/contacts/import-clients', [ImportClientsController::class, 'form'], [$auth]);
+    $router->post('/contacts/import-clients', [ImportClientsController::class, 'run'], [$auth]);
+
     $router->get('/contacts/orgs/create', [DirectoryController::class, 'createOrg'], [$auth]);
     $router->post('/contacts/orgs', [DirectoryController::class, 'storeOrg'], [$auth]);
     $router->get('/contacts/people/create', [DirectoryController::class, 'createPerson'], [$auth]);

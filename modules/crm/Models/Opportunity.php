@@ -51,11 +51,11 @@ class Opportunity
         }
 
         $rows = Database::select(
-            "SELECT o.*, org.name AS organization_name, u.name AS owner_name, c.name AS contact_name
+            "SELECT o.*, org.name AS organization_name, u.name AS owner_name, c.full_name AS contact_name
                FROM crm_opportunities o
-               JOIN crm_organizations org ON org.id = o.organization_id
+               JOIN contacts_organizations org ON org.id = o.organization_id
                LEFT JOIN users u ON u.id = o.owner_id
-               LEFT JOIN crm_contacts c ON c.id = o.contact_id
+               LEFT JOIN contacts_persons c ON c.id = o.contact_id
               WHERE {$where}
               ORDER BY o.updated_at DESC, o.id DESC",
             $params

@@ -121,11 +121,31 @@ class OrganizationController extends BaseCrmController
         if ($data === null) {
             redirect('/crm/w/' . $workspace['id'] . '/orgs/create');
         }
+        // قاعدة الدليل: لا جهة بلا شخص نتواصل معه
+        $personName = trim((string) Request::input('person_name', ''));
+        if ($personName === '') {
+            flash_set('error', 'أضف شخص التواصل مع الجهة — لا تُسجَّل جهة بلا شخص نكلّمه.');
+            redirect('/crm/w/' . $workspace['id'] . '/orgs/create');
+        }
 
         $organizationId = Organization::create($data + [
             'company_id' => $companyId,
             'created_by' => Auth::id(),
         ]);
+        \Modules\Contacts\Models\Directory::link(
+            \Modules\Contacts\Models\Directory::createPerson([
+                'company_id' => $companyId,
+                'full_name' => mb_substr($personName, 0, 150),
+                'job_title' => mb_substr(trim((string) Request::input('person_job', '')), 0, 150) ?: null,
+                'mobile' => mb_substr(trim((string) Request::input('person_mobile', '')), 0, 50) ?: null,
+                'email' => mb_substr(trim((string) Request::input('person_email', '')), 0, 150) ?: null,
+                'created_by' => Auth::id(),
+            ]),
+            $organizationId,
+            (string) Request::input('person_job', ''),
+            null,
+            true
+        );
         $relationId = Organization::link((int) $workspace['id'], $organizationId, [
             'owner_id' => Auth::id(),
             'added_by' => Auth::id(),
@@ -284,7 +304,7 @@ class OrganizationController extends BaseCrmController
         $q = trim((string) Request::query('q', ''));
         $rows = $q !== ''
             ? Organization::search($companyId, $q, 100)
-            : Database::select('SELECT id, name, trade_name, city, sector FROM crm_organizations WHERE company_id = :c ORDER BY name LIMIT 100', ['c' => $companyId]);
+            : Database::select('SELECT id, name, trade_name, city, sector FROM contacts_organizations WHERE company_id = :c ORDER BY name LIMIT 100', ['c' => $companyId]);
 
         foreach ($rows as $i => $row) {
             $rows[$i]['spaces'] = Organization::workspacesOf((int) $row['id']);
@@ -294,7 +314,7 @@ class OrganizationController extends BaseCrmController
             'pageTitle' => 'دليل الجهات المركزي',
             'rows' => $rows,
             'q' => $q,
-            'total' => Database::count('crm_organizations', 'company_id = :c', ['c' => $companyId]),
+            'total' => Database::count('contacts_organizations', 'company_id = :c', ['c' => $companyId]),
         ]);
     }
 

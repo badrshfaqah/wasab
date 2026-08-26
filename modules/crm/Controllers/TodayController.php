@@ -43,7 +43,7 @@ class TodayController extends BaseCrmController
             $untouched = Database::select(
                 "SELECT r.*, o.name AS organization_name, w.name AS workspace_name, w.icon
                    FROM crm_workspace_orgs r
-                   JOIN crm_organizations o ON o.id = r.organization_id
+                   JOIN contacts_organizations o ON o.id = r.organization_id
                    JOIN crm_workspaces w ON w.id = r.workspace_id
                   WHERE r.workspace_id IN ({$placeholders}) AND r.owner_id = ?
                     AND r.last_activity_at IS NULL

@@ -61,10 +61,10 @@ class Activity
             $params['me'] = $onlyUserId;
         }
         return Database::select(
-            "SELECT a.*, u.name AS user_name, c.name AS contact_name
+            "SELECT a.*, u.name AS user_name, c.full_name AS contact_name
                FROM crm_activities a
                LEFT JOIN users u ON u.id = a.user_id
-               LEFT JOIN crm_contacts c ON c.id = a.contact_id
+               LEFT JOIN contacts_persons c ON c.id = a.contact_id
               WHERE a.workspace_id = :w AND a.organization_id = :o{$mine}
               ORDER BY a.occurred_at DESC, a.id DESC LIMIT {$limit}",
             $params
@@ -192,7 +192,7 @@ class Activity
         return Database::select(
             "SELECT a.*, o.name AS organization_name, w.name AS workspace_name, w.icon
                FROM crm_activities a
-               JOIN crm_organizations o ON o.id = a.organization_id
+               JOIN contacts_organizations o ON o.id = a.organization_id
                JOIN crm_workspaces w ON w.id = a.workspace_id
               WHERE a.workspace_id IN ({$placeholders})
                 AND a.next_action_status = 'pending'

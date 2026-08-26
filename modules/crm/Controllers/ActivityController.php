@@ -38,11 +38,8 @@ class ActivityController extends BaseCrmController
         $occurredAt = trim((string) Request::input('occurred_at', ''));
         $nextAt = trim((string) Request::input('next_action_at', ''));
         $contactId = (int) Request::input('contact_id', 0) ?: null;
-        if ($contactId) {
-            $contact = Contact::find($contactId);
-            if (!$contact || (int) $contact['organization_id'] !== (int) $organization['id']) {
-                $contactId = null;
-            }
+        if ($contactId && !Contact::belongsTo($contactId, (int) $organization['id'])) {
+            $contactId = null;
         }
 
         $activityId = Activity::log([
@@ -138,12 +135,11 @@ class ActivityController extends BaseCrmController
         ];
 
         if ($contactId) {
-            $existing = Contact::find($contactId);
-            if (!$existing || (int) $existing['organization_id'] !== (int) $organization['id']) {
-                flash_set('error', 'الشخص غير موجود.');
+            if (!Contact::belongsTo($contactId, (int) $organization['id'])) {
+                flash_set('error', 'الشخص غير مرتبط بهذه الجهة.');
                 redirect($back);
             }
-            Contact::update($contactId, $data);
+            Contact::update($contactId, $data + ['organization_id' => (int) $organization['id']]);
             CrmLog::add((int) $workspace['id'], 'contact.update', 'organization', (int) $organization['id'], 'تعديل بيانات: ' . $data['name']);
             flash_set('success', 'حُدّثت بيانات الشخص.');
         } else {
@@ -167,11 +163,13 @@ class ActivityController extends BaseCrmController
         $back = '/crm/w/' . $workspace['id'] . '/orgs/' . $organization['id'];
         $this->verifyCsrf($back);
 
-        $contact = Contact::find((int) $params['contactId']);
-        if ($contact && (int) $contact['organization_id'] === (int) $organization['id']) {
-            Contact::delete((int) $contact['id']);
-            CrmLog::add((int) $workspace['id'], 'contact.delete', 'organization', (int) $organization['id'], 'حذف شخص: ' . $contact['name']);
-            flash_set('success', 'حُذف الشخص.');
+        $contactId = (int) $params['contactId'];
+        if (Contact::belongsTo($contactId, (int) $organization['id'])) {
+            $person = Contact::find($contactId);
+            Contact::detach($contactId, (int) $organization['id']);
+            CrmLog::add((int) $workspace['id'], 'contact.detach', 'organization', (int) $organization['id'],
+                'فكّ ارتباط: ' . ($person['full_name'] ?? ''));
+            flash_set('success', 'أُزيل الشخص من الجهة (ويبقى في دليل جهات الاتصال).');
         }
         redirect($back);
     }
