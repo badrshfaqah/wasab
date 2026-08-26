@@ -153,6 +153,19 @@ class Organization
             $where .= ' AND o.sector LIKE :sector';
             $params['sector'] = '%' . $filters['sector'] . '%';
         }
+        if (!empty($filters['list'])) {
+            $where .= ' AND EXISTS (SELECT 1 FROM crm_list_items li WHERE li.workspace_org_id = r.id AND li.list_id = :list)';
+            $params['list'] = (int) $filters['list'];
+        }
+        if (!empty($filters['status'])) {
+            $where .= ' AND r.relation_status LIKE :rstatus';
+            $params['rstatus'] = '%' . $filters['status'] . '%';
+        }
+        if (!empty($filters['stale'])) {
+            // لم يحدث تواصل منذ 30 يوماً أو أكثر (أو لم يبدأ أصلاً)
+            $where .= ' AND (r.last_activity_at IS NULL OR r.last_activity_at < :stale)';
+            $params['stale'] = date('Y-m-d H:i:s', strtotime('-30 days'));
+        }
         if (!empty($filters['due'])) {
             // متابعات مستحقة اليوم أو متأخرة
             $where .= ' AND r.next_action_at IS NOT NULL AND r.next_action_at <= :due';
@@ -179,6 +192,57 @@ class Organization
             'SELECT c.* FROM crm_org_categories oc JOIN crm_categories c ON c.id = oc.category_id
               WHERE oc.workspace_org_id = :r ORDER BY c.sort_order, c.name',
             ['r' => $relationId]
+        );
+    }
+
+    // ---------------- الوسوم ----------------
+
+    public static function tagsOf(int $relationId): array
+    {
+        return Database::select(
+            'SELECT t.* FROM crm_org_tags ot JOIN crm_tags t ON t.id = ot.tag_id
+              WHERE ot.workspace_org_id = :r ORDER BY t.name',
+            ['r' => $relationId]
+        );
+    }
+
+    /** يضيف وسماً للعلاقة، ويُنشئه في المساحة إن كان جديداً. */
+    public static function addTag(int $workspaceId, int $relationId, string $name): void
+    {
+        $name = mb_substr(ltrim(trim($name), '#'), 0, 80);
+        if ($name === '') {
+            return;
+        }
+        $tag = Database::first(
+            'SELECT id FROM crm_tags WHERE workspace_id = :w AND name = :n',
+            ['w' => $workspaceId, 'n' => $name]
+        );
+        $tagId = $tag['id'] ?? Database::insert('crm_tags', [
+            'workspace_id' => $workspaceId,
+            'name' => $name,
+            'created_at' => date('Y-m-d H:i:s'),
+        ]);
+        $linked = Database::first(
+            'SELECT tag_id FROM crm_org_tags WHERE workspace_org_id = :r AND tag_id = :t',
+            ['r' => $relationId, 't' => $tagId]
+        );
+        if (!$linked) {
+            Database::insert('crm_org_tags', ['workspace_org_id' => $relationId, 'tag_id' => $tagId]);
+        }
+    }
+
+    public static function removeTag(int $relationId, int $tagId): void
+    {
+        Database::delete('crm_org_tags', 'workspace_org_id = :r AND tag_id = :t', ['r' => $relationId, 't' => $tagId]);
+    }
+
+    /** كل وسوم المساحة مع عدد استخدامها (للفلاتر والإعدادات). */
+    public static function workspaceTags(int $workspaceId): array
+    {
+        return Database::select(
+            'SELECT t.*, (SELECT COUNT(*) FROM crm_org_tags ot WHERE ot.tag_id = t.id) AS uses
+               FROM crm_tags t WHERE t.workspace_id = :w ORDER BY t.name',
+            ['w' => $workspaceId]
         );
     }
 

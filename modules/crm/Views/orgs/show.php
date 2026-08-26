@@ -61,6 +61,40 @@ $catIds = array_map(fn ($c) => (int) $c['id'], $categories);
             <p class="hint" style="margin-top:10px;white-space:pre-wrap;"><?= e($relation['notes']) ?></p>
         <?php endif; ?>
 
+        <div style="margin-top:14px;">
+            <div class="hint" style="margin-bottom:6px;">الوسوم:</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;">
+                <?php foreach ($tags as $t): ?>
+                    <span class="badge badge-muted" style="display:inline-flex;align-items:center;gap:6px;">
+                        #<?= e($t['name']) ?>
+                        <?php if ($canEdit): ?>
+                        <form method="post" action="<?= route('/crm/w/' . $wid . '/orgs/' . $oid . '/tags') ?>" style="display:inline;">
+                            <?= csrf_field() ?><input type="hidden" name="remove_tag" value="<?= $t['id'] ?>">
+                            <button type="submit" style="background:none;border:0;cursor:pointer;color:inherit;">✕</button>
+                        </form>
+                        <?php endif; ?>
+                    </span>
+                <?php endforeach; ?>
+                <?php if (!$tags): ?><span class="hint">بلا وسوم</span><?php endif; ?>
+            </div>
+            <?php if ($canEdit): ?>
+            <form method="post" action="<?= route('/crm/w/' . $wid . '/orgs/' . $oid . '/tags') ?>" style="display:flex;gap:6px;margin-top:8px;">
+                <?= csrf_field() ?>
+                <input type="text" name="tags" placeholder="أضف وسماً (افصل بفاصلة)" style="flex:1;">
+                <button class="btn btn-outline btn-sm" type="submit">إضافة</button>
+            </form>
+            <?php endif; ?>
+        </div>
+
+        <?php if ($inLists): ?>
+            <div style="margin-top:14px;">
+                <div class="hint" style="margin-bottom:6px;">ضمن القوائم:</div>
+                <?php foreach ($inLists as $l): ?>
+                    <a class="badge badge-muted" style="margin-inline-end:4px;" href="<?= route('/crm/w/' . $wid . '/lists/' . $l['id']) ?>">📋 <?= e($l['name']) ?></a>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
+
         <?php if ($otherSpaces): ?>
             <div style="margin-top:14px;">
                 <div class="hint" style="margin-bottom:6px;">مرتبطة أيضاً بمساحاتك:</div>

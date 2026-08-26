@@ -23,9 +23,14 @@ class OrganizationController extends BaseCrmController
         $filters = array_filter([
             'q' => trim((string) Request::query('q', '')),
             'category' => (int) Request::query('category', 0),
+            'tag' => (int) Request::query('tag', 0),
+            'list' => (int) Request::query('list', 0),
             'owner' => (int) Request::query('owner', 0),
             'city' => trim((string) Request::query('city', '')),
+            'sector' => trim((string) Request::query('sector', '')),
+            'status' => trim((string) Request::query('status', '')),
             'due' => Request::query('due') ? 1 : 0,
+            'stale' => Request::query('stale') ? 1 : 0,
         ]);
         $page = max(1, (int) Request::query('page', 1));
         $perPage = 20;
@@ -41,6 +46,8 @@ class OrganizationController extends BaseCrmController
             'filters' => $filters,
             'categories' => Database::select('SELECT * FROM crm_categories WHERE workspace_id = :w ORDER BY sort_order, name', ['w' => $workspace['id']]),
             'members' => Workspace::members((int) $workspace['id']),
+            'tags' => Organization::workspaceTags((int) $workspace['id']),
+            'lists' => \Modules\Crm\Models\CrmList::forWorkspace((int) $workspace['id']),
             'canCreate' => Workspace::can($membership, 'orgs.create'),
             'canSettings' => Workspace::can($membership, 'settings.manage'),
         ]);
@@ -165,6 +172,8 @@ class OrganizationController extends BaseCrmController
             'organization' => $organization,
             'relation' => $relation,
             'categories' => Organization::categoriesOf((int) $relation['id']),
+            'tags' => Organization::tagsOf((int) $relation['id']),
+            'inLists' => \Modules\Crm\Models\CrmList::forRelation((int) $relation['id']),
             'allCategories' => Database::select('SELECT * FROM crm_categories WHERE workspace_id = :w ORDER BY sort_order, name', ['w' => $workspace['id']]),
             'contacts' => \Modules\Crm\Models\Contact::forOrganization((int) $organization['id']),
             'timeline' => \Modules\Crm\Models\Activity::timeline((int) $workspace['id'], (int) $organization['id']),

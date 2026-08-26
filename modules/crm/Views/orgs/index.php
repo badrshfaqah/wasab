@@ -8,9 +8,10 @@ $q = fn (array $over = []) => route('/crm/w/' . $wid . '?' . http_build_query(ar
         <p><?= e($workspace['description'] ?: 'جهات هذه المساحة وعلاقاتها.') ?></p>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <a class="btn btn-outline" href="<?= route('/crm/w/' . $wid . '/lists') ?>">📋 القوائم</a>
         <?php if ($canSettings): ?>
+            <a class="btn btn-outline" href="<?= route('/crm/w/' . $wid . '/settings') ?>">🏷️ التصنيفات</a>
             <a class="btn btn-outline" href="<?= route('/crm/w/' . $wid . '/members') ?>">👥 الأعضاء</a>
-            <a class="btn btn-outline" href="<?= route('/crm/w/' . $wid . '/edit') ?>">⚙️ إعدادات</a>
         <?php endif; ?>
         <a class="btn btn-outline" href="<?= route('/crm/w/' . $wid . '/opportunities') ?>">💼 الفرص</a>
         <a class="btn btn-outline" href="<?= route('/crm') ?>">↩ المساحات</a>
@@ -44,9 +45,39 @@ $q = fn (array $over = []) => route('/crm/w/' . $wid . '?' . http_build_query(ar
                 <?php endforeach; ?>
             </select>
         </div>
+        <?php if ($tags): ?>
+        <div class="field" style="margin:0;min-width:140px;">
+            <label>الوسم</label>
+            <select name="tag">
+                <option value="">الكل</option>
+                <?php foreach ($tags as $t): ?>
+                    <option value="<?= $t['id'] ?>" <?= (int) ($filters['tag'] ?? 0) === (int) $t['id'] ? 'selected' : '' ?>>#<?= e($t['name']) ?></option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+        <?php endif; ?>
+        <?php if ($lists): ?>
+        <div class="field" style="margin:0;min-width:150px;">
+            <label>القائمة</label>
+            <select name="list">
+                <option value="">الكل</option>
+                <?php foreach ($lists as $l): ?>
+                    <option value="<?= $l['id'] ?>" <?= (int) ($filters['list'] ?? 0) === (int) $l['id'] ? 'selected' : '' ?>><?= e($l['name']) ?></option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+        <?php endif; ?>
+        <div class="field" style="margin:0;min-width:130px;">
+            <label>القطاع</label>
+            <input type="text" name="sector" value="<?= e($filters['sector'] ?? '') ?>" placeholder="أي قطاع">
+        </div>
         <label style="display:flex;align-items:center;gap:6px;font-weight:400;margin-bottom:8px;">
             <input type="checkbox" name="due" value="1" style="width:auto;" <?= !empty($filters['due']) ? 'checked' : '' ?>>
             متابعات مستحقة
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;font-weight:400;margin-bottom:8px;">
+            <input type="checkbox" name="stale" value="1" style="width:auto;" <?= !empty($filters['stale']) ? 'checked' : '' ?>>
+            خاملة (بلا تواصل 30 يوماً)
         </label>
         <button class="btn btn-sm" type="submit">بحث</button>
         <?php if ($filters): ?><a class="btn btn-outline btn-sm" href="<?= route('/crm/w/' . $wid) ?>">مسح</a><?php endif; ?>

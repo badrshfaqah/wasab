@@ -5,7 +5,9 @@ use App\Core\Router;
 use Modules\Crm\Controllers\ActivityController;
 use Modules\Crm\Controllers\OpportunityController;
 use Modules\Crm\Controllers\OrganizationController;
+use Modules\Crm\Controllers\ListController;
 use Modules\Crm\Controllers\PipelineController;
+use Modules\Crm\Controllers\SettingsController;
 use Modules\Crm\Controllers\TodayController;
 use Modules\Crm\Controllers\WorkspaceController;
 
@@ -58,6 +60,19 @@ return function (Router $router): void {
     $router->post('/crm/w/{id}/pipelines', [PipelineController::class, 'storePipeline'], [$auth]);
     $router->post('/crm/w/{id}/stages', [PipelineController::class, 'storeStage'], [$auth]);
     $router->post('/crm/w/{id}/stages/{stageId}', [PipelineController::class, 'updateStage'], [$auth]);
+
+    // التصنيفات والوسوم والقوائم
+    $router->get('/crm/w/{id}/settings', [SettingsController::class, 'index'], [$auth]);
+    $router->post('/crm/w/{id}/categories', [SettingsController::class, 'storeCategory'], [$auth]);
+    $router->post('/crm/w/{id}/categories/{categoryId}', [SettingsController::class, 'updateCategory'], [$auth]);
+    $router->post('/crm/w/{id}/tags/{tagId}/delete', [SettingsController::class, 'deleteTag'], [$auth]);
+    $router->post('/crm/w/{id}/orgs/{orgId}/tags', [SettingsController::class, 'tagOrganization'], [$auth]);
+
+    $router->get('/crm/w/{id}/lists', [ListController::class, 'index'], [$auth]);
+    $router->post('/crm/w/{id}/lists', [ListController::class, 'store'], [$auth]);
+    $router->get('/crm/w/{id}/lists/{listId}', [ListController::class, 'show'], [$auth]);
+    $router->post('/crm/w/{id}/lists/{listId}/items', [ListController::class, 'items'], [$auth]);
+    $router->post('/crm/w/{id}/lists/{listId}/delete', [ListController::class, 'destroy'], [$auth]);
 
     // فتح جهة بمعرّفها فقط (من مهمة مرتبطة مثلاً) - يحوّل لأول مساحة يصلها المستخدم
     $router->get('/crm/orgs/{orgId}', [OrganizationController::class, 'resolve'], [$auth]);
