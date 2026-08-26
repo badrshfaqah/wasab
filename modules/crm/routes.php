@@ -3,7 +3,9 @@
 use App\Core\Middleware;
 use App\Core\Router;
 use Modules\Crm\Controllers\ActivityController;
+use Modules\Crm\Controllers\OpportunityController;
 use Modules\Crm\Controllers\OrganizationController;
+use Modules\Crm\Controllers\PipelineController;
 use Modules\Crm\Controllers\TodayController;
 use Modules\Crm\Controllers\WorkspaceController;
 
@@ -42,6 +44,20 @@ return function (Router $router): void {
     $router->post('/crm/w/{id}/activities/{activityId}/delete', [ActivityController::class, 'deleteActivity'], [$auth]);
     $router->post('/crm/w/{id}/orgs/{orgId}/contacts', [ActivityController::class, 'storeContact'], [$auth]);
     $router->post('/crm/w/{id}/orgs/{orgId}/contacts/{contactId}/delete', [ActivityController::class, 'deleteContact'], [$auth]);
+
+    // الفرص ومراحل العمل
+    $router->get('/crm/w/{id}/opportunities/create', [OpportunityController::class, 'create'], [$auth]);
+    $router->post('/crm/w/{id}/opportunities', [OpportunityController::class, 'store'], [$auth]);
+    $router->get('/crm/w/{id}/opportunities/{oppId}', [OpportunityController::class, 'show'], [$auth]);
+    $router->post('/crm/w/{id}/opportunities/{oppId}', [OpportunityController::class, 'update'], [$auth]);
+    $router->post('/crm/w/{id}/opportunities/{oppId}/move', [OpportunityController::class, 'move'], [$auth]);
+    $router->post('/crm/w/{id}/opportunities/{oppId}/delete', [OpportunityController::class, 'destroy'], [$auth]);
+    $router->get('/crm/w/{id}/opportunities', [OpportunityController::class, 'index'], [$auth]);
+
+    $router->get('/crm/w/{id}/pipelines', [PipelineController::class, 'index'], [$auth]);
+    $router->post('/crm/w/{id}/pipelines', [PipelineController::class, 'storePipeline'], [$auth]);
+    $router->post('/crm/w/{id}/stages', [PipelineController::class, 'storeStage'], [$auth]);
+    $router->post('/crm/w/{id}/stages/{stageId}', [PipelineController::class, 'updateStage'], [$auth]);
 
     // فتح جهة بمعرّفها فقط (من مهمة مرتبطة مثلاً) - يحوّل لأول مساحة يصلها المستخدم
     $router->get('/crm/orgs/{orgId}', [OrganizationController::class, 'resolve'], [$auth]);

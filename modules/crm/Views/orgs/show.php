@@ -141,6 +141,27 @@ $catIds = array_map(fn ($c) => (int) $c['id'], $categories);
     </div>
 
     <div class="card">
+        <div class="card-title divided">
+            <span>💼 الفرص (<?= count($opportunities) ?>)</span>
+            <?php if ($canOpportunities): ?>
+                <a class="btn btn-ghost btn-sm" href="<?= route('/crm/w/' . $wid . '/opportunities/create?org=' . $oid) ?>">+ فرصة</a>
+            <?php endif; ?>
+        </div>
+        <?php if (!$opportunities): ?>
+            <p class="hint" style="margin-top:0;">لا فرص مع هذه الجهة في هذه المساحة بعد.</p>
+        <?php endif; ?>
+        <?php foreach ($opportunities as $op): ?>
+            <div class="doc-log" style="display:flex;justify-content:space-between;gap:8px;align-items:center;">
+                <div>
+                    <a href="<?= route('/crm/w/' . $wid . '/opportunities/' . $op['id']) ?>"><strong><?= e($op['name']) ?></strong></a>
+                    <div class="doc-log-meta"><?= e($op['owner_name'] ?? '') ?><?= !empty($op['expected_close_date']) ? ' · 📅 ' . format_date($op['expected_close_date'], 'Y-m-d') : '' ?></div>
+                </div>
+                <span class="badge" style="background:<?= e($op['stage_color'] ?? '#6b7280') ?>22;color:<?= e($op['stage_color'] ?? '#6b7280') ?>;"><?= e($op['stage_name'] ?? '—') ?></span>
+            </div>
+        <?php endforeach; ?>
+    </div>
+
+    <div class="card">
         <div class="card-title"><span>🕓 سجل التغييرات</span></div>
         <?php if (!$logs): ?><p class="hint" style="margin-top:0;">لا سجل بعد.</p><?php endif; ?>
         <?php foreach ($logs as $log): ?>
