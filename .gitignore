@@ -3,6 +3,8 @@
 !/storage/uploads/.gitkeep
 /storage/logs/*
 !/storage/logs/.gitkeep
+/storage/wallet/*
+!/storage/wallet/.gitkeep
 /storage/sessions/*
 !/storage/sessions/.gitkeep
 /storage/install.lock

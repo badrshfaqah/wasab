@@ -38,6 +38,13 @@
             <input type="text" name="company_name" value="<?= e($company['name'] ?? '') ?>">
         </div>
 
+        <div class="field">
+            <label>موقع الشركة</label>
+            <input type="url" name="company_website" dir="ltr" placeholder="https://example.com"
+                   value="<?= e($companyWebsite ?? '') ?>">
+            <small>يظهر في بطاقة التواصل التي يحفظها من يمسح رمز بطاقة الموظف.</small>
+        </div>
+
         <?php $currentTheme = $company['theme'] ?? \App\Core\Theme::DEFAULT; ?>
         <div class="field">
             <label>ثيم التصميم</label>

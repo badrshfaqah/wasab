@@ -6,6 +6,7 @@ use App\Core\Auth;
 use App\Core\Database;
 use App\Core\Permission;
 use Modules\Mobileapi\Support\Api;
+use Modules\Mobileapi\Support\ApplePass;
 
 /**
  * البطاقة الشخصية للموظف: نفس بيانات بطاقة الويب (اسم، مسمى، إدارة، جوال،
@@ -42,6 +43,45 @@ class EmployeeCardApiController
             Api::error('لا يوجد شعار للشركة.', 404, 'not_found');
         }
         $this->stream(BASE_PATH . '/storage/uploads/companies/' . $company['logo']);
+    }
+
+    /**
+     * GET /api/v1/employee-card/pass - بطاقة المستخدم بصيغة Apple Wallet.
+     *
+     * تُعاد كبايتات .pkpass موقّعة، يفتحها التطبيق بـ PassKit مباشرة.
+     */
+    public function pass(): void
+    {
+        if (!ApplePass::isConfigured()) {
+            Api::error(
+                'إضافة البطاقة إلى Apple Wallet غير مهيّأة على هذا الخادم بعد.',
+                503,
+                'pass_not_configured'
+            );
+        }
+
+        [$employee, $companyId] = $this->ownProfile();
+        $company = $this->company($companyId);
+
+        try {
+            $bytes = ApplePass::build(
+                $employee,
+                $company,
+                $companyId,
+                $this->vcard($employee, $company, $companyId),
+                $this->email($employee)
+            );
+        } catch (\Throwable $e) {
+            log_exception($e);
+            Api::error('تعذّر إصدار بطاقة المحفظة. راجع سجلّ الأخطاء على الخادم.', 500, 'pass_failed');
+        }
+
+        header('Content-Type: application/vnd.apple.pkpass');
+        header('Content-Disposition: attachment; filename="wasab-employee-card.pkpass"');
+        header('Content-Length: ' . strlen($bytes));
+        header('Cache-Control: private, no-store');
+        echo $bytes;
+        exit;
     }
 
     /** GET /api/v1/employee-card/{id} - بطاقة موظف بعينه. */
@@ -107,12 +147,18 @@ class EmployeeCardApiController
         return [$employee, $companyId];
     }
 
-    private function respondWith(array $employee, int $companyId): void
+    private function company(int $companyId): array
     {
-        $company = Database::first(
+        return Database::first(
             'SELECT name, logo, primary_color FROM companies WHERE id = :id',
             ['id' => $companyId]
         ) ?: [];
+    }
+
+    private function respondWith(array $employee, int $companyId): void
+    {
+        $company = $this->company($companyId);
+        $isOwn = !empty($employee['linked_user_id']) && (int) $employee['linked_user_id'] === (int) Auth::id();
 
         Api::ok([
             'employee' => [
@@ -121,6 +167,7 @@ class EmployeeCardApiController
                 'job_title' => $employee['job_title'] ?: null,
                 'department' => $employee['department'] ?: null,
                 'phone' => $employee['phone'] ?: null,
+                'email' => $this->email($employee),
                 'hire_date' => $employee['hire_date'] ?: null,
                 'has_photo' => !empty($employee['photo']),
             ],
@@ -128,10 +175,31 @@ class EmployeeCardApiController
                 'name' => $company['name'] ?? '',
                 'has_logo' => !empty($company['logo']),
                 'primary_color' => $company['primary_color'] ?? null,
+                'website' => ApplePass::website($companyId),
             ],
             // بطاقة تواصل يحفظها من يمسح الرمز في جهات اتصاله.
-            'vcard' => $this->vcard($employee, $company['name'] ?? ''),
+            'vcard' => $this->vcard($employee, $company, $companyId),
+            // زر المحفظة لبطاقة صاحبها فقط، وحين يكون الخادم مهيّأً بشهادة أبل.
+            'has_wallet_pass' => $isOwn && ApplePass::isConfigured(),
         ]);
+    }
+
+    /**
+     * بريد العمل من حساب الموظف في النظام، وإلا بريده الشخصي في ملفه.
+     */
+    private function email(array $employee): ?string
+    {
+        if (!empty($employee['linked_user_id'])) {
+            $user = Database::first(
+                'SELECT email FROM users WHERE id = :id',
+                ['id' => (int) $employee['linked_user_id']]
+            );
+            if (!empty($user['email'])) {
+                return $user['email'];
+            }
+        }
+
+        return $employee['personal_email'] ?: null;
     }
 
     private function streamPhoto(array $employee, int $companyId): void
@@ -164,17 +232,36 @@ class EmployeeCardApiController
         exit;
     }
 
-    private function vcard(array $employee, string $companyName): string
+    /**
+     * بطاقة تواصل كاملة: من يمسح الرمز يحفظ الاسم والمسمى والجوال والبريد
+     * وموقع الشركة دفعة واحدة - لا اسماً مجرّداً يضطر لكتابة الباقي بيده.
+     *
+     * الأنواع (CELL / WORK) تجعل الهاتف يصنّف الحقول في جهة الاتصال صحيحاً.
+     */
+    private function vcard(array $employee, array $company, int $companyId): string
     {
-        $lines = ['BEGIN:VCARD', 'VERSION:3.0', 'FN:' . ($employee['full_name'] ?? '')];
+        $companyName = (string) ($company['name'] ?? '');
+
+        $lines = ['BEGIN:VCARD', 'VERSION:3.0'];
+        $lines[] = 'FN:' . ($employee['full_name'] ?? '');
         if (!empty($employee['job_title'])) {
             $lines[] = 'TITLE:' . $employee['job_title'];
         }
         if ($companyName !== '') {
-            $lines[] = 'ORG:' . $companyName;
+            // القسم الثاني في ORG هو الإدارة، وهكذا تقرأه تطبيقات جهات الاتصال.
+            $lines[] = 'ORG:' . $companyName
+                . (!empty($employee['department']) ? ';' . $employee['department'] : '');
         }
         if (!empty($employee['phone'])) {
-            $lines[] = 'TEL:' . $employee['phone'];
+            $lines[] = 'TEL;TYPE=CELL,VOICE:' . $employee['phone'];
+        }
+        $email = $this->email($employee);
+        if ($email) {
+            $lines[] = 'EMAIL;TYPE=WORK,INTERNET:' . $email;
+        }
+        $website = ApplePass::website($companyId);
+        if ($website !== '') {
+            $lines[] = 'URL:' . $website;
         }
         $lines[] = 'END:VCARD';
 

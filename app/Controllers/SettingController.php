@@ -25,6 +25,7 @@ class SettingController
         View::render('settings.index', [
             'pageTitle' => 'الإعدادات',
             'company' => $company,
+            'companyWebsite' => $company ? (string) Setting::get('company_website', (int) $company['id'], '') : '',
             'appName' => app_name(),
             'appUrl' => app_url(),
             'appLogoUrl' => app_logo_url(),
@@ -86,6 +87,16 @@ class SettingController
             if ($name !== '') {
                 $update['name'] = $name;
             }
+
+            // موقع الشركة: يظهر في بطاقة التواصل التي تُقرأ من رمز بطاقة الموظف.
+            $website = trim((string) Request::input('company_website', ''));
+            if ($website !== '' && !preg_match('#^https?://#i', $website)) {
+                $website = 'https://' . $website;
+            }
+            if ($website !== '' && !filter_var($website, FILTER_VALIDATE_URL)) {
+                $website = '';
+            }
+            Setting::set('company_website', $website, $companyId);
 
             $upload = Uploads::handleImage('logo', BASE_PATH . '/storage/uploads/companies');
             if ($upload['filename']) {

@@ -77,6 +77,7 @@ return function (Router $router): void {
     $card = [$auth, $requireModule('employees')];
     $router->get('/api/v1/employee-card/photo', [EmployeeCardApiController::class, 'minePhoto'], $card);
     $router->get('/api/v1/employee-card/logo', [EmployeeCardApiController::class, 'logo'], $card);
+    $router->get('/api/v1/employee-card/pass', [EmployeeCardApiController::class, 'pass'], $card);
     $router->get('/api/v1/employee-card/{id}/photo', [EmployeeCardApiController::class, 'photo'], $card);
     $router->get('/api/v1/employee-card/{id}', [EmployeeCardApiController::class, 'show'], $card);
     $router->get('/api/v1/employee-card', [EmployeeCardApiController::class, 'mine'], $card);
