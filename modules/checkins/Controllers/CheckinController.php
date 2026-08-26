@@ -78,6 +78,11 @@ class CheckinController
     public function attendanceIn(): void
     {
         $companyId = $this->requireCompanyContext();
+        // نفس صلاحية المتابعة اليومية: من مُنع منها لا يسجّل حضوراً بها
+        if (!$this->canSubmit()) {
+            $this->forbidden();
+            return;
+        }
         $this->verifyCsrf('/checkins');
         $today = date('Y-m-d');
 
@@ -107,6 +112,11 @@ class CheckinController
     public function attendanceOut(): void
     {
         $companyId = $this->requireCompanyContext();
+        // نفس صلاحية المتابعة اليومية: من مُنع منها لا يسجّل حضوراً بها
+        if (!$this->canSubmit()) {
+            $this->forbidden();
+            return;
+        }
         $this->verifyCsrf('/checkins');
         $today = date('Y-m-d');
 
@@ -150,6 +160,11 @@ class CheckinController
     public function attendance(): void
     {
         $companyId = $this->requireCompanyContext();
+        // نفس صلاحية المتابعة اليومية: من مُنع منها لا يسجّل حضوراً بها
+        if (!$this->canSubmit()) {
+            $this->forbidden();
+            return;
+        }
         $month = (string) Request::query('month', date('Y-m'));
         if (!preg_match('/^\d{4}-\d{2}$/', $month)) {
             $month = date('Y-m');
