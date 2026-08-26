@@ -234,3 +234,120 @@ document.addEventListener('DOMContentLoaded', function () {
     filter.select();
   });
 });
+
+/* ---- الوضع المضغوط: القائمة شريط أيقونات ----
+   على الشاشات الواسعة يكسب المستخدم مساحة عمل دون أن يفقد التنقل: الأيقونات
+   تبقى، والاسم يظهر عند المرور. الاختيار يُحفظ محلياً. */
+document.addEventListener('DOMContentLoaded', function () {
+  var toggle = document.getElementById('rail-toggle');
+  if (!toggle) { return; }
+  var KEY = 'wasab.nav.rail';
+  var apply = function (on) {
+    document.body.classList.toggle('nav-rail', on);
+    toggle.setAttribute('title', on ? 'توسيع القائمة' : 'طيّ القائمة');
+    toggle.setAttribute('aria-label', toggle.getAttribute('title'));
+  };
+  try { apply(localStorage.getItem(KEY) === '1'); } catch (e) {}
+  toggle.addEventListener('click', function () {
+    var on = !document.body.classList.contains('nav-rail');
+    apply(on);
+    try { localStorage.setItem(KEY, on ? '1' : '0'); } catch (e) {}
+  });
+});
+
+/* ---- لوحة الأوامر ----
+   نافذة واحدة تصل بها إلى أي شاشة أو سجل أو أمر إنشاء. تُفتح بـ Ctrl/⌘+K،
+   وتُدار بالكامل من لوحة المفاتيح، ولا تستدعي الخادم إلا بعد سكون الكتابة. */
+document.addEventListener('DOMContentLoaded', function () {
+  var palette = document.getElementById('palette');
+  if (!palette) { return; }
+  var input = document.getElementById('palette-q');
+  var list = document.getElementById('palette-results');
+  var opener = document.getElementById('open-palette');
+  var items = [];
+  var index = 0;
+  var timer = null;
+  var lastQuery = null;
+
+  function open() {
+    palette.hidden = false;
+    palette.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('palette-open');
+    input.value = '';
+    input.focus();
+    lastQuery = null;
+    fetchResults('');
+  }
+  function close() {
+    palette.hidden = true;
+    palette.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('palette-open');
+  }
+  function render(groups) {
+    list.innerHTML = '';
+    items = [];
+    if (!groups.length) {
+      list.innerHTML = '<p class="palette-empty">لا نتائج — جرّب كلمة أخرى.</p>';
+      return;
+    }
+    groups.forEach(function (group) {
+      var head = document.createElement('div');
+      head.className = 'palette-group';
+      head.textContent = group.title;
+      list.appendChild(head);
+      group.items.forEach(function (item) {
+        var a = document.createElement('a');
+        a.className = 'palette-item';
+        a.href = item.url;
+        a.innerHTML = '<span class="palette-label"></span>' + (item.hint ? '<span class="palette-hint"></span>' : '');
+        a.querySelector('.palette-label').textContent = item.label;
+        if (item.hint) { a.querySelector('.palette-hint').textContent = item.hint; }
+        list.appendChild(a);
+        items.push(a);
+      });
+    });
+    index = 0;
+    highlight();
+  }
+  function highlight() {
+    items.forEach(function (el, i) {
+      el.classList.toggle('is-active', i === index);
+      if (i === index && el.scrollIntoView) { el.scrollIntoView({block: 'nearest'}); }
+    });
+  }
+  function fetchResults(q) {
+    if (q === lastQuery) { return; }
+    lastQuery = q;
+    fetch('/palette/search?q=' + encodeURIComponent(q), {credentials: 'same-origin'})
+      .then(function (r) { return r.ok ? r.json() : {groups: []}; })
+      .then(function (data) { render(data.groups || []); })
+      .catch(function () { render([]); });
+  }
+
+  if (opener) { opener.addEventListener('click', open); }
+  palette.querySelectorAll('[data-palette-close]').forEach(function (el) {
+    el.addEventListener('click', close);
+  });
+
+  input.addEventListener('input', function () {
+    clearTimeout(timer);
+    var q = input.value.trim();
+    timer = setTimeout(function () { fetchResults(q); }, 140);
+  });
+
+  input.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowDown') { e.preventDefault(); index = Math.min(index + 1, items.length - 1); highlight(); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); index = Math.max(index - 1, 0); highlight(); }
+    else if (e.key === 'Enter') { if (items[index]) { e.preventDefault(); window.location.href = items[index].href; } }
+    else if (e.key === 'Escape') { close(); }
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) {
+      e.preventDefault();
+      palette.hidden ? open() : close();
+    } else if (e.key === 'Escape' && !palette.hidden) {
+      close();
+    }
+  });
+});

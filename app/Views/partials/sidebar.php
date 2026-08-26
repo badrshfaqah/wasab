@@ -96,13 +96,18 @@ $isActive = function (string $url) use ($currentPath): bool {
         <?php else: ?>
             <span>🗂️</span>
         <?php endif; ?>
-        <span><?= e($company['name'] ?? app_name()) ?></span>
+        <span class="brand-text"><?= e($company['name'] ?? app_name()) ?></span>
+        <button type="button" class="rail-toggle" id="rail-toggle" title="طيّ القائمة" aria-label="طيّ القائمة">
+            <?= \App\Core\Icons::svg('chevron', 16) ?>
+        </button>
     </div>
 
-    <div class="nav-filter">
-        <span aria-hidden="true">🔍</span>
-        <input type="search" id="nav-filter" placeholder="ابحث في القائمة…" autocomplete="off" aria-label="تصفية روابط القائمة">
-    </div>
+    <button type="button" class="nav-filter nav-palette-open" id="open-palette"
+            title="ابحث في كل شيء (Ctrl+K)" aria-label="لوحة الأوامر">
+        <span aria-hidden="true"><?= \App\Core\Icons::svg('search', 16) ?></span>
+        <span class="nav-palette-label">ابحث في كل شيء…</span>
+        <kbd>Ctrl K</kbd>
+    </button>
   </div>
 
     <nav id="sidebar-nav">
@@ -132,7 +137,7 @@ $isActive = function (string $url) use ($currentPath): bool {
                 <?php if ($group['title'] !== null): ?>
                     <button type="button" class="nav-group-title" aria-expanded="<?= $open ? 'true' : 'false' ?>">
                         <span><?= e($group['title']) ?></span>
-                        <span class="chev" aria-hidden="true">⌄</span>
+                        <span class="chev" aria-hidden="true"><?= \App\Core\Icons::svg('chevron', 14) ?></span>
                         <?php if ($groupBadge > 0): ?>
                             <span class="nav-group-badge" title="<?= (int) $groupBadge ?> بانتظار إجراء"><?= (int) $groupBadge ?></span>
                         <?php endif; ?>
@@ -140,8 +145,13 @@ $isActive = function (string $url) use ($currentPath): bool {
                 <?php endif; ?>
                 <div class="nav-group-items">
                     <?php foreach ($groupItems as $item): ?>
-                        <a class="nav-link<?= $isActive($item['url']) ? ' active' : '' ?>" href="<?= $item['url'] ?>">
-                            <span class="ic"><?= $item['icon'] ?></span><span class="nav-text"><?= e($item['label']) ?></span>
+                        <?php
+                        $iconName = $item['svg'] ?? \App\Core\Icons::forPath($item['url']);
+                        $iconSvg = $iconName ? \App\Core\Icons::svg($iconName) : '';
+                        ?>
+                        <a class="nav-link<?= $isActive($item['url']) ? ' active' : '' ?>" href="<?= $item['url'] ?>"
+                           title="<?= e($item['label']) ?>">
+                            <span class="ic"><?= $iconSvg ?: $item['icon'] ?></span><span class="nav-text"><?= e($item['label']) ?></span>
                             <?php if (!empty($item['badge'])): ?><span class="nav-badge"><?= (int) $item['badge'] ?></span><?php endif; ?>
                         </a>
                     <?php endforeach; ?>

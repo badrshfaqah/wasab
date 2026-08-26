@@ -44,6 +44,7 @@ if ($impersonating) {
 <div class="app-shell">
     <?php include __DIR__ . '/../partials/sidebar.php'; ?>
     <div class="sidebar-backdrop" hidden></div>
+    <?php if ($user): ?><?php include __DIR__ . '/../partials/palette.php'; ?><?php endif; ?>
     <div class="main">
         <?php if ($impersonating): ?>
             <div class="impersonation-bar">

@@ -4,8 +4,9 @@ use App\Core\Database;
 use App\Core\Permission;
 
 /**
- * البحث الموحّد: جهات وأشخاص CRM - داخل المساحات التي يصل إليها المستخدم فقط،
- * فلا يكشف البحثُ ما تحجبه الصلاحيات.
+ * البحث الموحّد من CRM: الجهات داخل المساحات التي يصل إليها المستخدم فقط، فلا
+ * يكشف البحثُ ما تحجبه الصلاحيات. الأشخاص لا يُبحث عنهم هنا لأنهم ملك دليل
+ * «جهات الاتصال» ويظهرون من مزوّده - فلا يتكرر الاسم مرتين في نتيجة واحدة.
  */
 return function (array $user, string $query): array {
     if (!Permission::check('crm.view') || empty($user['company_id'])) {
@@ -34,34 +35,11 @@ return function (array $user, string $query): array {
         $params
     );
 
-    $contactParams = ['c' => $companyId, 'q' => "%{$query}%", 'q2' => "%{$query}%", 'q3' => "%{$query}%"];
-    if (!$isAdmin) {
-        $contactParams['u'] = $userId;
-    }
-    $contacts = Database::select(
-        "SELECT DISTINCT ct.id, ct.full_name AS name, ct.job_title, o.name AS org_name, o.id AS org_id, r.workspace_id
-           FROM contacts_persons ct
-           JOIN contacts_person_orgs po ON po.person_id = ct.id
-           JOIN contacts_organizations o ON o.id = po.organization_id
-           JOIN crm_workspace_orgs r ON r.organization_id = o.id
-          WHERE ct.company_id = :c AND (ct.full_name LIKE :q OR ct.email LIKE :q2 OR ct.mobile LIKE :q3){$access}
-          ORDER BY ct.full_name LIMIT 5",
-        $contactParams
-    );
-
     $results = array_map(fn ($r) => [
         'title' => '🤝 ' . $r['name'],
         'subtitle' => trim(($r['sector'] ?? '') . ' · ' . ($r['city'] ?? '') . ' · ' . $r['workspace_name'], ' ·'),
         'url' => route('/crm/w/' . $r['workspace_id'] . '/orgs/' . $r['id']),
     ], $orgs);
-
-    foreach ($contacts as $c) {
-        $results[] = [
-            'title' => '👤 ' . $c['name'],
-            'subtitle' => trim(($c['job_title'] ?? '') . ' — ' . $c['org_name'], ' —'),
-            'url' => route('/crm/w/' . $c['workspace_id'] . '/orgs/' . $c['org_id']),
-        ];
-    }
 
     return $results;
 };

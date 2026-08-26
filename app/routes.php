@@ -10,6 +10,7 @@ use App\Controllers\CronController;
 use App\Controllers\DashboardController;
 use App\Controllers\InstallController;
 use App\Controllers\ModuleController;
+use App\Controllers\PaletteController;
 use App\Controllers\NotificationController;
 use App\Controllers\ProfileController;
 use App\Controllers\PushController;
@@ -40,6 +41,7 @@ $router->post('/calendar/events', [CalendarController::class, 'storeEvent'], [[M
 $router->post('/calendar/events/{id}/delete', [CalendarController::class, 'destroyEvent'], [[Middleware::class, 'auth']]);
 
 // ---------- البحث الموحّد (يجمع نتائج كل الإضافات المفعّلة) ----------
+$router->get('/palette/search', [PaletteController::class, 'search'], [[Middleware::class, 'auth']]);
 $router->get('/search', [SearchController::class, 'index'], [[Middleware::class, 'auth']]);
 
 // ---------- التقارير (خاصة بمدير الشركة) ----------
