@@ -5,6 +5,7 @@ use App\Core\Router;
 use Modules\Crm\Controllers\ActivityController;
 use Modules\Crm\Controllers\OpportunityController;
 use Modules\Crm\Controllers\OrganizationController;
+use Modules\Crm\Controllers\DashboardController;
 use Modules\Crm\Controllers\ListController;
 use Modules\Crm\Controllers\PipelineController;
 use Modules\Crm\Controllers\SettingsController;
@@ -60,6 +61,10 @@ return function (Router $router): void {
     $router->post('/crm/w/{id}/pipelines', [PipelineController::class, 'storePipeline'], [$auth]);
     $router->post('/crm/w/{id}/stages', [PipelineController::class, 'storeStage'], [$auth]);
     $router->post('/crm/w/{id}/stages/{stageId}', [PipelineController::class, 'updateStage'], [$auth]);
+
+    // اللوحة وسجل التغييرات
+    $router->get('/crm/w/{id}/dashboard', [DashboardController::class, 'index'], [$auth]);
+    $router->get('/crm/w/{id}/logs', [DashboardController::class, 'logs'], [$auth]);
 
     // التصنيفات والوسوم والقوائم
     $router->get('/crm/w/{id}/settings', [SettingsController::class, 'index'], [$auth]);

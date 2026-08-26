@@ -7,6 +7,7 @@
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <a class="btn btn-outline" href="<?= route('/crm/w/' . $wid . '/pipelines') ?>">🪜 المراحل</a>
         <a class="btn btn-outline" href="<?= route('/crm/w/' . $wid . '/members') ?>">👥 الأعضاء</a>
+        <a class="btn btn-outline" href="<?= route('/crm/w/' . $wid . '/logs') ?>">🕓 سجل التغييرات</a>
         <a class="btn btn-outline" href="<?= route('/crm/w/' . $wid) ?>">↩ المساحة</a>
     </div>
 </div>

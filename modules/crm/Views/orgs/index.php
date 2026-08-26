@@ -13,6 +13,7 @@ $q = fn (array $over = []) => route('/crm/w/' . $wid . '?' . http_build_query(ar
             <a class="btn btn-outline" href="<?= route('/crm/w/' . $wid . '/settings') ?>">🏷️ التصنيفات</a>
             <a class="btn btn-outline" href="<?= route('/crm/w/' . $wid . '/members') ?>">👥 الأعضاء</a>
         <?php endif; ?>
+        <a class="btn btn-outline" href="<?= route('/crm/w/' . $wid . '/dashboard') ?>">📊 اللوحة</a>
         <a class="btn btn-outline" href="<?= route('/crm/w/' . $wid . '/opportunities') ?>">💼 الفرص</a>
         <a class="btn btn-outline" href="<?= route('/crm') ?>">↩ المساحات</a>
         <?php if ($canCreate): ?>
