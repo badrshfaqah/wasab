@@ -87,6 +87,7 @@ $isActive = function (string $url) use ($currentPath): bool {
 };
 ?>
 <aside class="sidebar">
+  <div class="sidebar-head">
     <div class="brand">
         <?php if (!empty($company['logo'])): ?>
             <img src="<?= e(route('/media/companies/' . $company['logo'])) ?>" alt="">
@@ -102,6 +103,7 @@ $isActive = function (string $url) use ($currentPath): bool {
         <span aria-hidden="true">🔍</span>
         <input type="search" id="nav-filter" placeholder="ابحث في القائمة…" autocomplete="off" aria-label="تصفية روابط القائمة">
     </div>
+  </div>
 
     <nav id="sidebar-nav">
         <?php foreach ($groups as $key => $group): ?>
@@ -119,12 +121,21 @@ $isActive = function (string $url) use ($currentPath): bool {
                 }
             }
             $open = $group['open'] || $hasActive;
+            // مجموع تنبيهات المجموعة - يظهر على عنوانها حين تكون مطوية، فلا
+            // يختفي ما ينتظر إجراءً لمجرد أن المستخدم طوى القسم
+            $groupBadge = 0;
+            foreach ($groupItems as $item) {
+                $groupBadge += (int) ($item['badge'] ?? 0);
+            }
             ?>
             <div class="nav-group<?= $open ? '' : ' collapsed' ?>" data-group="<?= e($key) ?>">
                 <?php if ($group['title'] !== null): ?>
                     <button type="button" class="nav-group-title" aria-expanded="<?= $open ? 'true' : 'false' ?>">
                         <span><?= e($group['title']) ?></span>
                         <span class="chev" aria-hidden="true">⌄</span>
+                        <?php if ($groupBadge > 0): ?>
+                            <span class="nav-group-badge" title="<?= (int) $groupBadge ?> بانتظار إجراء"><?= (int) $groupBadge ?></span>
+                        <?php endif; ?>
                     </button>
                 <?php endif; ?>
                 <div class="nav-group-items">
