@@ -6,6 +6,7 @@ use Modules\Crm\Controllers\ActivityController;
 use Modules\Crm\Controllers\OpportunityController;
 use Modules\Crm\Controllers\OrganizationController;
 use Modules\Crm\Controllers\DashboardController;
+use Modules\Crm\Controllers\ImportController;
 use Modules\Crm\Controllers\ListController;
 use Modules\Crm\Controllers\PipelineController;
 use Modules\Crm\Controllers\SettingsController;
@@ -61,6 +62,12 @@ return function (Router $router): void {
     $router->post('/crm/w/{id}/pipelines', [PipelineController::class, 'storePipeline'], [$auth]);
     $router->post('/crm/w/{id}/stages', [PipelineController::class, 'storeStage'], [$auth]);
     $router->post('/crm/w/{id}/stages/{stageId}', [PipelineController::class, 'updateStage'], [$auth]);
+
+    // الاستيراد والتصدير
+    $router->get('/crm/w/{id}/import', [ImportController::class, 'form'], [$auth]);
+    $router->post('/crm/w/{id}/import/preview', [ImportController::class, 'preview'], [$auth]);
+    $router->post('/crm/w/{id}/import/run', [ImportController::class, 'run'], [$auth]);
+    $router->get('/crm/w/{id}/export', [ImportController::class, 'export'], [$auth]);
 
     // اللوحة وسجل التغييرات
     $router->get('/crm/w/{id}/dashboard', [DashboardController::class, 'index'], [$auth]);

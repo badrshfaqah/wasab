@@ -649,6 +649,7 @@ class ArchiveFileController
             'employees' => ['employees_profiles', 'full_name', true],
             'users' => ['users', 'name', false],
             'clients' => ['clients_clients', 'name', true],
+            'crm' => ['crm_organizations', 'name', true],
         ];
     }
 
@@ -693,6 +694,9 @@ class ArchiveFileController
         }
         if (\App\Core\ModuleManager::isActive('clients')) {
             $out['عميل'] = $this->rowsFor($companyId, 'clients', 'clients_clients', 'name');
+        }
+        if (\App\Core\ModuleManager::isActive('crm')) {
+            $out['جهة (CRM)'] = $this->rowsFor($companyId, 'crm', 'crm_organizations', 'name');
         }
 
         // الأشخاص: موظفون (إن كانت الإضافة مفعّلة) + مستخدمون غير مربوطين بملف وظيفي
