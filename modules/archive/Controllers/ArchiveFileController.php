@@ -641,21 +641,27 @@ class ArchiveFileController
      * خريطة أنواع الكيانات القابلة للربط: module => [الجدول, عمود الاسم, يتطلب تفعيل إضافة؟].
      * 'users' كيان نواة (أصحاب العضويات) لا يتبع إضافة، فلا يشترط تفعيلاً.
      */
+    /**
+     * أنواع الربط: [الجدول، عمود الاسم، مفتاح الإضافة المطلوبة أو null].
+     * نوع الربط قد يختلف عن اسم إضافته (جهة وفرد كلاهما من إضافة «جهات الاتصال»).
+     */
     private function linkableTypes(): array
     {
         return [
-            'documents' => ['documents_documents', 'title', true],
-            'assets' => ['assets_assets', 'name', true],
-            'employees' => ['employees_profiles', 'full_name', true],
-            'users' => ['users', 'name', false],
-            'clients' => ['clients_clients', 'name', true],
-            'crm' => ['crm_organizations', 'name', true],
+            'documents' => ['documents_documents', 'title', 'documents'],
+            'assets' => ['assets_assets', 'name', 'assets'],
+            'employees' => ['employees_profiles', 'full_name', 'employees'],
+            'users' => ['users', 'name', null],
+            'clients' => ['clients_clients', 'name', 'clients'],
+            'crm' => ['crm_organizations', 'name', 'crm'],
+            'contact_org' => ['contacts_organizations', 'name', 'contacts'],
+            'contact_person' => ['contacts_persons', 'full_name', 'contacts'],
         ];
     }
 
-    private function typeActive(string $mod, bool $needsModule): bool
+    private function typeActive(?string $moduleKey): bool
     {
-        return !$needsModule || \App\Core\ModuleManager::isActive($mod);
+        return $moduleKey === null || \App\Core\ModuleManager::isActive($moduleKey);
     }
 
     /** يحلّل "module:id" ويتحقق من ملكية الشركة والتفعيل. يُرجع [module,id,label] أو [null,null,null]. */
@@ -670,8 +676,8 @@ class ArchiveFileController
         if (!isset($types[$mod]) || $id < 1) {
             return [null, null, null];
         }
-        [$table, $nameCol, $needsModule] = $types[$mod];
-        if (!$this->typeActive($mod, $needsModule)) {
+        [$table, $nameCol, $moduleKey] = $types[$mod];
+        if (!$this->typeActive($moduleKey)) {
             return [null, null, null];
         }
         $row = Database::first("SELECT `{$nameCol}` AS label FROM `{$table}` WHERE id = :id AND company_id = :c", ['id' => $id, 'c' => $companyId]);
@@ -697,6 +703,10 @@ class ArchiveFileController
         }
         if (\App\Core\ModuleManager::isActive('crm')) {
             $out['جهة (CRM)'] = $this->rowsFor($companyId, 'crm', 'crm_organizations', 'name');
+        }
+        if (\App\Core\ModuleManager::isActive('contacts')) {
+            $out['جهة'] = $this->rowsFor($companyId, 'contact_org', 'contacts_organizations', 'name');
+            $out['فرد'] = $this->rowsFor($companyId, 'contact_person', 'contacts_persons', 'full_name');
         }
 
         // الأشخاص: موظفون (إن كانت الإضافة مفعّلة) + مستخدمون غير مربوطين بملف وظيفي
