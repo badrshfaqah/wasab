@@ -125,11 +125,17 @@ class OpportunityController extends BaseCrmController
             'stagesByPipeline' => $this->stagesByPipeline((int) $workspace['id']),
             'stages' => Pipeline::stages((int) $opportunity['pipeline_id']),
             'members' => Workspace::members((int) $workspace['id']),
-            'activities' => Database::select(
-                'SELECT a.*, u.name AS user_name FROM crm_activities a LEFT JOIN users u ON u.id = a.user_id
-                  WHERE a.opportunity_id = :o ORDER BY a.occurred_at DESC LIMIT 50',
-                ['o' => $opportunity['id']]
-            ),
+            'activities' => Workspace::can($membership, 'activities.view_others')
+                ? Database::select(
+                    'SELECT a.*, u.name AS user_name FROM crm_activities a LEFT JOIN users u ON u.id = a.user_id
+                      WHERE a.opportunity_id = :o ORDER BY a.occurred_at DESC LIMIT 50',
+                    ['o' => $opportunity['id']]
+                )
+                : Database::select(
+                    'SELECT a.*, u.name AS user_name FROM crm_activities a LEFT JOIN users u ON u.id = a.user_id
+                      WHERE a.opportunity_id = :o AND a.user_id = :me ORDER BY a.occurred_at DESC LIMIT 50',
+                    ['o' => $opportunity['id'], 'me' => Auth::id()]
+                ),
             'logs' => CrmLog::forEntity('opportunity', (int) $opportunity['id'], 15),
             'canEdit' => Workspace::can($membership, 'opportunities.edit'),
         ]);

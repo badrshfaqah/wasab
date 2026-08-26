@@ -75,7 +75,7 @@ $tile = function (string $label, $value, string $color = '', string $url = '') {
     $tile('متابعات اليوم', (int) $o['due_today'], 'var(--info)', route('/crm/today'));
     $tile('متابعات متأخرة', (int) $o['overdue'], (int) $o['overdue'] ? 'var(--danger)' : '', route('/crm/today'));
     $tile('جهات خاملة (30 يوماً)', (int) $o['stale'], '', route('/crm/w/' . $wid . '?stale=1'));
-    $tile('أنشطة بالفترة', (int) $stats['activities']['total']);
+    $tile(empty($seesAllActivities) ? 'أنشطتي بالفترة' : 'أنشطة بالفترة', (int) $stats['activities']['total']);
     ?>
 </div>
 

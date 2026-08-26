@@ -8,7 +8,7 @@ $types = Activity::types();
 ?>
 <div class="card">
     <div class="card-title divided">
-        <span>🕘 سجل العلاقة (<?= count($timeline) ?>)</span>
+        <span>🕘 <?= empty($seesAllActivities) ? 'أنشطتي مع هذه الجهة' : 'سجل العلاقة' ?> (<?= count($timeline) ?>)</span>
         <?php if ($canLogActivity): ?>
             <a class="btn btn-sm" href="#log-activity">+ تسجيل نشاط</a>
         <?php endif; ?>

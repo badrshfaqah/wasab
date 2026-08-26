@@ -47,17 +47,27 @@ class Activity
         return Database::first('SELECT * FROM crm_activities WHERE id = :id', ['id' => $id]);
     }
 
-    /** سجل العلاقة: أنشطة الجهة داخل مساحة معيّنة، الأحدث أولاً. */
-    public static function timeline(int $workspaceId, int $organizationId, int $limit = 100): array
+    /**
+     * سجل العلاقة: أنشطة الجهة داخل مساحة معيّنة، الأحدث أولاً.
+     * $onlyUserId يقصر العرض على أنشطة مستخدم بعينه - لمن لا يملك صلاحية
+     * «مشاهدة أنشطة الآخرين» فيرى ما سجّله هو فقط.
+     */
+    public static function timeline(int $workspaceId, int $organizationId, int $limit = 100, ?int $onlyUserId = null): array
     {
+        $params = ['w' => $workspaceId, 'o' => $organizationId];
+        $mine = '';
+        if ($onlyUserId !== null) {
+            $mine = ' AND a.user_id = :me';
+            $params['me'] = $onlyUserId;
+        }
         return Database::select(
             "SELECT a.*, u.name AS user_name, c.name AS contact_name
                FROM crm_activities a
                LEFT JOIN users u ON u.id = a.user_id
                LEFT JOIN crm_contacts c ON c.id = a.contact_id
-              WHERE a.workspace_id = :w AND a.organization_id = :o
+              WHERE a.workspace_id = :w AND a.organization_id = :o{$mine}
               ORDER BY a.occurred_at DESC, a.id DESC LIMIT {$limit}",
-            ['w' => $workspaceId, 'o' => $organizationId]
+            $params
         );
     }
 

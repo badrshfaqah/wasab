@@ -48,9 +48,11 @@ class Stats
         // الأنشطة خلال الفترة، مصنّفة بالنوع
         $activityWhere = 'a.workspace_id = :w AND a.occurred_at BETWEEN :from AND :to';
         $activityParams = ['w' => $workspaceId, 'from' => $from . ' 00:00:00', 'to' => $to . ' 23:59:59'];
-        if ($ownerId) {
+        // من لا يملك «مشاهدة أنشطة الآخرين» تُحسب له أنشطته وحدها
+        $restrictTo = (int) ($filters['activity_user'] ?? 0) ?: $ownerId;
+        if ($restrictTo) {
             $activityWhere .= ' AND a.user_id = :owner';
-            $activityParams['owner'] = $ownerId;
+            $activityParams['owner'] = $restrictTo;
         }
         $byType = Database::select(
             "SELECT a.type, COUNT(*) AS c FROM crm_activities a WHERE {$activityWhere} GROUP BY a.type ORDER BY c DESC",
@@ -91,8 +93,8 @@ class Stats
             ['w' => $workspaceId]
         );
 
-        // الأنشط في الفريق خلال الفترة
-        $topUsers = Database::select(
+        // الأنشط في الفريق خلال الفترة - يُخفى عمّن لا يرى أنشطة غيره
+        $topUsers = !empty($filters['activity_user']) ? [] : Database::select(
             "SELECT u.name, COUNT(*) AS c FROM crm_activities a
                JOIN users u ON u.id = a.user_id
               WHERE a.workspace_id = :w AND a.occurred_at BETWEEN :from AND :to

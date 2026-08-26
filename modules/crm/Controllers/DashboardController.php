@@ -26,6 +26,9 @@ class DashboardController extends BaseCrmController
             'category' => (int) Request::query('category', 0),
             'pipeline' => (int) Request::query('pipeline', 0),
         ];
+        if (!Workspace::can($membership, 'activities.view_others')) {
+            $filters['activity_user'] = \App\Core\Auth::id();
+        }
 
         View::render('crm::dashboard', [
             'pageTitle' => 'لوحة ' . $workspace['name'],
@@ -34,6 +37,7 @@ class DashboardController extends BaseCrmController
             'stats' => Stats::workspace((int) $workspace['id'], $filters),
             'filters' => $filters,
             'members' => Workspace::members((int) $workspace['id']),
+            'seesAllActivities' => Workspace::can($membership, 'activities.view_others'),
             'categories' => Database::select('SELECT * FROM crm_categories WHERE workspace_id = :w ORDER BY sort_order, name', ['w' => $workspace['id']]),
             'pipelines' => Pipeline::forWorkspace((int) $workspace['id']),
         ]);

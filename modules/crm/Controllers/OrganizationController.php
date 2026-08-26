@@ -176,7 +176,13 @@ class OrganizationController extends BaseCrmController
             'inLists' => \Modules\Crm\Models\CrmList::forRelation((int) $relation['id']),
             'allCategories' => Database::select('SELECT * FROM crm_categories WHERE workspace_id = :w ORDER BY sort_order, name', ['w' => $workspace['id']]),
             'contacts' => \Modules\Crm\Models\Contact::forOrganization((int) $organization['id']),
-            'timeline' => \Modules\Crm\Models\Activity::timeline((int) $workspace['id'], (int) $organization['id']),
+            'timeline' => \Modules\Crm\Models\Activity::timeline(
+                (int) $workspace['id'],
+                (int) $organization['id'],
+                100,
+                Workspace::can($membership, 'activities.view_others') ? null : Auth::id()
+            ),
+            'seesAllActivities' => Workspace::can($membership, 'activities.view_others'),
             'opportunities' => \Modules\Crm\Models\Opportunity::forOrganization((int) $workspace['id'], (int) $organization['id']),
             'canOpportunities' => Workspace::can($membership, 'opportunities.create'),
             'canLogActivity' => Workspace::can($membership, 'activities.create'),
