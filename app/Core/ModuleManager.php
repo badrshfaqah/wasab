@@ -438,7 +438,13 @@ class ModuleManager
             if (is_callable($provider)) {
                 $result = $provider($user);
                 if (is_array($result)) {
-                    $items = array_merge($items, $result);
+                    // كل عنصر يحمل مفتاح إضافته ليصنّفه الشريط الجانبي في مجموعته
+                    foreach ($result as $item) {
+                        if (is_array($item)) {
+                            $item['module'] = $item['module'] ?? $key;
+                            $items[] = $item;
+                        }
+                    }
                 }
             }
         }
