@@ -804,6 +804,9 @@ body.nav-rail .brand{justify-content:center;padding:16px 0;}
 
 /* اللوحة نفسها: تعلو الصفحة وتتوسطها أعلى قليلاً من المنتصف كما تعوّد المستخدم */
 .palette{position:fixed;inset:0;z-index:120;display:flex;justify-content:center;align-items:flex-start;}
+/* قاعدة الصنف تتغلّب على خاصية hidden في متصفحات كثيرة، فنُصرّح بالإخفاء
+   صراحةً - وإلا بقيت اللوحة وغشاؤها فوق الصفحة منذ فتحها. */
+.palette[hidden]{display:none !important;}
 .palette-backdrop{position:absolute;inset:0;background:rgba(15,23,42,.55);backdrop-filter:blur(2px);}
 .palette-box{
   position:relative;width:min(620px,92vw);margin-top:12vh;
