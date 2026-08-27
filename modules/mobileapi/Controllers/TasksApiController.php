@@ -396,6 +396,7 @@ class TasksApiController
             'approver_name' => $t['approver_name'] ?? null,
             'completed_at' => $t['completed_at'] ?? null,
             'linked_type' => $t['linked_type'] ?? null,
+            'linked_id' => isset($t['linked_id']) && $t['linked_id'] ? (int) $t['linked_id'] : null,
             'linked_label' => $t['linked_label'] ?? null,
             'created_at' => $t['created_at'] ?? null,
             'updated_at' => $t['updated_at'] ?? null,
@@ -547,7 +548,7 @@ class TasksApiController
             'approver_id' => $approverId,
             // ربط المهمة بسجلات وحدات أخرى غير مدعوم من الجوال بعد - نحافظ على القيم الحالية عند التعديل.
             'linked_type' => $task['linked_type'] ?? null,
-            'linked_id' => $task['linked_id'] ?? null,
+            'linked_id' => isset($task['linked_id']) && $task['linked_id'] ? (int) $task['linked_id'] : null,
             'linked_label' => $task['linked_label'] ?? null,
         ];
     }

@@ -6,6 +6,8 @@ use Modules\Mobileapi\Controllers\ApprovalsApiController;
 use Modules\Mobileapi\Controllers\ArchiveApiController;
 use Modules\Mobileapi\Controllers\AuthApiController;
 use Modules\Mobileapi\Controllers\CheckinsApiController;
+use Modules\Mobileapi\Controllers\ContactsApiController;
+use Modules\Mobileapi\Controllers\CrmApiController;
 use Modules\Mobileapi\Controllers\DocumentsApiController;
 use Modules\Mobileapi\Controllers\EmployeeCardApiController;
 use Modules\Mobileapi\Controllers\HomeApiController;
@@ -140,6 +142,40 @@ return function (Router $router): void {
     $router->get('/api/v1/documents/{id}/versions/{versionId}', [DocumentsApiController::class, 'viewVersion'], $documents);
     $router->get('/api/v1/documents/{id}/versions/{versionId}/diff', [DocumentsApiController::class, 'versionDiff'], $documents);
     $router->post('/api/v1/documents/{id}/versions/{versionId}/restore', [DocumentsApiController::class, 'restoreVersion'], $documents);
+
+    // ---------- دليل جهات الاتصال ----------
+    // الدليل كيان مشترك: CRM وغيره يستهلكونه ولا يملكون جهاتهم.
+    $contacts = [$auth, $requireModule('contacts')];
+    $router->get('/api/v1/contacts/orgs', [ContactsApiController::class, 'organizations'], $contacts);
+    $router->get('/api/v1/contacts/people', [ContactsApiController::class, 'persons'], $contacts);
+    $router->get('/api/v1/contacts/resolve', [ContactsApiController::class, 'resolveNumber'], $contacts);
+    $router->post('/api/v1/contacts/orgs', [ContactsApiController::class, 'storeOrg'], $contacts);
+    $router->post('/api/v1/contacts/people', [ContactsApiController::class, 'storePerson'], $contacts);
+    $router->post('/api/v1/contacts/link', [ContactsApiController::class, 'link'], $contacts);
+    $router->post('/api/v1/contacts/unlink', [ContactsApiController::class, 'unlink'], $contacts);
+    $router->get('/api/v1/contacts/orgs/{id}', [ContactsApiController::class, 'showOrg'], $contacts);
+    $router->post('/api/v1/contacts/orgs/{id}', [ContactsApiController::class, 'updateOrg'], $contacts);
+    $router->post('/api/v1/contacts/orgs/{id}/archive', [ContactsApiController::class, 'archiveOrg'], $contacts);
+    $router->get('/api/v1/contacts/people/{id}', [ContactsApiController::class, 'showPerson'], $contacts);
+    $router->post('/api/v1/contacts/people/{id}', [ContactsApiController::class, 'updatePerson'], $contacts);
+    $router->post('/api/v1/contacts/people/{id}/archive', [ContactsApiController::class, 'archivePerson'], $contacts);
+
+    // ---------- إدارة العلاقات CRM ----------
+    // ملاحظة ترتيب: .../orgs/link قبل .../orgs/{orgId} فلهما عدد المقاطع نفسه.
+    $crm = [$auth, $requireModule('crm')];
+    $router->get('/api/v1/crm/workspaces', [CrmApiController::class, 'workspaces'], $crm);
+    $router->get('/api/v1/crm/today', [CrmApiController::class, 'today'], $crm);
+    $router->get('/api/v1/crm/w/{id}/orgs', [CrmApiController::class, 'organizations'], $crm);
+    $router->post('/api/v1/crm/w/{id}/orgs/link', [CrmApiController::class, 'linkOrg'], $crm);
+    $router->get('/api/v1/crm/w/{id}/opportunities', [CrmApiController::class, 'opportunities'], $crm);
+    $router->post('/api/v1/crm/w/{id}/opportunities', [CrmApiController::class, 'storeOpportunity'], $crm);
+    $router->post('/api/v1/crm/w/{id}/opportunities/{oppId}/move', [CrmApiController::class, 'moveOpportunity'], $crm);
+    $router->post('/api/v1/crm/w/{id}/activities/{activityId}/done', [CrmApiController::class, 'completeFollowUp'], $crm);
+    $router->post('/api/v1/crm/w/{id}/activities/{activityId}/delete', [CrmApiController::class, 'deleteActivity'], $crm);
+    $router->get('/api/v1/crm/w/{id}/orgs/{orgId}', [CrmApiController::class, 'showOrg'], $crm);
+    $router->post('/api/v1/crm/w/{id}/orgs/{orgId}', [CrmApiController::class, 'updateRelation'], $crm);
+    $router->post('/api/v1/crm/w/{id}/orgs/{orgId}/unlink', [CrmApiController::class, 'unlinkOrg'], $crm);
+    $router->post('/api/v1/crm/w/{id}/orgs/{orgId}/activities', [CrmApiController::class, 'storeActivity'], $crm);
 
     // ---------- التحضير ----------
     $checkins = [$auth, $requireModule('checkins')];
