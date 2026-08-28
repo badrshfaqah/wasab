@@ -94,6 +94,9 @@ body{margin:0;background:#e5e7eb;font-family:'Cairo','Segoe UI',Tahoma,Arial,san
 .doc-meta-line{display:flex;justify-content:space-between;font-size:12px;color:#374151;margin:0 0 16px;}
 .doc-content{line-height:2;font-size:14.5px;min-height:120mm;}
 .doc-content :is(ul,ol){padding-inline-start:24px;}
+.doc-content img{max-width:100%;max-height:200mm;height:auto;}
+.doc-content table{border-collapse:collapse;max-width:100%;}
+.doc-content :is(td,th){padding:4px 8px;}
 .doc-signature{margin-top:40px;display:flex;justify-content:flex-end;gap:20px;text-align:center;}
 .doc-signature img{max-height:70px;display:block;margin:0 auto 6px;
   /* بلا mix-blend-mode: الدمج كان يذيب خلفية الأختام الممسوحة البيضاء لكنه
@@ -125,7 +128,7 @@ body{margin:0;background:#e5e7eb;font-family:'Cairo','Segoe UI',Tahoma,Arial,san
   /* لا يُقطع العنوان ولا كتلة التوقيع بين صفحتين */
   .doc-title{break-after:avoid;}
   .doc-signature{break-inside:avoid;}
-  .doc-content :is(p,li,tr,h1,h2,h3){break-inside:avoid-page;}
+  .doc-content :is(p,li,tr,h1,h2,h3,img){break-inside:avoid-page;}
 }
 <?php if ($embedded): ?>
 /* معاينة مدمجة: صفحة نظيفة بلا شريط ولا خلفية - تُعرض داخل iframe */

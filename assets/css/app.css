@@ -490,6 +490,9 @@ input[type="date"],input[type="datetime-local"],input[type="time"],input[type="m
 .archive-card-name{font-weight:600;font-size:13.5px;margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .doc-content-preview{line-height:1.9;font-size:14.5px;}
 .doc-content-preview :is(ul,ol){padding-inline-start:24px;}
+.doc-content-preview img{max-width:100%;height:auto;}
+.doc-content-preview table{border-collapse:collapse;max-width:100%;}
+.doc-content-preview :is(td,th){padding:4px 8px;}
 
 @media (max-width: 900px){
   body{overflow-x:hidden;}

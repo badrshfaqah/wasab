@@ -155,6 +155,44 @@ document.addEventListener('DOMContentLoaded', function () {
       });
     });
 
+    // لصق صورة (لقطة شاشة أو صورة من الحافظة): نصغّرها قبل إدراجها بدل رفع
+    // ميغابايتات كـ base64 داخل الطلب - فتجاوز حد الرفع في PHP يعني ضياع
+    // الحفظ كاملاً. العرض الأقصى 1400 بكسل وهو أوسع من ورقة A4 عند الطباعة.
+    editable.addEventListener('paste', function (e) {
+      var items = (e.clipboardData || {}).items || [];
+      var file = null;
+      for (var i = 0; i < items.length; i++) {
+        if (items[i].kind === 'file' && items[i].type.indexOf('image/') === 0) {
+          file = items[i].getAsFile();
+          break;
+        }
+      }
+      if (!file) return;
+      e.preventDefault();
+
+      var reader = new FileReader();
+      reader.onload = function () {
+        var img = new Image();
+        img.onload = function () {
+          var max = 1400;
+          var w = img.width;
+          var h = img.height;
+          if (w > max) { h = Math.round(h * max / w); w = max; }
+          var canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+          var type = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
+          var data = canvas.toDataURL(type, 0.85);
+          editable.focus();
+          document.execCommand('insertHTML', false, '<img src="' + data + '" style="max-width:100%">');
+          sync();
+        };
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
+
     editable.addEventListener('input', sync);
     editable.addEventListener('blur', sync);
     var form = rte.closest('form');
