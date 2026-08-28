@@ -12,6 +12,7 @@ use App\Controllers\InstallController;
 use App\Controllers\ModuleController;
 use App\Controllers\PaletteController;
 use App\Controllers\NotificationController;
+use App\Controllers\PrivacyController;
 use App\Controllers\ProfileController;
 use App\Controllers\PushController;
 use App\Controllers\ReportController;
@@ -34,6 +35,10 @@ $router->post('/dashboard/prefs', [DashboardController::class, 'savePrefs'], [[M
 // ---------- صفحة "وصاب" العامة عن المنتج (بلا تسجيل دخول عمداً - مخصصة للنشر
 // كصفحة تعريفية بموقع الشركة، تشمل وصف المنتج وقائمة ميزاته وسجل تحديثاته) ----------
 $router->get('/wasab', [WasabController::class, 'index'], []);
+
+// ---------- سياسة خصوصية تطبيق الجوال (بلا تسجيل دخول عمداً - متجر آبل يشترط
+// رابطاً عاماً يفتحه المراجع وأي مستخدم قبل التحميل) ----------
+$router->get('/privacy', [PrivacyController::class, 'index'], []);
 
 // ---------- التقويم (يجمع أحداث كل الإضافات المفعّلة) ----------
 $router->get('/calendar', [CalendarController::class, 'index'], [[Middleware::class, 'auth']]);
