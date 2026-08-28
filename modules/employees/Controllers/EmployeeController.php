@@ -230,16 +230,28 @@ class EmployeeController
         // رمز QR يحمل بطاقة تواصل (vCard) تُحفظ بجوال الماسح. النصوص العربية تستهلك
         // ضعف السعة (UTF-8)، فنجرّب نسخاً متدرجة (كاملة ← بلا جهة ← بلا مسمى ←
         // اسم وجوال فقط ← جوال فقط) ونستخدم أول ما يتسع - وإلا تُعرض البطاقة بلا رمز.
-        $vc = fn (array $lines): string => "BEGIN:VCARD\nVERSION:3.0\n" . implode('', $lines) . "END:VCARD";
-        $fn = "FN:{$employee['full_name']}\n";
-        $title = $employee['job_title'] ? "TITLE:{$employee['job_title']}\n" : '';
-        $org = ($company && $company['name']) ? "ORG:{$company['name']}\n" : '';
-        $tel = $employee['phone'] ? "TEL:{$employee['phone']}\n" : '';
+        // تهريب فواصل الحقول، وإلا اقتُطعت القيمة عند أول فاصلة أو فاصلة منقوطة.
+        $esc = fn (string $v): string => str_replace(
+            ['\\', ';', ',', "\r\n", "\n", "\r"],
+            ['\\\\', '\\;', '\\,', '\\n', '\\n', '\\n'],
+            $v
+        );
+        // N إلزامي في vCard 3.0: بدونه تُنشئ تطبيقات جهات الاتصال بطاقة بلا اسم
+        // مهما كان FN موجوداً. آخر كلمة عائلة وما قبلها اسم أول.
+        $nameParts = preg_split('/\s+/u', trim((string) $employee['full_name']), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $family = count($nameParts) > 1 ? (string) array_pop($nameParts) : '';
+        $n = 'N:' . $esc($family) . ';' . $esc(implode(' ', $nameParts)) . ";;;\r\n";
+
+        $vc = fn (array $lines): string => "BEGIN:VCARD\r\nVERSION:3.0\r\n" . implode('', $lines) . "END:VCARD";
+        $fn = 'FN:' . $esc((string) $employee['full_name']) . "\r\n";
+        $title = $employee['job_title'] ? 'TITLE:' . $esc((string) $employee['job_title']) . "\r\n" : '';
+        $org = ($company && $company['name']) ? 'ORG:' . $esc((string) $company['name']) . "\r\n" : '';
+        $tel = $employee['phone'] ? 'TEL;TYPE=CELL:' . $esc((string) $employee['phone']) . "\r\n" : '';
         $qrSvg = null;
         $candidates = [
-            $vc([$fn, $title, $org, $tel]),
-            $vc([$fn, $title, $tel]),
-            $vc([$fn, $tel]),
+            $vc([$n, $fn, $title, $org, $tel]),
+            $vc([$n, $fn, $title, $tel]),
+            $vc([$n, $fn, $tel]),
         ];
         if ($employee['phone']) {
             $candidates[] = 'tel:' . preg_replace('/\D+/', '', (string) $employee['phone']);

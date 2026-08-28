@@ -241,30 +241,65 @@ class EmployeeCardApiController
     private function vcard(array $employee, array $company, int $companyId): string
     {
         $companyName = (string) ($company['name'] ?? '');
+        $fullName = trim((string) ($employee['full_name'] ?? ''));
 
         $lines = ['BEGIN:VCARD', 'VERSION:3.0'];
-        $lines[] = 'FN:' . ($employee['full_name'] ?? '');
+        // N إلزامي في vCard 3.0 (RFC 2426): بدونه تُنشئ تطبيقات جهات الاتصال
+        // بطاقة بلا اسم مهما كان FN موجوداً - وهو سبب اختفاء الاسم عند المسح.
+        $lines[] = 'N:' . self::structuredName($fullName);
+        $lines[] = 'FN:' . self::escapeValue($fullName);
         if (!empty($employee['job_title'])) {
-            $lines[] = 'TITLE:' . $employee['job_title'];
+            $lines[] = 'TITLE:' . self::escapeValue((string) $employee['job_title']);
         }
         if ($companyName !== '') {
-            // القسم الثاني في ORG هو الإدارة، وهكذا تقرأه تطبيقات جهات الاتصال.
-            $lines[] = 'ORG:' . $companyName
-                . (!empty($employee['department']) ? ';' . $employee['department'] : '');
+            // الفاصلة المنقوطة هنا فاصل حقيقي بين الشركة والإدارة، فيُهرَّب كل جزء وحده.
+            $org = self::escapeValue($companyName);
+            if (!empty($employee['department'])) {
+                $org .= ';' . self::escapeValue((string) $employee['department']);
+            }
+            $lines[] = 'ORG:' . $org;
         }
         if (!empty($employee['phone'])) {
-            $lines[] = 'TEL;TYPE=CELL,VOICE:' . $employee['phone'];
+            // نوع واحد لكل حقل: قوائم الأنواع المركّبة (CELL,VOICE) تربك بعض القارئات.
+            $lines[] = 'TEL;TYPE=CELL:' . self::escapeValue((string) $employee['phone']);
         }
         $email = $this->email($employee);
         if ($email) {
-            $lines[] = 'EMAIL;TYPE=WORK,INTERNET:' . $email;
+            $lines[] = 'EMAIL;TYPE=INTERNET:' . self::escapeValue($email);
         }
         $website = ApplePass::website($companyId);
         if ($website !== '') {
-            $lines[] = 'URL:' . $website;
+            $lines[] = 'URL:' . self::escapeValue($website);
         }
         $lines[] = 'END:VCARD';
 
-        return implode("\n", $lines);
+        // CRLF كما يفرض RFC 2426 - القارئات الصارمة تتوقف عند فاصل أسطر مخالف.
+        return implode("\r\n", $lines);
+    }
+
+    /**
+     * الاسم المركّب `العائلة;الاسم;;;`: آخر كلمة عائلةً وما قبلها اسماً أول،
+     * وهو ما يوافق الأسماء العربية (سعد القحطاني ← سعد / القحطاني). والاسم
+     * المفرد يُكتب اسماً أول بلا عائلة.
+     */
+    private static function structuredName(string $fullName): string
+    {
+        $parts = preg_split('/\s+/u', $fullName, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        if (count($parts) < 2) {
+            return ';' . self::escapeValue($fullName) . ';;;';
+        }
+        $family = (string) array_pop($parts);
+
+        return self::escapeValue($family) . ';' . self::escapeValue(implode(' ', $parts)) . ';;;';
+    }
+
+    /** تهريب فواصل الحقول، وإلا اقتُطعت القيمة عند أول فاصلة أو فاصلة منقوطة. */
+    private static function escapeValue(string $value): string
+    {
+        return str_replace(
+            ['\\', ';', ',', "\r\n", "\n", "\r"],
+            ['\\\\', '\\;', '\\,', '\\n', '\\n', '\\n'],
+            $value
+        );
     }
 }
